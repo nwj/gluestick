@@ -1,5 +1,8 @@
-use askama_axum::Template;
+mod controllers;
+mod views;
+
 use axum::{routing::get, Router};
+use controllers::index::index;
 use serde::Serialize;
 use std::{
     collections::HashMap,
@@ -24,16 +27,6 @@ async fn main() {
 
     tracing::debug!("Listening on {}", listener.local_addr().unwrap());
     axum::serve(listener, app).await.unwrap();
-}
-
-async fn index() -> IndexTemplate<'static> {
-    IndexTemplate { name: "world" }
-}
-
-#[derive(Template)]
-#[template(path = "index.html")]
-struct IndexTemplate<'a> {
-    name: &'a str,
 }
 
 #[allow(dead_code)]
