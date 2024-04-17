@@ -1,7 +1,13 @@
 use askama_axum::Template;
 use axum::{routing::get, Router};
+use serde::Serialize;
+use std::{
+    collections::HashMap,
+    sync::{Arc, RwLock},
+};
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+use ulid::Ulid;
 
 #[tokio::main]
 async fn main() {
@@ -28,4 +34,13 @@ async fn index() -> IndexTemplate<'static> {
 #[template(path = "index.html")]
 struct IndexTemplate<'a> {
     name: &'a str,
+}
+
+#[allow(dead_code)]
+type Db = Arc<RwLock<HashMap<Ulid, Paste>>>;
+
+#[derive(Debug, Serialize, Clone)]
+struct Paste {
+    id: Ulid,
+    text: String,
 }
