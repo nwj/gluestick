@@ -1,4 +1,5 @@
-use axum::{response::Html, routing::get, Router};
+use askama_axum::Template;
+use axum::{routing::get, Router};
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
@@ -19,6 +20,12 @@ async fn main() {
     axum::serve(listener, app).await.unwrap();
 }
 
-async fn index() -> Html<&'static str> {
-    Html("<h1>Hello World!</h1>")
+async fn index() -> IndexTemplate<'static> {
+    IndexTemplate { name: "world" }
+}
+
+#[derive(Template)]
+#[template(path = "index.html")]
+struct IndexTemplate<'a> {
+    name: &'a str,
 }
