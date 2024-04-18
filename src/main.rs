@@ -8,7 +8,7 @@ use std::{
     collections::HashMap,
     sync::{Arc, RwLock},
 };
-use tower_http::trace::TraceLayer;
+use tower_http::{services::ServeDir, trace::TraceLayer};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use ulid::Ulid;
 
@@ -20,6 +20,8 @@ async fn main() {
 
     let app = Router::new()
         .route("/", get(index))
+        .route("/ping", get(|| async { "Pong" }))
+        .nest_service("/assets", ServeDir::new("src/assets"))
         .layer(TraceLayer::new_for_http());
     let listener = tokio::net::TcpListener::bind("127.0.0.1:3000")
         .await
