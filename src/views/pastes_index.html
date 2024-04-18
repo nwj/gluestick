@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h1>Recent Pastes</h1>
+    {% if pastes.len() > 0 %}
+    <ul>
+	    {% for paste in pastes %}
+		    <li>{{paste.text}}</li>
+	    {% endfor %}
+    </ul>
+	{% else %}
+    <p>No recent pastes</p>
+    {% endif %}
+{% endblock %}
