@@ -1,5 +1,5 @@
 use crate::{
-    views::pastes::{NewPasteTemplate, PastesIndexTemplate},
+    views::pastes::{NewPastesTemplate, IndexPastesTemplate},
     Db, Paste,
 };
 use axum::{
@@ -9,13 +9,13 @@ use axum::{
 use serde::Deserialize;
 use ulid::Ulid;
 
-pub async fn index(State(db): State<Db>) -> PastesIndexTemplate {
+pub async fn index(State(db): State<Db>) -> IndexPastesTemplate {
     let pastes = db.read().unwrap().values().cloned().collect::<Vec<_>>();
-    PastesIndexTemplate { pastes }
+    IndexPastesTemplate { pastes }
 }
 
-pub async fn new() -> NewPasteTemplate {
-    NewPasteTemplate {}
+pub async fn new() -> NewPastesTemplate {
+    NewPastesTemplate {}
 }
 
 #[derive(Deserialize, Debug)]

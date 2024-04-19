@@ -24,11 +24,11 @@ async fn main() {
     let db = Db::default();
 
     let app = Router::new()
-        .nest_service("/assets", ServeDir::new("src/assets"))
         .route("/", get(pastes::new))
-        .route("/paste", post(pastes::create))
         .route("/pastes", get(pastes::index))
+        .route("/pastes", post(pastes::create))
         .layer(TraceLayer::new_for_http())
+        .nest_service("/assets", ServeDir::new("src/assets"))
         .with_state(db);
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:3000")
