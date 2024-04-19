@@ -10,3 +10,9 @@ pub struct NewPastesTemplate {}
 pub struct IndexPastesTemplate {
     pub pastes: Vec<Paste>,
 }
+
+#[derive(Template)]
+#[template(path = "pastes_show.html")]
+pub struct ShowPastesTemplate {
+    pub maybe_paste: Option<Paste>,
+}

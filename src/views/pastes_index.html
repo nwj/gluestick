@@ -3,9 +3,14 @@
     <h1>Recent Pastes</h1>
     {% if pastes.len() > 0 %}
         <ul>
-            {% for paste in pastes %}<li>{{ paste.text }}</li>{% endfor %}
+            {% for paste in pastes %}
+                <li>
+                    <a href="pastes/{{ paste.id }}">{{ paste.text }}</a>
+                </li>
+            {% endfor %}
         </ul>
     {% else %}
         <p>No recent pastes</p>
     {% endif %}
+    <a href="/">Create a new paste</a>
 {% endblock %}

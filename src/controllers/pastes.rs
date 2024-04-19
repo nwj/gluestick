@@ -1,9 +1,10 @@
 use crate::{
-    views::pastes::{NewPastesTemplate, IndexPastesTemplate},
+    views::pastes::{IndexPastesTemplate, NewPastesTemplate, ShowPastesTemplate},
     Db, Paste,
 };
 use axum::{
-    extract::{Form, State},
+    extract::{Form, Path, State},
+    http::{header::HeaderMap, StatusCode},
     response::{IntoResponse, Redirect, Response},
 };
 use serde::Deserialize;
@@ -30,4 +31,24 @@ pub async fn create(State(db): State<Db>, Form(input): Form<CreateFormInput>) ->
     db.write().unwrap().insert(paste.id, paste.clone());
 
     Redirect::to("/pastes").into_response()
+}
+
+pub async fn show(Path(id): Path<Ulid>, State(db): State<Db>) -> impl IntoResponse {
+    let maybe_paste = db.read().unwrap().get(&id).cloned();
+
+    let status_code = if maybe_paste.is_some() {
+        StatusCode::OK
+    } else {
+        StatusCode::NOT_FOUND
+    };
+
+    (status_code, ShowPastesTemplate { maybe_paste })
+}
+
+pub async fn destroy(Path(id): Path<Ulid>, State(db): State<Db>) -> impl IntoResponse {
+    db.write().unwrap().remove(&id);
+
+    let mut headers = HeaderMap::new();
+    headers.insert("HX-Redirect", "/pastes".parse().unwrap());
+    headers
 }

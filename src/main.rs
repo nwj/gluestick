@@ -2,7 +2,7 @@ mod controllers;
 mod views;
 
 use axum::{
-    routing::{get, post},
+    routing::{delete, get, post},
     Router,
 };
 use controllers::pastes;
@@ -27,6 +27,8 @@ async fn main() {
         .route("/", get(pastes::new))
         .route("/pastes", get(pastes::index))
         .route("/pastes", post(pastes::create))
+        .route("/pastes/:id", get(pastes::show))
+        .route("/pastes/:id", delete(pastes::destroy))
         .layer(TraceLayer::new_for_http())
         .nest_service("/assets", ServeDir::new("src/assets"))
         .with_state(db);
