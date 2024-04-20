@@ -6,14 +6,10 @@ use axum::{
     Router,
 };
 use controllers::pastes;
-use serde::Serialize;
-use std::{
-    collections::HashMap,
-    sync::{Arc, RwLock},
-};
+use rusqlite::Connection;
+use std::sync::{Arc, Mutex};
 use tower_http::{services::ServeDir, trace::TraceLayer};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-use ulid::Ulid;
 
 #[tokio::main]
 async fn main() {
@@ -21,7 +17,16 @@ async fn main() {
         .with(tracing_subscriber::fmt::layer())
         .init();
 
-    let db = Db::default();
+    let db = Database::new();
+
+    db.conn
+        .lock()
+        .unwrap()
+        .execute(
+            "CREATE TABLE pastes (id INTEGER PRIMARY KEY, text TEXT NOT NULL) STRICT;",
+            (),
+        )
+        .unwrap();
 
     let app = Router::new()
         .route("/", get(pastes::new))
@@ -41,10 +46,20 @@ async fn main() {
     axum::serve(listener, app).await.unwrap();
 }
 
-type Db = Arc<RwLock<HashMap<Ulid, Paste>>>;
+#[derive(Clone)]
+pub struct Database {
+    conn: Arc<Mutex<Connection>>,
+}
 
-#[derive(Debug, Serialize, Clone)]
+impl Database {
+    pub fn new() -> Self {
+        let conn = Arc::new(Mutex::new(Connection::open_in_memory().unwrap()));
+        Self { conn }
+    }
+}
+
+#[derive(Debug)]
 struct Paste {
-    id: Ulid,
+    id: i64,
     text: String,
 }
