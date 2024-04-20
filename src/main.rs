@@ -8,6 +8,7 @@ use axum::{
     Router,
 };
 use controllers::pastes;
+use std::path::PathBuf;
 use tower_http::{services::ServeDir, trace::TraceLayer};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
@@ -26,7 +27,10 @@ async fn main() {
         .route("/pastes/:id", get(pastes::show))
         .route("/pastes/:id", delete(pastes::destroy))
         .layer(TraceLayer::new_for_http())
-        .nest_service("/assets", ServeDir::new("src/assets"))
+        .nest_service(
+            "/assets",
+            ServeDir::new(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src/assets")),
+        )
         .with_state(db);
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:3000")
