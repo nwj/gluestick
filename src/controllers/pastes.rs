@@ -1,6 +1,7 @@
 use crate::{
+    db::Database,
     views::pastes::{IndexPastesTemplate, NewPastesTemplate, ShowPastesTemplate},
-    Database, Paste,
+    models::paste::Paste,
 };
 use axum::{
     extract::{Form, Path, State},

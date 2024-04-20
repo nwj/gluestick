@@ -1,4 +1,6 @@
 mod controllers;
+mod db;
+mod models;
 mod views;
 
 use axum::{
@@ -6,8 +8,6 @@ use axum::{
     Router,
 };
 use controllers::pastes;
-use rusqlite::Connection;
-use std::sync::{Arc, Mutex};
 use tower_http::{services::ServeDir, trace::TraceLayer};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
@@ -17,16 +17,7 @@ async fn main() {
         .with(tracing_subscriber::fmt::layer())
         .init();
 
-    let db = Database::new();
-
-    db.conn
-        .lock()
-        .unwrap()
-        .execute(
-            "CREATE TABLE pastes (id INTEGER PRIMARY KEY, text TEXT NOT NULL) STRICT;",
-            (),
-        )
-        .unwrap();
+    let db = db::Database::init().unwrap();
 
     let app = Router::new()
         .route("/", get(pastes::new))
@@ -44,22 +35,4 @@ async fn main() {
 
     tracing::debug!("Listening on {}", listener.local_addr().unwrap());
     axum::serve(listener, app).await.unwrap();
-}
-
-#[derive(Clone)]
-pub struct Database {
-    conn: Arc<Mutex<Connection>>,
-}
-
-impl Database {
-    pub fn new() -> Self {
-        let conn = Arc::new(Mutex::new(Connection::open_in_memory().unwrap()));
-        Self { conn }
-    }
-}
-
-#[derive(Debug)]
-struct Paste {
-    id: i64,
-    text: String,
 }

@@ -6,10 +6,13 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+anyhow = "1.0.82"
 askama = { version = "0.12.1", features = ["with-axum"] }
 askama_axum = "0.4.0"
 axum = "0.7.5"
+include_dir = "0.7.3"
 rusqlite = { version = "0.31.0", features = ["bundled"] }
+rusqlite_migration = { version = "1.2.0", features = ["from-directory"] }
 serde = { version = "1.0.198", features = ["derive"] }
 tokio = { version = "1.37.0", features = ["macros", "rt-multi-thread"] }
 tower-http = { version = "0.5.2", features = ["trace", "fs"] }

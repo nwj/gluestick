@@ -1,0 +1,4 @@
+CREATE TABLE pastes (
+  id INTEGER PRIMARY KEY,
+  text TEXT NOT NULL
+) STRICT;

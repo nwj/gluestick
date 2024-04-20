@@ -1,4 +1,4 @@
-use crate::Paste;
+use crate::models::paste::Paste;
 use askama_axum::Template;
 
 #[derive(Template)]
