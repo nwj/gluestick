@@ -18,7 +18,7 @@ async fn main() {
         .with(tracing_subscriber::fmt::layer())
         .init();
 
-    let db = db::Database::init().unwrap();
+    let db = db::Database::init().await.unwrap();
 
     let app = Router::new()
         .route("/", get(pastes::new))
