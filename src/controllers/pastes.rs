@@ -6,7 +6,7 @@ use crate::{
 };
 use axum::{
     extract::{Form, Path, State},
-    http::{header::HeaderMap, StatusCode},
+    http::{header::HeaderMap, HeaderValue, StatusCode},
     response::{IntoResponse, Redirect},
 };
 use serde::Deserialize;
@@ -51,6 +51,6 @@ pub async fn destroy(
 ) -> Result<impl IntoResponse, AppError> {
     Paste::delete(&db, id).await?;
     let mut headers = HeaderMap::new();
-    headers.insert("HX-Redirect", "/pastes".parse().unwrap());
+    headers.insert("HX-Redirect", HeaderValue::from_static("/pastes"));
     Ok(headers)
 }
