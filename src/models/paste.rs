@@ -1,5 +1,4 @@
-use crate::db::Database;
-use anyhow::Result;
+use crate::db::{Database, DatabaseError};
 use rusqlite::named_params;
 
 #[derive(Debug)]
@@ -16,7 +15,7 @@ impl Paste {
         })
     }
 
-    pub async fn all(db: &Database) -> Result<Vec<Paste>> {
+    pub async fn all(db: &Database) -> Result<Vec<Paste>, DatabaseError> {
         let pastes = db
             .conn
             .call(|conn| {
@@ -33,7 +32,7 @@ impl Paste {
         Ok(pastes)
     }
 
-    pub async fn insert(db: &Database, text: String) -> Result<usize> {
+    pub async fn insert(db: &Database, text: String) -> Result<usize, DatabaseError> {
         let result = db
             .conn
             .call(move |conn| {
@@ -46,7 +45,7 @@ impl Paste {
         Ok(result)
     }
 
-    pub async fn find(db: &Database, id: i64) -> Result<Option<Paste>> {
+    pub async fn find(db: &Database, id: i64) -> Result<Option<Paste>, DatabaseError> {
         let maybe_paste = db
             .conn
             .call(move |conn| {
@@ -63,7 +62,7 @@ impl Paste {
         Ok(maybe_paste)
     }
 
-    pub async fn delete(db: &Database, id: i64) -> Result<usize> {
+    pub async fn delete(db: &Database, id: i64) -> Result<usize, DatabaseError> {
         let result = db
             .conn
             .call(move |conn| {

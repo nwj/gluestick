@@ -25,6 +25,8 @@ async fn main() {
         .route("/pastes", post(controllers::pastes::create))
         .route("/pastes/:id", get(controllers::pastes::show))
         .route("/pastes/:id", delete(controllers::pastes::destroy))
+        .route("/errors/404", get(controllers::not_found))
+        .route("/errors/500", get(controllers::internal_server_error))
         .fallback(controllers::not_found)
         .nest_service(
             "/assets",

@@ -1,4 +1,5 @@
 use crate::{
+    controllers::AppError,
     db::Database,
     models::paste::Paste,
     views::pastes::{IndexPastesTemplate, NewPastesTemplate, ShowPastesTemplate},
@@ -6,13 +7,13 @@ use crate::{
 use axum::{
     extract::{Form, Path, State},
     http::{header::HeaderMap, StatusCode},
-    response::{IntoResponse, Redirect, Response},
+    response::{IntoResponse, Redirect},
 };
 use serde::Deserialize;
 
-pub async fn index(State(db): State<Database>) -> IndexPastesTemplate {
-    let pastes = Paste::all(&db).await.unwrap();
-    IndexPastesTemplate { pastes }
+pub async fn index(State(db): State<Database>) -> Result<impl IntoResponse, AppError> {
+    let pastes = Paste::all(&db).await?;
+    Ok(IndexPastesTemplate { pastes })
 }
 
 pub async fn new() -> NewPastesTemplate {
@@ -24,24 +25,32 @@ pub struct CreateFormInput {
     pub text: String,
 }
 
-pub async fn create(State(db): State<Database>, Form(input): Form<CreateFormInput>) -> Response {
-    Paste::insert(&db, input.text).await.unwrap();
-    Redirect::to("/pastes").into_response()
+pub async fn create(
+    State(db): State<Database>,
+    Form(input): Form<CreateFormInput>,
+) -> Result<impl IntoResponse, AppError> {
+    Paste::insert(&db, input.text).await?;
+    Ok(Redirect::to("/pastes").into_response())
 }
 
-pub async fn show(Path(id): Path<i64>, State(db): State<Database>) -> impl IntoResponse {
-    let maybe_paste = Paste::find(&db, id).await.unwrap();
-    let status_code = if maybe_paste.is_some() {
-        StatusCode::OK
+pub async fn show(
+    Path(id): Path<i64>,
+    State(db): State<Database>,
+) -> Result<impl IntoResponse, AppError> {
+    let maybe_paste = Paste::find(&db, id).await?;
+    if maybe_paste.is_some() {
+        Ok((StatusCode::OK, ShowPastesTemplate { maybe_paste }))
     } else {
-        StatusCode::NOT_FOUND
-    };
-    (status_code, ShowPastesTemplate { maybe_paste })
+        Err(AppError::NotFound)
+    }
 }
 
-pub async fn destroy(Path(id): Path<i64>, State(db): State<Database>) -> impl IntoResponse {
-    Paste::delete(&db, id).await.unwrap();
+pub async fn destroy(
+    Path(id): Path<i64>,
+    State(db): State<Database>,
+) -> Result<impl IntoResponse, AppError> {
+    Paste::delete(&db, id).await?;
     let mut headers = HeaderMap::new();
     headers.insert("HX-Redirect", "/pastes".parse().unwrap());
-    headers
+    Ok(headers)
 }
