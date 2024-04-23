@@ -1,16 +1,15 @@
-mod controllers;
-mod db;
-mod models;
-mod views;
-
 use axum::{
     routing::{delete, get, post},
     Router,
 };
-use controllers::pastes;
 use std::path::PathBuf;
 use tower_http::{services::ServeDir, trace::TraceLayer};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+
+mod controllers;
+mod db;
+mod models;
+mod views;
 
 #[tokio::main]
 async fn main() {
@@ -21,16 +20,17 @@ async fn main() {
     let db = db::Database::init().await.unwrap();
 
     let app = Router::new()
-        .route("/", get(pastes::new))
-        .route("/pastes", get(pastes::index))
-        .route("/pastes", post(pastes::create))
-        .route("/pastes/:id", get(pastes::show))
-        .route("/pastes/:id", delete(pastes::destroy))
-        .layer(TraceLayer::new_for_http())
+        .route("/", get(controllers::pastes::new))
+        .route("/pastes", get(controllers::pastes::index))
+        .route("/pastes", post(controllers::pastes::create))
+        .route("/pastes/:id", get(controllers::pastes::show))
+        .route("/pastes/:id", delete(controllers::pastes::destroy))
+        .fallback(controllers::not_found)
         .nest_service(
             "/assets",
             ServeDir::new(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src/assets")),
         )
+        .layer(TraceLayer::new_for_http())
         .with_state(db);
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:3000")
