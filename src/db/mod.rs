@@ -10,7 +10,7 @@ pub struct Database {
 }
 
 impl Database {
-    pub async fn init() -> Result<Self, DatabaseError> {
+    pub async fn init() -> Result<Self, Error> {
         let mut conn = Connection::open_in_memory().await?;
 
         AsyncMigrations::from_directory(&MIGRATIONS_DIR)?
@@ -23,7 +23,7 @@ impl Database {
 
 #[derive(Debug, thiserror::Error)]
 #[error(transparent)]
-pub enum DatabaseError {
+pub enum Error {
     Rusqlite(#[from] rusqlite::Error),
     TokioRusqlite(#[from] tokio_rusqlite::Error),
     RusqliteMigration(#[from] rusqlite_migration::Error),

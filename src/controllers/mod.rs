@@ -6,47 +6,45 @@ use axum::{
 
 pub mod pastes;
 
-pub async fn not_found() -> Result<(), AppError> {
-    Err(AppError::NotFound)
+pub async fn not_found() -> Result<(), Error> {
+    Err(Error::NotFound)
 }
 
-pub async fn internal_server_error() -> Result<(), AppError> {
-    Err(AppError::Generic)
+pub async fn internal_server_error() -> Result<(), Error> {
+    Err(Error::Generic)
 }
 
-// This represents any error that we could get out of a route handler
-// and maps them to an appropriate status code and response template.
 #[derive(Debug, thiserror::Error)]
-pub enum AppError {
+pub enum Error {
     #[error("generic error")]
     Generic,
 
     #[error(transparent)]
-    Database(#[from] crate::db::DatabaseError),
+    Database(#[from] crate::db::Error),
 
     #[error("resource not found")]
     NotFound,
 }
 
-impl AppError {
+impl Error {
     fn status_code(&self) -> StatusCode {
         match self {
-            AppError::Generic | AppError::Database(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            AppError::NotFound => StatusCode::NOT_FOUND,
+            Error::Generic | Error::Database(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            Error::NotFound => StatusCode::NOT_FOUND,
         }
     }
 
     fn template(&self) -> ErrorTemplate {
         match self {
-            AppError::Generic | AppError::Database(_) => {
+            Error::Generic | Error::Database(_) => {
                 ErrorTemplate::InternalServerError(InternalServerErrorTemplate {})
             }
-            AppError::NotFound => ErrorTemplate::NotFound(NotFoundTemplate {}),
+            Error::NotFound => ErrorTemplate::NotFound(NotFoundTemplate {}),
         }
     }
 }
 
-impl IntoResponse for AppError {
+impl IntoResponse for Error {
     fn into_response(self) -> Response {
         (self.status_code(), self.template()).into_response()
     }
