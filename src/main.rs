@@ -6,6 +6,7 @@ use std::path::PathBuf;
 use tower_http::{services::ServeDir, trace::TraceLayer};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
+mod config;
 mod controllers;
 mod db;
 mod models;
@@ -16,6 +17,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing_subscriber::registry()
         .with(tracing_subscriber::fmt::layer())
         .init();
+
+    // We won't use .env files in production, so only compile this in non-release builds
+    #[cfg(debug_assertions)]
+    dotenvy::dotenv()
+        .map_err(|e| {
+            tracing::debug!("did not find a .env file, continuing with normal execution");
+            e
+        })
+        .ok();
+
+    let config = config::Config::parse()?;
 
     let db = db::Database::init().await?;
 
@@ -35,9 +47,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .layer(TraceLayer::new_for_http())
         .with_state(db);
 
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:3000").await?;
+    let listener = tokio::net::TcpListener::bind(("127.0.0.1", config.port())).await?;
 
-    tracing::debug!("Listening on {}", listener.local_addr()?);
+    tracing::debug!("listening on {}", listener.local_addr()?);
     axum::serve(listener, app)
         .with_graceful_shutdown(shutdown_signal())
         .await?;

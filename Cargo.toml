@@ -9,6 +9,7 @@ edition = "2021"
 askama = { version = "0.12.1", features = ["with-axum"] }
 askama_axum = "0.4.0"
 axum = "0.7.5"
+dotenvy = "0.15.7"
 include_dir = "0.7.3"
 rusqlite = { version = "0.31.0", features = ["bundled"] }
 rusqlite_migration = { version = "1.2.0", features = ["from-directory", "alpha-async-tokio-rusqlite"] }
