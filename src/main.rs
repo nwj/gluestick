@@ -30,6 +30,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config = config::Config::parse()?;
 
     let mut db = db::Database::init().await?;
+
+    // Pragmas should be applied immediately after connecting to the database and outside of
+    // the context of migrations, because some (e.g. `foreign keys`) need to be executed per
+    // connection and some (e.g. `journal_mode`) need to be executed outside of transactions,
+    // which migrations are run in.
+    db.conn
+        .call(|conn| {
+            conn.pragma_update(None, "journal_mode", "WAL")?;
+            conn.pragma_update(None, "synchronous", "NORMAL")?;
+            conn.pragma_update(None, "busy_timeout", "5000")?;
+            conn.pragma_update(None, "foreign_keys", "true")?;
+            Ok(())
+        })
+        .await?;
+
     db::migrations().to_latest(&mut db.conn).await?;
 
     let app = Router::new()
