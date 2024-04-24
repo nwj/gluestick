@@ -29,7 +29,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let config = config::Config::parse()?;
 
-    let db = db::Database::init().await?;
+    let mut db = db::Database::init().await?;
+    db::migrations().to_latest(&mut db.conn).await?;
 
     let app = Router::new()
         .route("/", get(controllers::pastes::new))

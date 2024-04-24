@@ -1,8 +1,5 @@
-use include_dir::{include_dir, Dir};
-use rusqlite_migration::AsyncMigrations;
+use rusqlite_migration::{AsyncMigrations, M};
 use tokio_rusqlite::Connection;
-
-const MIGRATIONS_DIR: Dir = include_dir!("$CARGO_MANIFEST_DIR/src/db/migrations");
 
 #[derive(Clone)]
 pub struct Database {
@@ -11,14 +8,13 @@ pub struct Database {
 
 impl Database {
     pub async fn init() -> Result<Self, Error> {
-        let mut conn = Connection::open_in_memory().await?;
-
-        AsyncMigrations::from_directory(&MIGRATIONS_DIR)?
-            .to_latest(&mut conn)
-            .await?;
-
+        let conn = Connection::open_in_memory().await?;
         Ok(Self { conn })
     }
+}
+
+pub fn migrations() -> AsyncMigrations {
+    AsyncMigrations::new(vec![M::up(include_str!("migrations/01-init.sql"))])
 }
 
 #[derive(Debug, thiserror::Error)]
