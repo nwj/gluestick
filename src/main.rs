@@ -12,12 +12,12 @@ mod models;
 mod views;
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing_subscriber::registry()
         .with(tracing_subscriber::fmt::layer())
         .init();
 
-    let db = db::Database::init().await.unwrap();
+    let db = db::Database::init().await?;
 
     let app = Router::new()
         .route("/", get(controllers::pastes::new))
@@ -35,15 +35,14 @@ async fn main() {
         .layer(TraceLayer::new_for_http())
         .with_state(db);
 
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:3000")
-        .await
-        .unwrap();
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:3000").await?;
 
-    tracing::debug!("Listening on {}", listener.local_addr().unwrap());
+    tracing::debug!("Listening on {}", listener.local_addr()?);
     axum::serve(listener, app)
         .with_graceful_shutdown(shutdown_signal())
-        .await
-        .unwrap();
+        .await?;
+
+    Ok(())
 }
 
 async fn shutdown_signal() {
