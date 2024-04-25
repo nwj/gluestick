@@ -22,7 +22,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     #[cfg(debug_assertions)]
     dotenvy::dotenv()
         .map_err(|e| {
-            tracing::debug!("did not find a .env file, continuing with normal execution");
+            if e.not_found() {
+                tracing::debug!("no .env file found, continuing with normal execution");
+            } else {
+                tracing::debug!(
+                    "error with .env file: {}, continuing with normal execution",
+                    e
+                );
+            }
             e
         })
         .ok();
