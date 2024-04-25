@@ -29,7 +29,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let config = config::Config::parse()?;
 
-    let mut db = db::Database::init().await?;
+    let mut db = db::Database::new(&config).await?;
 
     // Pragmas should be applied immediately after connecting to the database and outside of
     // the context of migrations, because some (e.g. `foreign keys`) need to be executed per

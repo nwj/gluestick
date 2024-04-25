@@ -1,14 +1,14 @@
 use rusqlite_migration::{AsyncMigrations, M};
 use tokio_rusqlite::Connection;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Database {
     pub conn: Connection,
 }
 
 impl Database {
-    pub async fn init() -> Result<Self, Error> {
-        let conn = Connection::open_in_memory().await?;
+    pub async fn new(config: &crate::config::Config) -> Result<Self, Error> {
+        let conn = Connection::open(config.database_path()).await?;
         Ok(Self { conn })
     }
 }
