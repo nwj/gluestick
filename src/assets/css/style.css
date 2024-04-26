@@ -1,0 +1,38 @@
+@import url("/assets/css/vendor/modern-normalize.min.css") layer(normalize);
+
+@layer reset {
+  :root {
+    line-height: 1.5;
+  }
+
+  body,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  figure,
+  p,
+  ol,
+  ul {
+    margin: unset;
+  }
+
+  ol,
+  ul {
+    list-style: none;
+    padding-inline: 0;
+  }
+
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
+  }
+
+  img {
+    display: block;
+    max-inline-size: 100%;
+  }
+}

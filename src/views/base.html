@@ -2,9 +2,17 @@
 <html lang="en">
     <head>
         <script src="/assets/js/vendor/htmx.min.js"></script>
+        <link href="/assets/css/style.css" rel="stylesheet" />
         {% block head %}{% endblock %}
     </head>
     <body>
+        <header>
+            <div class="logo">
+                <p>
+                    <a href="/">Gluestick</a>
+                </p>
+            </div>
+        </header>
         {% block content %}{% endblock %}
     </body>
 </html>
