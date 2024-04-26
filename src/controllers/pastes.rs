@@ -10,6 +10,7 @@ use axum::{
     response::{IntoResponse, Redirect},
 };
 use serde::Deserialize;
+use uuid::Uuid;
 
 pub async fn index(State(db): State<Database>) -> Result<impl IntoResponse, controllers::Error> {
     let pastes = Paste::all(&db).await?;
@@ -34,7 +35,7 @@ pub async fn create(
 }
 
 pub async fn show(
-    Path(id): Path<i64>,
+    Path(id): Path<Uuid>,
     State(db): State<Database>,
 ) -> Result<impl IntoResponse, controllers::Error> {
     let maybe_paste = Paste::find(&db, id).await?;
@@ -46,7 +47,7 @@ pub async fn show(
 }
 
 pub async fn destroy(
-    Path(id): Path<i64>,
+    Path(id): Path<Uuid>,
     State(db): State<Database>,
 ) -> Result<impl IntoResponse, controllers::Error> {
     Paste::delete(&db, id).await?;

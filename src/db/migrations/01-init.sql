@@ -1,4 +1,5 @@
 CREATE TABLE pastes (
-  id INTEGER PRIMARY KEY,
-  text TEXT NOT NULL
+  -- id is a UUIDv7
+  id BLOB PRIMARY KEY CHECK(length(id) = 16),
+  text TEXT NOT NULL CHECK(length(text) > 0)
 ) STRICT;

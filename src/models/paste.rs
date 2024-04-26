@@ -1,9 +1,11 @@
 use crate::db;
 use rusqlite::named_params;
+use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Paste {
-    pub id: i64,
+    pub id: Uuid,
     pub text: String,
 }
 
@@ -36,8 +38,9 @@ impl Paste {
         let result = db
             .conn
             .call(move |conn| {
-                let mut statement = conn.prepare("INSERT INTO pastes (text) VALUES (:text);")?;
-                let result = statement.execute(named_params! {":text": text})?;
+                let id = Uuid::now_v7();
+                let mut statement = conn.prepare("INSERT INTO pastes VALUES (:id, :text);")?;
+                let result = statement.execute(named_params! {":id": id, ":text": text})?;
                 Ok(result)
             })
             .await?;
@@ -45,7 +48,7 @@ impl Paste {
         Ok(result)
     }
 
-    pub async fn find(db: &db::Database, id: i64) -> Result<Option<Paste>, db::Error> {
+    pub async fn find(db: &db::Database, id: Uuid) -> Result<Option<Paste>, db::Error> {
         let maybe_paste = db
             .conn
             .call(move |conn| {
@@ -62,7 +65,7 @@ impl Paste {
         Ok(maybe_paste)
     }
 
-    pub async fn delete(db: &db::Database, id: i64) -> Result<usize, db::Error> {
+    pub async fn delete(db: &db::Database, id: Uuid) -> Result<usize, db::Error> {
         let result = db
             .conn
             .call(move |conn| {
