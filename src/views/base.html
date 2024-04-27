@@ -8,11 +8,21 @@
     <body>
         <header>
             <div class="logo">
-                <p>
-                    <a href="/">Gluestick</a>
-                </p>
+                <a href="/pastes">
+                    <img src="/assets/images/logo.png" />
+                    <p>Gluestick</p>
+                </a>
             </div>
+            <nav class="main-center-nav">
+                <a href="/pastes">All Pastes</a>
+                <a href="/">New Paste</a>
+            </nav>
+            <nav class="main-right-nav">
+                <a href="/">Login</a>
+            </nav>
         </header>
-        {% block content %}{% endblock %}
+        <main>
+            {% block content %}{% endblock %}
+        </main>
     </body>
 </html>

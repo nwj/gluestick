@@ -1,6 +1,5 @@
 {% extends "base.html" %}
 {% block content %}
-    <h1>Recent Pastes</h1>
     {% if pastes.len() > 0 %}
         <ul>
             {% for paste in pastes %}
@@ -12,5 +11,4 @@
     {% else %}
         <p>No recent pastes</p>
     {% endif %}
-    <a href="/">Create a new paste</a>
 {% endblock %}

@@ -89,3 +89,66 @@
   --grey-900: #3d3d3d;
   --grey-950: #262626;
 }
+
+html {
+  height: 100vh;
+}
+
+body {
+  background: var(--grey-950);
+  background: linear-gradient(var(--grey-950), var(--purple-900));
+  color: var(--grey-50);
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 30px;
+
+  nav {
+    display: flex;
+
+    a {
+      color: var(--grey-50);
+      font-size: 20px;
+      text-decoration: none;
+      margin: 5px 15px;
+      border-bottom: solid 3px transparent;
+    }
+
+    a:hover {
+      color: var(--yellow-300);
+      border-bottom-color: var(--yellow-300);
+    }
+  }
+}
+
+.logo {
+  a {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+
+    img {
+      height: 95px;
+      margin: 0 12px 0 5px;
+      transform: rotate(-10deg);
+    }
+
+    p {
+      font-size: 50px;
+      font-family:
+        Madimi One,
+        sans-serif;
+      color: var(--grey-50);
+      text-decoration: none;
+    }
+  }
+
+  a:hover {
+    p {
+      color: var(--yellow-300);
+    }
+  }
+}
