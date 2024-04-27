@@ -45,3 +45,47 @@
   font-weight: 400;
   src: url("/assets/fonts/MadimiOne-v1-Latin-Regular.woff2") format("woff2");
 }
+
+:root {
+  --green-100: #cef9ec;
+  --green-300: #65e3c4;
+  --green-500: #1daf92;
+  --green-700: #147161;
+  --green-900: #164b42;
+
+  --yellow-100: #fcefd8;
+  --yellow-300: #f2bf7f;
+  --yellow-500: #e77e28;
+  --yellow-700: #b44e1a;
+  --yellow-900: #74351a;
+
+  --orange-100: #ffe4d5;
+  --orange-300: #fe9b73;
+  --orange-500: #fa4015;
+  --orange-700: #c3180b;
+  --orange-900: #7c1612;
+
+  --red-100: #ffe4e7;
+  --red-300: #fca5b3;
+  --red-500: #f03058;
+  --red-700: #bb1543;
+  --red-900: #86153c;
+
+  --purple-100: #e8e5fa;
+  --purple-300: #beb2ef;
+  --purple-500: #9a78dc;
+  --purple-700: #7a4db5;
+  --purple-900: #513a75;
+
+  --grey-50: #f6f6f6;
+  --grey-100: #e7e7e7;
+  --grey-200: #d1d1d1;
+  --grey-300: #b0b0b0;
+  --grey-400: #888888;
+  --grey-500: #6d6d6d;
+  --grey-600: #565656;
+  --grey-700: #4f4f4f;
+  --grey-800: #454545;
+  --grey-900: #3d3d3d;
+  --grey-950: #262626;
+}
