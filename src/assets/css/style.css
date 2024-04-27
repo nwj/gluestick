@@ -36,3 +36,12 @@
     max-inline-size: 100%;
   }
 }
+
+/* This font is subset for only Latin characters */
+@font-face {
+  font-display: swap;
+  font-family: "Madimi One";
+  font-style: normal;
+  font-weight: 400;
+  src: url("/assets/fonts/MadimiOne-v1-Latin-Regular.woff2") format("woff2");
+}
