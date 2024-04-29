@@ -96,7 +96,7 @@ html {
 
 body {
   background: var(--grey-950);
-  background: linear-gradient(var(--grey-950), var(--purple-900));
+  background: linear-gradient(var(--grey-950) 30%, var(--purple-900));
   color: var(--grey-50);
 }
 
@@ -107,19 +107,55 @@ header {
   padding: 10px 30px;
 
   nav {
+    --nav-link-hover-color: var(--yellow-300);
     display: flex;
 
     a {
       color: var(--grey-50);
       font-size: 20px;
       text-decoration: none;
-      margin: 5px 15px;
       border-bottom: solid 3px transparent;
     }
 
     a:hover {
-      color: var(--yellow-300);
-      border-bottom-color: var(--yellow-300);
+      color: var(--nav-link-hover-color);
+      border-bottom-color: var(--nav-link-hover-color);
+    }
+
+    .ooze-link {
+      --ooze-z-index-bottom: 1;
+      --ooze-z-index-top: 2;
+      position: relative;
+      margin: 5px 15px;
+
+      a {
+        background: var(--grey-950);
+        position: relative;
+        z-index: var(--ooze-z-index-top);
+      }
+
+      .ooze {
+        position: absolute;
+        bottom: 0;
+        z-index: var(--ooze-z-index-bottom);
+      }
+
+      .ooze1 {
+        width: 81px;
+        height: 20px;
+        left: 4%;
+      }
+
+      .ooze2 {
+        width: 65px;
+        height: 25px;
+        left: 12%;
+      }
+
+      a:hover ~ .ooze {
+        transform: scale(1.2) translateY(15px);
+        transition: transform 2.5s ease-out 0.5s;
+      }
     }
   }
 }
