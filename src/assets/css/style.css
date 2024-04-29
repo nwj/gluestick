@@ -47,6 +47,7 @@
 }
 
 :root {
+  /* Color Palette */
   --green-100: #cef9ec;
   --green-300: #65e3c4;
   --green-500: #1daf92;
@@ -88,6 +89,11 @@
   --grey-800: #454545;
   --grey-900: #3d3d3d;
   --grey-950: #262626;
+
+  /* Color Purpose */
+  --background-gradient-top: var(--grey-700);
+  --background-gradient-bottom: var(--purple-700);
+  --default-text-color: var(--grey-50);
 }
 
 html {
@@ -95,9 +101,12 @@ html {
 }
 
 body {
-  background: var(--grey-950);
-  background: linear-gradient(var(--grey-950) 30%, var(--purple-900));
-  color: var(--grey-50);
+  background: var(--background-gradient-top);
+  background: linear-gradient(
+    var(--background-gradient-top) 30%,
+    var(--background-gradient-bottom)
+  );
+  color: var(--default-text-color);
 }
 
 header {
@@ -111,7 +120,7 @@ header {
     display: flex;
 
     a {
-      color: var(--grey-50);
+      color: var(--default-text-color);
       font-size: 20px;
       text-decoration: none;
       border-bottom: solid 3px transparent;
@@ -129,7 +138,7 @@ header {
       margin: 5px 15px;
 
       a {
-        background: var(--grey-950);
+        background: var(--background-gradient-top);
         position: relative;
         z-index: var(--ooze-z-index-top);
       }
