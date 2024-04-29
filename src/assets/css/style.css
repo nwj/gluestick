@@ -181,7 +181,7 @@ header {
       transform: rotate(-10deg);
     }
 
-    p {
+    h1 {
       font-size: 50px;
       font-family:
         Madimi One,
@@ -192,7 +192,7 @@ header {
   }
 
   a:hover {
-    p {
+    h1 {
       color: var(--yellow-300);
     }
   }
