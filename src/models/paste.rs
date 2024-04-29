@@ -6,14 +6,16 @@ use uuid::Uuid;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Paste {
     pub id: Uuid,
-    pub text: String,
+    pub description: String,
+    pub body: String,
 }
 
 impl Paste {
     fn from_row(row: &rusqlite::Row) -> Result<Paste, tokio_rusqlite::Error> {
         Ok(Paste {
             id: row.get("id")?,
-            text: row.get("text")?,
+            description: row.get("description")?,
+            body: row.get("body")?,
         })
     }
 
@@ -21,7 +23,7 @@ impl Paste {
         let pastes = db
             .conn
             .call(|conn| {
-                let mut statement = conn.prepare("SELECT id, text FROM pastes;")?;
+                let mut statement = conn.prepare("SELECT id, description, body FROM pastes;")?;
                 let mut rows = statement.query([])?;
                 let mut pastes = Vec::new();
                 while let Some(row) = rows.next()? {
@@ -34,13 +36,20 @@ impl Paste {
         Ok(pastes)
     }
 
-    pub async fn insert(db: &db::Database, text: String) -> Result<usize, db::Error> {
+    pub async fn insert(
+        db: &db::Database,
+        description: String,
+        text: String,
+    ) -> Result<usize, db::Error> {
         let result = db
             .conn
             .call(move |conn| {
                 let id = Uuid::now_v7();
-                let mut statement = conn.prepare("INSERT INTO pastes VALUES (:id, :text);")?;
-                let result = statement.execute(named_params! {":id": id, ":text": text})?;
+                let mut statement =
+                    conn.prepare("INSERT INTO pastes VALUES (:id, :description, :text);")?;
+                let result = statement.execute(
+                    named_params! {":id": id, ":description": description, ":text": text},
+                )?;
                 Ok(result)
             })
             .await?;
@@ -52,7 +61,8 @@ impl Paste {
         let maybe_paste = db
             .conn
             .call(move |conn| {
-                let mut statement = conn.prepare("SELECT id, text FROM pastes WHERE id = :id;")?;
+                let mut statement =
+                    conn.prepare("SELECT id, description, body FROM pastes WHERE id = :id;")?;
                 let mut rows = statement.query(named_params! {":id": id})?;
                 if let Some(row) = rows.next()? {
                     Ok(Some(Paste::from_row(row)?))
