@@ -14,5 +14,5 @@ pub struct IndexPastesTemplate {
 #[derive(Template)]
 #[template(path = "pastes_show.html")]
 pub struct ShowPastesTemplate {
-    pub maybe_paste: Option<Paste>,
+    pub paste: Paste,
 }

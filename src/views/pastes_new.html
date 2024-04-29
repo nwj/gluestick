@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
     <form action="/pastes" method="post">
+        <input name="title" />
         <input name="description" />
         <textarea name="body"></textarea>
         <button type="submit">Create Paste</button>

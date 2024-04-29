@@ -1,11 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
-    <h1>Show Paste</h1>
-    {% if let Some(paste) = maybe_paste %}
-        <h2>{{ paste.description }}</h2>
-        <p>{{ paste.body }}</p>
-        <button hx-delete="/pastes/{{ paste.id }}">Delete Paste?</button>
-    {% else %}
-        <p>Paste Not Found</p>
-    {% endif %}
+    <h2>{{ paste.title }}</h2>
+    <h3>{{ paste.description }}</h3>
+    <p>{{ paste.body }}</p>
+    <button hx-delete="/pastes/{{ paste.id }}">Delete Paste?</button>
 {% endblock %}

@@ -4,7 +4,10 @@
         <ul>
             {% for paste in pastes %}
                 <li>
-                    <a href="pastes/{{ paste.id }}">{{ paste.description }}</a>
+                    <a href="pastes/{{ paste.id }}">
+                        <h2>{{ paste.title }}</h2>
+                        <p>{{ paste.description }}</p>
+                    </a>
                 </li>
             {% endfor %}
         </ul>
