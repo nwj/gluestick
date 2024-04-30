@@ -1,7 +1,15 @@
 {% extends "base.html" %}
 {% block content %}
-    <h2>{{ paste.title }}</h2>
-    <h3>{{ paste.description }}</h3>
-    <p>{{ paste.body }}</p>
-    <button hx-delete="/pastes/{{ paste.id }}">Delete Paste?</button>
+    <section class="pastes-show">
+        <div class="title-bar">
+            <h2>{{ paste.title }}</h2>
+            <div class="buttons">
+                <button class="destructive" hx-delete="/pastes/{{ paste.id }}">Delete</button>
+            </div>
+        </div>
+        <h3>{{ paste.description }}</h3>
+        <div class="container">
+            <code>{{ paste.body }}</code>
+        </div>
+    </section>
 {% endblock %}
