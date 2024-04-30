@@ -111,7 +111,7 @@ header {
     display: flex;
 
     a {
-      color: var(--default-text-color);
+      color: var(--yellow-100);
       font-size: 20px;
       text-decoration: none;
       border-bottom: solid 3px transparent;
@@ -181,7 +181,7 @@ main {
       font-family:
         Madimi One,
         sans-serif;
-      color: var(--grey-50);
+      color: var(--yellow-100);
       text-decoration: none;
     }
   }
@@ -242,5 +242,37 @@ button:hover {
 
   code {
     white-space: pre-wrap;
+  }
+}
+
+.pastes-index {
+  a {
+    text-decoration: none;
+    color: var(--default-text-color);
+  }
+
+  .title {
+    display: inline-block;
+    color: var(--yellow-100);
+  }
+
+  a:hover .title {
+    color: var(--yellow-300);
+  }
+
+  .description {
+    color: var(--grey-200);
+    font-size: 14px;
+    margin-bottom: 15px;
+  }
+
+  .body {
+    font-size: 14px;
+    display: inline-block;
+    border-radius: 8px;
+    background: var(--grey-950);
+    width: 100%;
+    white-space: pre-wrap;
+    padding: 10px;
   }
 }

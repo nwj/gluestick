@@ -1,17 +1,20 @@
 {% extends "base.html" %}
 {% block content %}
     {% if pastes.len() > 0 %}
-        <ul>
-            {% for paste in pastes %}
-                <li>
+        <section class="pastes-index">
+            <ul>
+                {% for paste in pastes %}
                     <a href="pastes/{{ paste.id }}">
-                        <h2>{{ paste.title }}</h2>
-                        <p>{{ paste.description }}</p>
+                        <li class="container">
+                            <h2 class="title">{{ paste.title }}</h2>
+                            <p class="description">{{ paste.description }}</p>
+                            <code class="body">{{ paste.body|truncate(300) }}</code>
+                        </li>
                     </a>
-                </li>
-            {% endfor %}
-        </ul>
-    {% else %}
-        <p>No recent pastes</p>
-    {% endif %}
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>No recent pastes</p>
+        {% endif %}
+    </section>
 {% endblock %}
