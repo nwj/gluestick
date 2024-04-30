@@ -208,6 +208,11 @@ button {
   cursor: pointer;
   font-size: 18px;
 
+  &.primary {
+    background: var(--green-500);
+    color: var(--default-text-color);
+  }
+
   &.destructive {
     background: var(--grey-900);
     color: var(--red-500);
@@ -220,6 +225,10 @@ button:hover {
     background: var(--red-700);
     color: var(--default-text-color);
     border-color: var(--red-700);
+  }
+
+  &.primary {
+    background: var(--green-700);
   }
 }
 
@@ -274,5 +283,48 @@ button:hover {
     width: 100%;
     white-space: pre-wrap;
     padding: 10px;
+  }
+}
+
+.pastes-new {
+  form {
+    input {
+      display: block;
+      color: var(--grey-50);
+      margin-bottom: 15px;
+      background: var(--grey-950);
+      border: solid 2px var(--grey-700);
+      border-radius: 8px;
+      padding: 8px 12px;
+    }
+
+    textarea::placeholder,
+    input::placeholder {
+      color: var(--grey-300);
+    }
+
+    textarea:focus,
+    input:focus {
+      border: solid 2px var(--green-500);
+    }
+
+    .title {
+      width: 40vw;
+      font-size: 26px;
+    }
+
+    .description {
+      width: 60vw;
+    }
+
+    textarea {
+      color: var(--grey-50);
+      width: 100%;
+      background: var(--grey-950);
+      border: solid 2px transparent;
+      border-radius: 8px;
+      min-height: 30vh;
+      padding: 8px 12px;
+    }
   }
 }
