@@ -12,25 +12,17 @@ pub struct Paste {
 }
 
 impl Paste {
-    fn from_row(row: &rusqlite::Row) -> Result<Paste, tokio_rusqlite::Error> {
-        Ok(Paste {
-            id: row.get("id")?,
-            title: row.get("title")?,
-            description: row.get("description")?,
-            body: row.get("body")?,
-        })
-    }
-
     pub async fn all(db: &db::Database) -> Result<Vec<Paste>, tokio_rusqlite::Error> {
         let pastes = db
             .conn
             .call(|conn| {
                 let mut statement =
                     conn.prepare("SELECT id, title, description, body FROM pastes;")?;
-                let mut rows = statement.query([])?;
+                let results = serde_rusqlite::from_rows::<Paste>(statement.query([])?);
                 let mut pastes = Vec::new();
-                while let Some(row) = rows.next()? {
-                    pastes.push(Paste::from_row(row)?);
+                for result in results {
+                    let paste = result.map_err(|e| tokio_rusqlite::Error::Other(Box::new(e)))?;
+                    pastes.push(paste);
                 }
                 Ok(pastes)
             })
@@ -65,13 +57,15 @@ impl Paste {
         let maybe_paste = db
             .conn
             .call(move |conn| {
-                let mut statement =
-                    conn.prepare("SELECT id, title, description, body FROM pastes WHERE id = :id;")?;
+                let mut statement = conn
+                    .prepare("SELECT id, title, description, body FROM pastes WHERE id = :id;")?;
                 let mut rows = statement.query(named_params! {":id": id})?;
-                if let Some(row) = rows.next()? {
-                    Ok(Some(Paste::from_row(row)?))
-                } else {
-                    Ok(None)
+                match rows.next()? {
+                    Some(row) => Ok(Some(
+                        serde_rusqlite::from_row(row)
+                            .map_err(|e| tokio_rusqlite::Error::Other(Box::new(e)))?,
+                    )),
+                    None => Ok(None),
                 }
             })
             .await?;

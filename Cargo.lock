@@ -331,6 +331,7 @@ dependencies = [
  "rusqlite",
  "rusqlite_migration",
  "serde",
+ "serde_rusqlite",
  "thiserror",
  "tokio",
  "tokio-rusqlite",
@@ -797,6 +798,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "af99884400da37c88f5e9146b7f1fd0fbcae8f6eec4e9da38b67d05486f814a6"
 dependencies = [
  "itoa",
+ "serde",
+]
+
+[[package]]
+name = "serde_rusqlite"
+version = "0.35.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "836d903d9524cecbcd7b75745b6ee0e3f3774b878ea489dfaf2ea749463283d6"
+dependencies = [
+ "rusqlite",
  "serde",
 ]
 

@@ -13,6 +13,7 @@ dotenvy = "0.15.7"
 rusqlite = { version = "0.31.0", features = ["bundled", "uuid"] }
 rusqlite_migration = { version = "1.2.0", features = ["alpha-async-tokio-rusqlite"] }
 serde = { version = "1.0.198", features = ["derive"] }
+serde_rusqlite = "0.35.0"
 thiserror = "1.0.59"
 tokio = { version = "1.37.0", features = ["macros", "rt-multi-thread", "signal"] }
 tokio-rusqlite = "0.5.1"
