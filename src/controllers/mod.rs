@@ -20,7 +20,7 @@ pub enum Error {
     Generic,
 
     #[error(transparent)]
-    Database(#[from] crate::db::Error),
+    Database(#[from] tokio_rusqlite::Error),
 
     #[error("resource not found")]
     NotFound,

@@ -7,7 +7,7 @@ pub struct Database {
 }
 
 impl Database {
-    pub async fn new(config: &crate::config::Config) -> Result<Self, Error> {
+    pub async fn new(config: &crate::config::Config) -> Result<Self, tokio_rusqlite::Error> {
         let conn = Connection::open(config.database_path()).await?;
         Ok(Self { conn })
     }
@@ -15,12 +15,4 @@ impl Database {
 
 pub fn migrations() -> AsyncMigrations {
     AsyncMigrations::new(vec![M::up(include_str!("migrations/01-init.sql"))])
-}
-
-#[derive(Debug, thiserror::Error)]
-#[error(transparent)]
-pub enum Error {
-    Rusqlite(#[from] rusqlite::Error),
-    TokioRusqlite(#[from] tokio_rusqlite::Error),
-    RusqliteMigration(#[from] rusqlite_migration::Error),
 }

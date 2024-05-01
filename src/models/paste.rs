@@ -21,7 +21,7 @@ impl Paste {
         })
     }
 
-    pub async fn all(db: &db::Database) -> Result<Vec<Paste>, db::Error> {
+    pub async fn all(db: &db::Database) -> Result<Vec<Paste>, tokio_rusqlite::Error> {
         let pastes = db
             .conn
             .call(|conn| {
@@ -44,7 +44,7 @@ impl Paste {
         title: String,
         description: String,
         body: String,
-    ) -> Result<usize, db::Error> {
+    ) -> Result<usize, tokio_rusqlite::Error> {
         let result = db
             .conn
             .call(move |conn| {
@@ -61,7 +61,7 @@ impl Paste {
         Ok(result)
     }
 
-    pub async fn find(db: &db::Database, id: Uuid) -> Result<Option<Paste>, db::Error> {
+    pub async fn find(db: &db::Database, id: Uuid) -> Result<Option<Paste>, tokio_rusqlite::Error> {
         let maybe_paste = db
             .conn
             .call(move |conn| {
@@ -79,7 +79,7 @@ impl Paste {
         Ok(maybe_paste)
     }
 
-    pub async fn delete(db: &db::Database, id: Uuid) -> Result<usize, db::Error> {
+    pub async fn delete(db: &db::Database, id: Uuid) -> Result<usize, tokio_rusqlite::Error> {
         let result = db
             .conn
             .call(move |conn| {
