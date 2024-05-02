@@ -56,6 +56,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let app = Router::new()
         .route("/", get(controllers::pastes::new))
+        .route("/health_check", get(controllers::health_check))
         .route("/pastes", get(controllers::pastes::index))
         .route("/pastes", post(controllers::pastes::create))
         .route("/pastes/:id", get(controllers::pastes::show))

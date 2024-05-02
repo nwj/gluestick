@@ -6,6 +6,10 @@ use axum::{
 
 pub mod pastes;
 
+pub async fn health_check() -> StatusCode {
+    StatusCode::OK
+}
+
 pub async fn not_found() -> Result<(), Error> {
     Err(Error::NotFound)
 }
