@@ -1,16 +1,8 @@
-use axum::{
-    routing::{delete, get, post},
-    Router,
-};
-use std::path::PathBuf;
-use tower_http::{services::ServeDir, trace::TraceLayer};
+use dotenvy::dotenv;
+use gluestick::{app, config, db};
+use tokio::net::TcpListener;
+use tracing::debug;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-
-mod config;
-mod controllers;
-mod db;
-mod models;
-mod views;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -20,12 +12,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // We won't use .env files in production, so only compile this in non-release builds
     #[cfg(debug_assertions)]
-    dotenvy::dotenv()
+    dotenv()
         .map_err(|e| {
             if e.not_found() {
-                tracing::debug!("no .env file found, continuing with normal execution");
+                debug!("no .env file found, continuing with normal execution");
             } else {
-                tracing::debug!(
+                debug!(
                     "error with .env file: {}, continuing with normal execution",
                     e
                 );
@@ -54,28 +46,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     db::migrations().to_latest(&mut db.conn).await?;
 
-    let app = Router::new()
-        .route("/", get(controllers::pastes::new))
-        .route("/health_check", get(controllers::health_check))
-        .route("/pastes", get(controllers::pastes::index))
-        .route("/pastes", post(controllers::pastes::create))
-        .route("/pastes/:id", get(controllers::pastes::show))
-        .route("/pastes/:id", delete(controllers::pastes::destroy))
-        .fallback(controllers::not_found)
-        .nest_service(
-            "/assets",
-            ServeDir::new(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src/assets")),
-        )
-        .layer(
-            TraceLayer::new_for_http()
-                // disable failure tracing here since we'll log errors via controllers::Error
-                .on_failure(()),
-        )
-        .with_state(db);
+    let app = app(db);
 
-    let listener = tokio::net::TcpListener::bind(("127.0.0.1", config.port())).await?;
+    let listener = TcpListener::bind(("127.0.0.1", config.port())).await?;
 
-    tracing::debug!("listening on {}", listener.local_addr()?);
+    debug!("listening on {}", listener.local_addr()?);
     axum::serve(listener, app)
         .with_graceful_shutdown(shutdown_signal())
         .await?;
