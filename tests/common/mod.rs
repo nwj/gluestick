@@ -41,9 +41,3 @@ pub async fn spawn_server() -> SocketAddr {
 
     address
 }
-
-pub async fn get(address: SocketAddr, route: &str) -> reqwest::Response {
-    reqwest::get(format!("http://{}{}", address, route))
-        .await
-        .expect("Failed to execute test request.")
-}
