@@ -1,5 +1,5 @@
 use dotenvy::dotenv;
-use gluestick::{app, config, db};
+use gluestick::{router, config, db};
 use tokio::net::TcpListener;
 use tracing::debug;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -46,7 +46,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     db::migrations().to_latest(&mut db.conn).await?;
 
-    let app = app(db);
+    let app = router(db);
 
     let listener = TcpListener::bind(("127.0.0.1", config.port())).await?;
 

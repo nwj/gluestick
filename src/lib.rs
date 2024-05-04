@@ -12,7 +12,7 @@ pub mod db;
 mod models;
 mod views;
 
-pub fn app(db: Database) -> Router {
+pub fn router(db: Database) -> Router {
     Router::new()
         .route("/", get(controllers::pastes::new))
         .route("/health_check", get(controllers::health_check))
