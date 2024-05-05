@@ -4,8 +4,8 @@ mod common;
 
 #[tokio::test]
 async fn health_check_responds_with_200() {
-    let address = common::spawn_server().await;
-    let response = reqwest::get(format!("http://{}/health_check", &address))
+    let app = common::spawn_app().await;
+    let response = reqwest::get(format!("http://{}/health_check", &app.address))
         .await
         .expect("Failed to send test request.");
 
@@ -14,8 +14,8 @@ async fn health_check_responds_with_200() {
 
 #[tokio::test]
 async fn health_check_responds_with_zero_content() {
-    let address = common::spawn_server().await;
-    let response = reqwest::get(format!("http://{}/health_check", &address))
+    let app = common::spawn_app().await;
+    let response = reqwest::get(format!("http://{}/health_check", &app.address))
         .await
         .expect("Failed to send test request.");
 
@@ -24,8 +24,8 @@ async fn health_check_responds_with_zero_content() {
 
 #[tokio::test]
 async fn fallback_responds_with_404() {
-    let address = common::spawn_server().await;
-    let response = reqwest::get(format!("http://{}/doesnt_exist", &address))
+    let app = common::spawn_app().await;
+    let response = reqwest::get(format!("http://{}/doesnt_exist", &app.address))
         .await
         .expect("Failed to send test request.");
 

@@ -42,7 +42,7 @@ pub async fn show(
 ) -> Result<impl IntoResponse, controllers::Error> {
     match Paste::find(&db, id).await? {
         Some(paste) => Ok((StatusCode::OK, ShowPastesTemplate { paste })),
-        None => Err(controllers::Error::NotFound)
+        None => Err(controllers::Error::NotFound),
     }
 }
 

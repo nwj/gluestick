@@ -3,7 +3,12 @@ use gluestick::{db::migrations, db::Database, router};
 use tokio::net::TcpListener;
 use tokio_rusqlite::Connection;
 
-pub async fn spawn_server() -> SocketAddr {
+pub struct TestApp {
+    pub address: SocketAddr,
+    pub db: Database,
+}
+
+pub async fn spawn_app() -> TestApp {
     let mut db = Database {
         conn: Connection::open_in_memory()
             .await
@@ -33,11 +38,12 @@ pub async fn spawn_server() -> SocketAddr {
         .expect("Failed to bind test server to address.");
     let address = listener.local_addr().unwrap();
 
+    let db_clone = db.clone();
     tokio::spawn(async move {
-        axum::serve(listener, router(db))
+        axum::serve(listener, router(db_clone))
             .await
             .expect("Failed to serve test server.")
     });
 
-    address
+    TestApp { address, db }
 }
