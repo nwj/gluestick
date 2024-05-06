@@ -1,12 +1,15 @@
 use dotenvy::dotenv;
-use gluestick::{router, config, db};
+use gluestick::{config, db, router};
 use tokio::net::TcpListener;
-use tracing::debug;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing_subscriber::registry()
+        .with(
+            tracing_subscriber::EnvFilter::try_from_env("GLUESTICK_LOG")
+                .unwrap_or_else(|_| "trace".into()),
+        )
         .with(tracing_subscriber::fmt::layer())
         .init();
 
@@ -15,9 +18,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenv()
         .map_err(|e| {
             if e.not_found() {
-                debug!("no .env file found, continuing with normal execution");
+                tracing::debug!("no .env file found, continuing with normal execution");
             } else {
-                debug!(
+                tracing::debug!(
                     "error with .env file: {}, continuing with normal execution",
                     e
                 );
@@ -50,7 +53,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let listener = TcpListener::bind(("127.0.0.1", config.port())).await?;
 
-    debug!("listening on {}", listener.local_addr()?);
+    tracing::debug!("listening on {}", listener.local_addr()?);
     axum::serve(listener, app)
         .with_graceful_shutdown(shutdown_signal())
         .await?;

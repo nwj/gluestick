@@ -1,5 +1,6 @@
 use crate::db::Database;
 use axum::{
+    extract::Request,
     routing::{delete, get, post},
     Router,
 };
@@ -27,6 +28,16 @@ pub fn router(db: Database) -> Router {
         )
         .layer(
             TraceLayer::new_for_http()
+                .make_span_with(|request: &Request<_>| {
+                    let request_id = uuid::Uuid::now_v7();
+                    tracing::info_span!(
+                        "request",
+                        method = tracing::field::display(request.method()),
+                        uri = tracing::field::display(request.uri()),
+                        version = tracing::field::debug(request.version()),
+                        request_id = tracing::field::display(request_id),
+                    )
+                })
                 // disable failure tracing here since we'll log errors via controllers::Error
                 .on_failure(()),
         )
