@@ -31,6 +31,41 @@ async fn pastes_create_responds_with_200_for_valid_form_data() {
 }
 
 #[tokio::test]
+async fn pastes_create_persists_when_valid_form_data() {
+    let app = common::spawn_app().await;
+    let client = reqwest::Client::new();
+
+    client
+        .post(format!("http://{}/pastes", app.address))
+        .form(&[
+            ("title", "Paste"),
+            ("description", "description"),
+            ("body", "body"),
+        ])
+        .send()
+        .await
+        .expect("Failed to send test request.");
+
+    let persisted = app
+        .db
+        .conn
+        .call(|conn| {
+            Ok(conn
+                .prepare("SELECT title, description, body FROM pastes")?
+                .query_map([], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)))?
+                .collect::<Result<Vec<(String, String, String)>, _>>())
+        })
+        .await
+        .unwrap()
+        .unwrap();
+
+    assert_eq!(persisted.len(), 1);
+    assert_eq!(persisted[0].0, "Paste");
+    assert_eq!(persisted[0].1, "description");
+    assert_eq!(persisted[0].2, "body");
+}
+
+#[tokio::test]
 async fn pastes_create_responds_with_422_when_data_missing() {
     let app = common::spawn_app().await;
     let client = reqwest::Client::new();
