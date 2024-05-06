@@ -417,6 +417,7 @@ dependencies = [
  "askama_axum",
  "axum",
  "dotenvy",
+ "once_cell",
  "reqwest",
  "rusqlite",
  "rusqlite_migration",

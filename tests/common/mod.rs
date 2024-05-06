@@ -1,7 +1,21 @@
 use core::net::SocketAddr;
 use gluestick::{db::migrations, db::Database, router};
+use once_cell::sync::Lazy;
 use tokio::net::TcpListener;
 use tokio_rusqlite::Connection;
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+
+static INIT_TRACING: Lazy<()> = Lazy::new(|| {
+    if std::env::var("GLUESTICK_TEST_LOG").is_ok() {
+        tracing_subscriber::registry()
+            .with(
+                tracing_subscriber::EnvFilter::try_from_env("GLUESTICK_TEST_LOG")
+                    .unwrap_or_else(|_| "info".into()),
+            )
+            .with(tracing_subscriber::fmt::layer())
+            .init();
+    }
+});
 
 pub struct TestApp {
     pub address: SocketAddr,
@@ -9,6 +23,8 @@ pub struct TestApp {
 }
 
 pub async fn spawn_app() -> TestApp {
+    Lazy::force(&INIT_TRACING);
+
     let mut db = Database {
         conn: Connection::open_in_memory()
             .await
