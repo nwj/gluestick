@@ -4,8 +4,8 @@ use axum::{
     routing::{delete, get, post},
     Router,
 };
-use std::path::PathBuf;
-use tower_http::{services::ServeDir, trace::TraceLayer};
+use memory_serve::{load_assets, MemoryServe};
+use tower_http::trace::TraceLayer;
 
 pub mod config;
 mod controllers;
@@ -14,6 +14,10 @@ mod models;
 mod views;
 
 pub fn router(db: Database) -> Router {
+    let assets_router = MemoryServe::new(load_assets!("src/assets"))
+        .index_file(None)
+        .into_router();
+
     Router::new()
         .route("/", get(controllers::pastes::new))
         .route("/health_check", get(controllers::health_check))
@@ -22,10 +26,7 @@ pub fn router(db: Database) -> Router {
         .route("/pastes/:id", get(controllers::pastes::show))
         .route("/pastes/:id", delete(controllers::pastes::destroy))
         .fallback(controllers::not_found)
-        .nest_service(
-            "/assets",
-            ServeDir::new(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src/assets")),
-        )
+        .nest("/assets", assets_router)
         .layer(
             TraceLayer::new_for_http()
                 .make_span_with(|request: &Request<_>| {
