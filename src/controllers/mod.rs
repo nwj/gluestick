@@ -5,6 +5,7 @@ use axum::{
 };
 
 pub mod pastes;
+pub mod api;
 
 pub async fn health_check() -> StatusCode {
     StatusCode::OK

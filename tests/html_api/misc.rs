@@ -1,6 +1,5 @@
+use crate::common;
 use reqwest::StatusCode;
-
-mod common;
 
 #[tokio::test]
 async fn health_check_responds_with_200() {

@@ -5,6 +5,8 @@ use tokio::net::TcpListener;
 use tokio_rusqlite::Connection;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
+pub mod test_paste;
+
 static INIT_TRACING: Lazy<()> = Lazy::new(|| {
     if std::env::var("GLUESTICK_TEST_LOG").is_ok() {
         tracing_subscriber::registry()

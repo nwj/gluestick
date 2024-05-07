@@ -1,6 +1,5 @@
 use reqwest::StatusCode;
-
-mod common;
+use crate::common;
 
 #[tokio::test]
 async fn pastes_new_responds_with_200() {
