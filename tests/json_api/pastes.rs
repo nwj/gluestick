@@ -128,3 +128,84 @@ async fn pastes_create_responds_with_422_when_missing_input() {
         assert_eq!(response.status(), 422)
     }
 }
+
+#[tokio::test]
+async fn pastes_show_responds_with_200_when_valid_input() {
+    let app = spawn_app().await;
+    let client = reqwest::Client::new();
+    let paste = TestPaste::default_without_id();
+    let response = client
+        .post(format!("http://{}/api/pastes", app.address))
+        .json(&paste)
+        .send()
+        .await
+        .unwrap();
+    let paste_id: Uuid = response.json().await.unwrap();
+
+    let response = client
+        .get(format!("http://{}/api/pastes/{}", app.address, paste_id))
+        .send()
+        .await
+        .expect("Failed to send test request.");
+
+    assert_eq!(response.status(), 200)
+}
+
+#[tokio::test]
+async fn pastes_show_responds_with_requested_paste_when_valid_input() {
+    let app = spawn_app().await;
+    let client = reqwest::Client::new();
+    let paste = TestPaste::default_without_id();
+    let response = client
+        .post(format!("http://{}/api/pastes", app.address))
+        .json(&paste)
+        .send()
+        .await
+        .unwrap();
+    let paste_id: Uuid = response.json().await.unwrap();
+
+    let response = client
+        .get(format!("http://{}/api/pastes/{}", app.address, paste_id))
+        .send()
+        .await
+        .expect("Failed to send test request.");
+
+    let response_paste: TestPaste = response
+        .json()
+        .await
+        .expect("Failed to parse test request.");
+
+    assert!(paste.compare_without_ids(response_paste))
+}
+
+#[tokio::test]
+async fn pastes_show_responds_with_404_when_requested_paste_doesnt_exist() {
+    let app = spawn_app().await;
+    let client = reqwest::Client::new();
+
+    let response = client
+        .get(format!(
+            "http://{}/api/pastes/{}",
+            app.address,
+            Uuid::now_v7()
+        ))
+        .send()
+        .await
+        .expect("Failed to send test request.");
+
+    assert_eq!(response.status(), 404)
+}
+
+#[tokio::test]
+async fn pastes_show_responds_with_400_invalid_input() {
+    let app = spawn_app().await;
+    let client = reqwest::Client::new();
+
+    let response = client
+        .get(format!("http://{}/api/pastes/some-nonsense", app.address))
+        .send()
+        .await
+        .expect("Failed to send test request.");
+
+    assert_eq!(response.status(), 400)
+}

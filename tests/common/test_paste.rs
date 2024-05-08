@@ -32,7 +32,9 @@ impl TestPaste {
     }
 
     pub fn compare_without_ids(&self, other: TestPaste) -> bool {
-       self.title == other.title && self.description == other.description && self.body == other.body
+        self.title == other.title
+            && self.description == other.description
+            && self.body == other.body
     }
 }
 

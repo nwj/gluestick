@@ -4,8 +4,8 @@ use axum::{
     response::{IntoResponse, Response},
 };
 
-pub mod pastes;
 pub mod api;
+pub mod pastes;
 
 pub async fn health_check() -> StatusCode {
     StatusCode::OK

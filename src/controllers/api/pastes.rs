@@ -1,6 +1,11 @@
 use crate::{controllers, db::Database, models::paste::Paste};
-use axum::{extract::State, response::IntoResponse, Json};
+use axum::{
+    extract::{Path, State},
+    response::IntoResponse,
+    Json,
+};
 use serde::Deserialize;
+use uuid::Uuid;
 
 pub async fn index(State(db): State<Database>) -> Result<impl IntoResponse, controllers::Error> {
     let pastes = Paste::all(&db).await?;
@@ -20,4 +25,14 @@ pub async fn create(
 ) -> Result<impl IntoResponse, controllers::Error> {
     let id = Paste::insert(&db, input.title, input.description, input.body).await?;
     Ok(Json(id))
+}
+
+pub async fn show(
+    Path(id): Path<Uuid>,
+    State(db): State<Database>,
+) -> Result<impl IntoResponse, controllers::Error> {
+    match Paste::find(&db, id).await? {
+        Some(paste) => Ok(Json(paste)),
+        None => Err(controllers::Error::NotFound),
+    }
 }
