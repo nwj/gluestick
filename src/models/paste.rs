@@ -36,17 +36,17 @@ impl Paste {
         title: String,
         description: String,
         body: String,
-    ) -> Result<usize, tokio_rusqlite::Error> {
+    ) -> Result<Uuid, tokio_rusqlite::Error> {
         let result = db
             .conn
             .call(move |conn| {
                 let id = Uuid::now_v7();
                 let mut statement =
                     conn.prepare("INSERT INTO pastes VALUES (:id, :title, :description, :body);")?;
-                let result = statement.execute(
+                statement.execute(
                     named_params! {":id": id, ":title": title, ":description": description, ":body": body},
                 )?;
-                Ok(result)
+                Ok(id)
             })
             .await?;
 

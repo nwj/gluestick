@@ -32,8 +32,8 @@ pub async fn create(
     State(db): State<Database>,
     Form(input): Form<CreateFormInput>,
 ) -> Result<impl IntoResponse, controllers::Error> {
-    Paste::insert(&db, input.title, input.description, input.body).await?;
-    Ok(Redirect::to("/pastes").into_response())
+    let id = Paste::insert(&db, input.title, input.description, input.body).await?;
+    Ok(Redirect::to(format!("/pastes/{}", id).as_str()).into_response())
 }
 
 pub async fn show(

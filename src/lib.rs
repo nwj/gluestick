@@ -26,6 +26,7 @@ pub fn router(db: Database) -> Router {
         .route("/pastes/:id", get(controllers::pastes::show))
         .route("/pastes/:id", delete(controllers::pastes::destroy))
         .route("/api/pastes", get(controllers::api::pastes::index))
+        .route("/api/pastes", post(controllers::api::pastes::create))
         .fallback(controllers::not_found)
         .nest("/assets", assets_router)
         .layer(
