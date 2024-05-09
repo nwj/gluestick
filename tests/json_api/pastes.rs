@@ -130,6 +130,33 @@ async fn pastes_create_responds_with_422_when_missing_input() {
 }
 
 #[tokio::test]
+async fn pastes_create_responds_with_400_when_invalid_input() {
+    let app = spawn_app().await;
+    let client = reqwest::Client::new();
+    let bad_pastes = vec![
+        "{\"title\":\"\",\"description\":\"A description.\",\"body\":\"A body.\"}",
+        "{\"title\":\"A title\",\"description\":\"\",\"body\":\"A body.\"}",
+        "{\"title\":\"A title\",\"description\":\"A description.\",\"body\":\"\"}",
+        "{\"title\":\" \",\"description\":\"A description.\",\"body\":\"A body.\"}",
+        "{\"title\":\"A title\",\"description\":\" \",\"body\":\"A body.\"}",
+        "{\"title\":\"A title\",\"description\":\"A description.\",\"body\":\" \"}",
+    ];
+
+    // Reqwest's .json strips out empty fields, so we set the json header manually and pass in raw
+    // json strings for the payload.
+    for bad_paste in bad_pastes {
+        let response = client
+            .post(format!("http://{}/api/pastes", app.address))
+            .header("Content-Type", "application/json")
+            .body(bad_paste)
+            .send()
+            .await
+            .expect("Failed to send test request.");
+        assert_eq!(response.status(), 400)
+    }
+}
+
+#[tokio::test]
 async fn pastes_show_responds_with_200_when_valid_input() {
     let app = spawn_app().await;
     let client = reqwest::Client::new();

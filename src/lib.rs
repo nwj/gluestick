@@ -12,6 +12,7 @@ mod controllers;
 pub mod db;
 mod models;
 mod views;
+mod validators;
 
 pub fn router(db: Database) -> Router {
     let assets_router = MemoryServe::new(load_assets!("src/assets"))

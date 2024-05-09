@@ -2,6 +2,7 @@ use crate::{
     controllers,
     db::Database,
     models::paste::Paste,
+    validators,
     views::pastes::{IndexPastesTemplate, NewPastesTemplate, ShowPastesTemplate},
 };
 use axum::{
@@ -11,6 +12,7 @@ use axum::{
 };
 use serde::Deserialize;
 use uuid::Uuid;
+use validator::Validate;
 
 pub async fn index(State(db): State<Database>) -> Result<impl IntoResponse, controllers::Error> {
     let pastes = Paste::all(&db).await?;
@@ -21,10 +23,13 @@ pub async fn new() -> NewPastesTemplate {
     NewPastesTemplate {}
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Validate)]
 pub struct CreateFormInput {
+    #[validate(custom(function = "validators::not_empty_when_trimmed"))]
     pub title: String,
+    #[validate(custom(function = "validators::not_empty_when_trimmed"))]
     pub description: String,
+    #[validate(custom(function = "validators::not_empty_when_trimmed"))]
     pub body: String,
 }
 
@@ -32,6 +37,7 @@ pub async fn create(
     State(db): State<Database>,
     Form(input): Form<CreateFormInput>,
 ) -> Result<impl IntoResponse, controllers::Error> {
+    input.validate()?;
     let id = Paste::insert(&db, input.title, input.description, input.body).await?;
     Ok(Redirect::to(format!("/pastes/{}", id).as_str()).into_response())
 }

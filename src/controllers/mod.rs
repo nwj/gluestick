@@ -20,6 +20,9 @@ pub enum Error {
     #[error(transparent)]
     Database(#[from] tokio_rusqlite::Error),
 
+    #[error(transparent)]
+    Validation(#[from] validator::ValidationErrors),
+
     #[error("resource not found")]
     NotFound,
 }
@@ -31,6 +34,11 @@ impl IntoResponse for Error {
                 StatusCode::NOT_FOUND,
                 ErrorTemplate::NotFound(NotFoundTemplate {}),
             ),
+
+            Error::Validation(err) => {
+                tracing::error!(%err, "test");
+                (StatusCode::BAD_REQUEST, ErrorTemplate::Blank)
+            }
 
             Error::Database(err) => {
                 tracing::error!(%err, "database error");
@@ -48,6 +56,7 @@ impl IntoResponse for Error {
 enum ErrorTemplate {
     NotFound(NotFoundTemplate),
     InternalServerError(InternalServerErrorTemplate),
+    Blank,
 }
 
 impl IntoResponse for ErrorTemplate {
@@ -55,6 +64,7 @@ impl IntoResponse for ErrorTemplate {
         match self {
             ErrorTemplate::InternalServerError(template) => template.into_response(),
             ErrorTemplate::NotFound(template) => template.into_response(),
+            ErrorTemplate::Blank => ().into_response(),
         }
     }
 }

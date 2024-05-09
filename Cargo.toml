@@ -29,6 +29,7 @@ tower-http = { version = "0.5.2", features = ["trace", "fs"] }
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 uuid = { version = "1.8.0", features = ["v7", "fast-rng", "serde"] }
+validator = { version = "0.18.1", features = ["derive"] }
 
 [dev-dependencies]
 once_cell = "1.19.0"

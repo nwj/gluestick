@@ -1,4 +1,4 @@
-use crate::{controllers, db::Database, models::paste::Paste};
+use crate::{controllers, db::Database, models::paste::Paste, validators};
 use axum::{
     extract::{Path, State},
     response::IntoResponse,
@@ -6,16 +6,20 @@ use axum::{
 };
 use serde::Deserialize;
 use uuid::Uuid;
+use validator::Validate;
 
 pub async fn index(State(db): State<Database>) -> Result<impl IntoResponse, controllers::Error> {
     let pastes = Paste::all(&db).await?;
     Ok(Json(pastes))
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Validate)]
 pub struct CreatePaste {
+    #[validate(custom(function = "validators::not_empty_when_trimmed"))]
     title: String,
+    #[validate(custom(function = "validators::not_empty_when_trimmed"))]
     description: String,
+    #[validate(custom(function = "validators::not_empty_when_trimmed"))]
     body: String,
 }
 
@@ -23,6 +27,7 @@ pub async fn create(
     State(db): State<Database>,
     Json(input): Json<CreatePaste>,
 ) -> Result<impl IntoResponse, controllers::Error> {
+    input.validate()?;
     let id = Paste::insert(&db, input.title, input.description, input.body).await?;
     Ok(Json(id))
 }
