@@ -36,3 +36,13 @@ pub async fn show(
         None => Err(controllers::Error::NotFound),
     }
 }
+
+pub async fn destroy(
+    Path(id): Path<Uuid>,
+    State(db): State<Database>,
+) -> Result<impl IntoResponse, controllers::Error> {
+    match Paste::delete(&db, id).await? {
+        0 => Err(controllers::Error::NotFound),
+        _ => Ok(()),
+    }
+}
