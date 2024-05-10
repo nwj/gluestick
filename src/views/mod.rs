@@ -1,6 +1,7 @@
 use askama::Template;
 
 pub mod pastes;
+pub mod users;
 
 #[derive(Template)]
 #[template(path = "404.html")]

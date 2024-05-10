@@ -1,4 +1,7 @@
-use crate::views::{InternalServerErrorTemplate, NotFoundTemplate};
+use crate::{
+    models,
+    views::{InternalServerErrorTemplate, NotFoundTemplate},
+};
 use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
@@ -6,6 +9,7 @@ use axum::{
 
 pub mod api;
 pub mod pastes;
+pub mod users;
 
 pub async fn health_check() -> StatusCode {
     StatusCode::OK
@@ -19,6 +23,9 @@ pub async fn not_found() -> Result<(), Error> {
 pub enum Error {
     #[error(transparent)]
     Database(#[from] tokio_rusqlite::Error),
+
+    #[error(transparent)]
+    User(#[from] models::user::Error),
 
     #[error(transparent)]
     Validation(#[from] validator::ValidationErrors),
@@ -41,6 +48,14 @@ impl IntoResponse for Error {
             }
 
             Error::Database(err) => {
+                tracing::error!(%err, "database error");
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    ErrorTemplate::InternalServerError(InternalServerErrorTemplate {}),
+                )
+            }
+
+            Error::User(err) => {
                 tracing::error!(%err, "database error");
                 (
                     StatusCode::INTERNAL_SERVER_ERROR,
