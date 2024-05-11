@@ -21,7 +21,7 @@ pub fn router(db: Database) -> Router {
 
     Router::new()
         .route("/", get(controllers::pastes::new))
-        .route("/health_check", get(controllers::health_check))
+        .route("/health_check", get(controllers::misc::health_check))
         .route("/signup", get(controllers::users::new))
         .route("/signup", post(controllers::users::create))
         .route("/login", get(controllers::sessions::new))
@@ -34,7 +34,7 @@ pub fn router(db: Database) -> Router {
         .route("/api/pastes", post(controllers::api::pastes::create))
         .route("/api/pastes/:id", get(controllers::api::pastes::show))
         .route("/api/pastes/:id", delete(controllers::api::pastes::destroy))
-        .fallback(controllers::not_found)
+        .fallback(controllers::misc::not_found)
         .nest("/assets", assets_router)
         .layer(
             TraceLayer::new_for_http()

@@ -8,17 +8,10 @@ use axum::{
 };
 
 pub mod api;
+pub mod misc;
 pub mod pastes;
 pub mod sessions;
 pub mod users;
-
-pub async fn health_check() -> StatusCode {
-    StatusCode::OK
-}
-
-pub async fn not_found() -> Result<(), Error> {
-    Err(Error::NotFound)
-}
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
