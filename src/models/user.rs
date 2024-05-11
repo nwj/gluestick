@@ -49,6 +49,30 @@ impl User {
 
         Ok(result)
     }
+
+    pub async fn find_by_email(
+        db: &db::Database,
+        email: String,
+    ) -> Result<Option<User>, tokio_rusqlite::Error> {
+        let maybe_user = db
+            .conn
+            .call(move |conn| {
+                let mut statement = conn.prepare(
+                    "SELECT id, username, email, password FROM users WHERE email = :email;",
+                )?;
+                let mut rows = statement.query(named_params! {":email": email})?;
+                match rows.next()? {
+                    Some(row) => Ok(Some(
+                        serde_rusqlite::from_row(row)
+                            .map_err(|e| tokio_rusqlite::Error::Other(Box::new(e)))?,
+                    )),
+                    None => Ok(None),
+                }
+            })
+            .await?;
+
+        Ok(maybe_user)
+    }
 }
 
 #[derive(Debug, thiserror::Error)]

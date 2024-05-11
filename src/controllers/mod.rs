@@ -9,6 +9,7 @@ use axum::{
 
 pub mod api;
 pub mod pastes;
+pub mod sessions;
 pub mod users;
 
 pub async fn health_check() -> StatusCode {
@@ -32,6 +33,12 @@ pub enum Error {
 
     #[error("resource not found")]
     NotFound,
+
+    #[error("invalid credentials")]
+    Unauthorized,
+
+    #[error(transparent)]
+    PasswordHash(#[from] argon2::password_hash::Error),
 }
 
 impl IntoResponse for Error {
@@ -41,6 +48,8 @@ impl IntoResponse for Error {
                 StatusCode::NOT_FOUND,
                 ErrorTemplate::NotFound(NotFoundTemplate {}),
             ),
+
+            Error::Unauthorized => (StatusCode::UNAUTHORIZED, ErrorTemplate::Blank),
 
             Error::Validation(err) => {
                 tracing::error!(%err, "test");
@@ -57,6 +66,14 @@ impl IntoResponse for Error {
 
             Error::User(err) => {
                 tracing::error!(%err, "database error");
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    ErrorTemplate::InternalServerError(InternalServerErrorTemplate {}),
+                )
+            }
+
+            Error::PasswordHash(err) => {
+                tracing::error!(%err, "hashing error");
                 (
                     StatusCode::INTERNAL_SERVER_ERROR,
                     ErrorTemplate::InternalServerError(InternalServerErrorTemplate {}),

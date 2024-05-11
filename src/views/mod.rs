@@ -1,6 +1,7 @@
 use askama::Template;
 
 pub mod pastes;
+pub mod sessions;
 pub mod users;
 
 #[derive(Template)]

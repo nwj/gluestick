@@ -24,6 +24,8 @@ pub fn router(db: Database) -> Router {
         .route("/health_check", get(controllers::health_check))
         .route("/signup", get(controllers::users::new))
         .route("/signup", post(controllers::users::create))
+        .route("/login", get(controllers::sessions::new))
+        .route("/login", post(controllers::sessions::create))
         .route("/pastes", get(controllers::pastes::index))
         .route("/pastes", post(controllers::pastes::create))
         .route("/pastes/:id", get(controllers::pastes::show))
