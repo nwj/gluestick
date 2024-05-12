@@ -19,9 +19,16 @@ pub fn router(db: Database) -> Router {
         .index_file(None)
         .into_router();
 
+    let json_api_router = Router::new()
+        .route("/pastes", get(controllers::api::pastes::index))
+        .route("/pastes", post(controllers::api::pastes::create))
+        .route("/pastes/:id", get(controllers::api::pastes::show))
+        .route("/pastes/:id", delete(controllers::api::pastes::destroy))
+        .fallback(controllers::api::not_found);
+
     Router::new()
         .route("/", get(controllers::pastes::new))
-        .route("/health_check", get(controllers::misc::health_check))
+        .route("/health", get(controllers::health::check))
         .route("/signup", get(controllers::users::new))
         .route("/signup", post(controllers::users::create))
         .route("/login", get(controllers::sessions::new))
@@ -30,11 +37,8 @@ pub fn router(db: Database) -> Router {
         .route("/pastes", post(controllers::pastes::create))
         .route("/pastes/:id", get(controllers::pastes::show))
         .route("/pastes/:id", delete(controllers::pastes::destroy))
-        .route("/api/pastes", get(controllers::api::pastes::index))
-        .route("/api/pastes", post(controllers::api::pastes::create))
-        .route("/api/pastes/:id", get(controllers::api::pastes::show))
-        .route("/api/pastes/:id", delete(controllers::api::pastes::destroy))
-        .fallback(controllers::misc::not_found)
+        .fallback(controllers::not_found)
+        .nest("/api", json_api_router)
         .nest("/assets", assets_router)
         .layer(
             TraceLayer::new_for_http()

@@ -8,10 +8,12 @@ use serde::Deserialize;
 use uuid::Uuid;
 use validator::Validate;
 
-pub async fn index(State(db): State<Database>) -> Result<impl IntoResponse, controllers::Error> {
+pub async fn index(
+    State(db): State<Database>,
+) -> Result<impl IntoResponse, controllers::api::Error> {
     let pastes = Paste::all(&db)
         .await
-        .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?;
+        .map_err(|e| controllers::api::Error::InternalServerError(Box::new(e)))?;
     Ok(Json(pastes))
 }
 
@@ -28,36 +30,36 @@ pub struct CreatePaste {
 pub async fn create(
     State(db): State<Database>,
     Json(input): Json<CreatePaste>,
-) -> Result<impl IntoResponse, controllers::Error> {
+) -> Result<impl IntoResponse, controllers::api::Error> {
     input.validate()?;
     let id = Paste::insert(&db, input.title, input.description, input.body)
         .await
-        .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?;
+        .map_err(|e| controllers::api::Error::InternalServerError(Box::new(e)))?;
     Ok(Json(id))
 }
 
 pub async fn show(
     Path(id): Path<Uuid>,
     State(db): State<Database>,
-) -> Result<impl IntoResponse, controllers::Error> {
+) -> Result<impl IntoResponse, controllers::api::Error> {
     match Paste::find(&db, id)
         .await
-        .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?
+        .map_err(|e| controllers::api::Error::InternalServerError(Box::new(e)))?
     {
         Some(paste) => Ok(Json(paste)),
-        None => Err(controllers::Error::NotFound),
+        None => Err(controllers::api::Error::NotFound),
     }
 }
 
 pub async fn destroy(
     Path(id): Path<Uuid>,
     State(db): State<Database>,
-) -> Result<impl IntoResponse, controllers::Error> {
+) -> Result<impl IntoResponse, controllers::api::Error> {
     match Paste::delete(&db, id)
         .await
-        .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?
+        .map_err(|e| controllers::api::Error::InternalServerError(Box::new(e)))?
     {
-        0 => Err(controllers::Error::NotFound),
+        0 => Err(controllers::api::Error::NotFound),
         _ => Ok(()),
     }
 }

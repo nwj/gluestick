@@ -1,2 +1,2 @@
-mod misc;
+mod health;
 mod pastes;
