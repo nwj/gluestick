@@ -26,13 +26,17 @@ pub async fn create(
 ) -> Result<impl IntoResponse, controllers::Error> {
     input.validate()?;
 
-    let Some(user) = User::find_by_email(&db, input.email).await? else {
+    let Some(user) = User::find_by_email(&db, input.email)
+        .await
+        .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?
+    else {
         return Err(controllers::Error::Unauthorized);
     };
 
     if let Err(_e) = Argon2::default().verify_password(
         input.password.expose_secret().as_bytes(),
-        &PasswordHash::new(user.password.expose_secret())?,
+        &PasswordHash::new(user.password.expose_secret())
+            .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?,
     ) {
         return Err(controllers::Error::Unauthorized);
     };

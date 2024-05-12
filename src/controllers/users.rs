@@ -27,6 +27,8 @@ pub async fn create(
     Form(input): Form<CreateUser>,
 ) -> Result<impl IntoResponse, controllers::Error> {
     input.validate()?;
-    User::insert(&db, input.username, input.email, input.password).await?;
+    User::insert(&db, input.username, input.email, input.password)
+        .await
+        .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?;
     Ok(Redirect::to("/").into_response())
 }

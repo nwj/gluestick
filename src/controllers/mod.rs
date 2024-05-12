@@ -1,7 +1,4 @@
-use crate::{
-    models,
-    views::{InternalServerErrorTemplate, NotFoundTemplate},
-};
+use crate::views::{InternalServerErrorTemplate, NotFoundTemplate};
 use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
@@ -15,58 +12,43 @@ pub mod users;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error(transparent)]
-    Database(#[from] tokio_rusqlite::Error),
+    #[error("malformed request")]
+    BadRequest(#[from] validator::ValidationErrors),
 
-    #[error(transparent)]
-    User(#[from] models::user::Error),
-
-    #[error(transparent)]
-    Validation(#[from] validator::ValidationErrors),
+    #[error("invalid authentication credentials")]
+    Unauthorized,
 
     #[error("resource not found")]
     NotFound,
 
-    #[error("invalid credentials")]
-    Unauthorized,
+    #[allow(clippy::enum_variant_names)]
+    #[error("internal server error: {0}")]
+    InternalServerError(#[from] Box<dyn std::error::Error>),
+}
 
-    #[error(transparent)]
-    PasswordHash(#[from] argon2::password_hash::Error),
+enum ErrorTemplate {
+    Blank,
+    NotFound(NotFoundTemplate),
+    InternalServerError(InternalServerErrorTemplate),
 }
 
 impl IntoResponse for Error {
     fn into_response(self) -> Response {
         let (status, template) = match self {
+            Error::BadRequest(err) => {
+                tracing::error!(%err, "bad request");
+                (StatusCode::BAD_REQUEST, ErrorTemplate::Blank)
+            }
+
+            Error::Unauthorized => (StatusCode::UNAUTHORIZED, ErrorTemplate::Blank),
+
             Error::NotFound => (
                 StatusCode::NOT_FOUND,
                 ErrorTemplate::NotFound(NotFoundTemplate {}),
             ),
 
-            Error::Unauthorized => (StatusCode::UNAUTHORIZED, ErrorTemplate::Blank),
-
-            Error::Validation(err) => {
-                tracing::error!(%err, "test");
-                (StatusCode::BAD_REQUEST, ErrorTemplate::Blank)
-            }
-
-            Error::Database(err) => {
-                tracing::error!(%err, "database error");
-                (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    ErrorTemplate::InternalServerError(InternalServerErrorTemplate {}),
-                )
-            }
-
-            Error::User(err) => {
-                tracing::error!(%err, "database error");
-                (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    ErrorTemplate::InternalServerError(InternalServerErrorTemplate {}),
-                )
-            }
-
-            Error::PasswordHash(err) => {
-                tracing::error!(%err, "hashing error");
+            Error::InternalServerError(err) => {
+                tracing::error!(%err, "internal server error");
                 (
                     StatusCode::INTERNAL_SERVER_ERROR,
                     ErrorTemplate::InternalServerError(InternalServerErrorTemplate {}),
@@ -76,12 +58,6 @@ impl IntoResponse for Error {
 
         (status, template).into_response()
     }
-}
-
-enum ErrorTemplate {
-    NotFound(NotFoundTemplate),
-    InternalServerError(InternalServerErrorTemplate),
-    Blank,
 }
 
 impl IntoResponse for ErrorTemplate {
