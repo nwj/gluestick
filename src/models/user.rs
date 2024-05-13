@@ -36,11 +36,11 @@ impl User {
             .conn
             .call(move |conn| {
                 let mut statement =
-                    conn.prepare("INSERT INTO users VALUES (:id, :email, :username, :password);")?;
+                    conn.prepare("INSERT INTO users VALUES (:id, :username, :email, :password);")?;
                 let result = statement.execute(named_params! {
                     ":id": id,
-                    ":email": email.to_lowercase(),
                     ":username": username.to_lowercase(),
+                    ":email": email.to_lowercase(),
                     ":password": password_hash.expose_secret()
                 })?;
                 Ok(result)
