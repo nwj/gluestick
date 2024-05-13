@@ -19,11 +19,14 @@ askama_axum = "0.4.0"
 axum = "0.7.5"
 dotenvy = "0.15.7"
 memory-serve = "0.4.5"
+rand = "0.8.5"
+rand_chacha = "0.3.1"
 rusqlite = { version = "0.31.0", features = ["bundled", "uuid"] }
 rusqlite_migration = { version = "1.2.0", features = ["alpha-async-tokio-rusqlite"] }
 secrecy = { version = "0.8.0", features = ["serde"] }
 serde = { version = "1.0.198", features = ["derive"] }
 serde_rusqlite = "0.35.0"
+sha2 = "0.10.8"
 thiserror = "1.0.59"
 tokio = { version = "1.37.0", features = ["macros", "rt-multi-thread", "signal"] }
 tokio-rusqlite = "0.5.1"

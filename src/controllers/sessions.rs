@@ -1,8 +1,15 @@
-use crate::{controllers, db::Database, models::user::User, views::sessions::NewSessionsTemplate};
+use crate::{
+    controllers,
+    db::Database,
+    models::{session::Session, user::User},
+    views::sessions::NewSessionsTemplate,
+};
 use argon2::{Argon2, PasswordHash, PasswordVerifier};
 use axum::{
+    body::Body,
     extract::{Form, State},
-    response::{IntoResponse, Redirect},
+    http::StatusCode,
+    response::{IntoResponse, Response},
 };
 use secrecy::ExposeSecret;
 use secrecy::Secret;
@@ -41,5 +48,22 @@ pub async fn create(
         return Err(controllers::Error::Unauthorized);
     };
 
-    Ok(Redirect::to("/").into_response())
+    let session_token = Session::create(&db, user.id)
+        .await
+        .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?;
+
+    let response = Response::builder()
+        .status(StatusCode::SEE_OTHER)
+        .header("Location", "/")
+        .header(
+            "Set-Cookie",
+            format!(
+                "session_token={}; Max-Age=999999; Secure; HttpOnly",
+                session_token.expose_secret()
+            ),
+        )
+        .body(Body::empty())
+        .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?;
+
+    Ok(response)
 }
