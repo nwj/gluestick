@@ -7,12 +7,13 @@ use axum::{
 use memory_serve::{load_assets, MemoryServe};
 use tower_http::trace::TraceLayer;
 
+pub mod auth;
 pub mod config;
-mod controllers;
+pub mod controllers;
 pub mod db;
-mod models;
-mod validators;
-mod views;
+pub mod models;
+pub mod validators;
+pub mod views;
 
 pub fn router(db: Database) -> Router {
     let assets_router = MemoryServe::new(load_assets!("src/assets"))

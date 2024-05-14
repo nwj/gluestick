@@ -1,4 +1,5 @@
 use crate::{
+    auth::SessionToken,
     controllers,
     db::Database,
     models::{session::Session, user::User},
@@ -48,7 +49,8 @@ pub async fn create(
         return Err(controllers::Error::Unauthorized);
     };
 
-    let session_token = Session::create(&db, user.id)
+    let session_token = SessionToken::generate();
+    Session::insert(&db, session_token.clone(), user.id)
         .await
         .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?;
 
