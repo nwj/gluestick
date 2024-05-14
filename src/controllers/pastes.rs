@@ -1,4 +1,5 @@
 use crate::{
+    auth::AuthenticatedUser,
     controllers,
     db::Database,
     models::paste::Paste,
@@ -21,7 +22,8 @@ pub async fn index(State(db): State<Database>) -> Result<impl IntoResponse, cont
     Ok(IndexPastesTemplate { pastes })
 }
 
-pub async fn new() -> NewPastesTemplate {
+pub async fn new(user: AuthenticatedUser) -> NewPastesTemplate {
+    tracing::info!("{:?}", user.0);
     NewPastesTemplate {}
 }
 

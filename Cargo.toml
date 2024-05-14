@@ -16,7 +16,8 @@ name = "gluestick"
 argon2 = { version = "0.5.3", features = ["std"] }
 askama = { version = "0.12.1", features = ["with-axum"] }
 askama_axum = "0.4.0"
-axum = "0.7.5"
+axum = { version = "0.7.5", features = ["macros"] }
+axum-extra = { version = "0.9.3", features = ["cookie"] }
 dotenvy = "0.15.7"
 memory-serve = "0.4.5"
 rand = "0.8.5"
