@@ -24,8 +24,12 @@
                 </div>
             </nav>
             <nav class="main-right-nav">
-                <a href="/login">Login</a>
-                <a href="/signup">Sign Up</a>
+                {% if optional_user.is_some() %}
+                    <button hx-delete="/logout">Log Out</button>
+                {% else %}
+                    <a href="/login">Login</a>
+                    <a href="/signup">Sign Up</a>
+                {% endif %}
             </nav>
         </header>
         <main>

@@ -1,4 +1,5 @@
 use crate::{
+    auth::AuthenticatedUser,
     auth::SessionToken,
     controllers,
     db::Database,
@@ -9,7 +10,7 @@ use argon2::{Argon2, PasswordHash, PasswordVerifier};
 use axum::{
     body::Body,
     extract::{Form, State},
-    http::StatusCode,
+    http::{header::HeaderMap, HeaderValue, StatusCode},
     response::{IntoResponse, Response},
 };
 use secrecy::ExposeSecret;
@@ -18,7 +19,9 @@ use serde::Deserialize;
 use validator::Validate;
 
 pub async fn new() -> NewSessionsTemplate {
-    NewSessionsTemplate {}
+    NewSessionsTemplate {
+        optional_user: None,
+    }
 }
 
 #[derive(Deserialize, Debug, Validate)]
@@ -68,4 +71,17 @@ pub async fn create(
         .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?;
 
     Ok(response)
+}
+
+pub async fn delete(
+    user: AuthenticatedUser,
+    State(db): State<Database>,
+) -> Result<impl IntoResponse, controllers::Error> {
+    Session::delete_by_user_id(&db, user.0.id)
+        .await
+        .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?;
+
+    let mut headers = HeaderMap::new();
+    headers.insert("HX-Redirect", HeaderValue::from_static("/login"));
+    Ok(headers)
 }

@@ -34,6 +34,7 @@ pub fn router(db: Database) -> Router {
         .route("/signup", post(controllers::users::create))
         .route("/login", get(controllers::sessions::new))
         .route("/login", post(controllers::sessions::create))
+        .route("/logout", delete(controllers::sessions::delete))
         .route("/pastes", get(controllers::pastes::index))
         .route("/pastes", post(controllers::pastes::create))
         .route("/pastes/:id", get(controllers::pastes::show))

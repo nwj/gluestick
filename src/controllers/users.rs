@@ -10,7 +10,9 @@ use serde::Deserialize;
 use validator::Validate;
 
 pub async fn new() -> NewUsersTemplate {
-    NewUsersTemplate {}
+    NewUsersTemplate {
+        optional_user: None,
+    }
 }
 
 #[derive(Deserialize, Debug, Validate)]

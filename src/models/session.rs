@@ -30,4 +30,22 @@ impl Session {
 
         Ok(result)
     }
+
+    pub async fn delete_by_user_id(
+        db: &Database,
+        user_id: Uuid,
+    ) -> Result<usize, tokio_rusqlite::Error> {
+        let result = db
+            .conn
+            .call(move |conn| {
+                let mut statement =
+                    conn.prepare("DELETE FROM sessions WHERE user_id = :user_id;")?;
+                let result = statement.execute(named_params! {
+                    ":user_id": user_id
+                })?;
+                Ok(result)
+            })
+            .await?;
+        Ok(result)
+    }
 }

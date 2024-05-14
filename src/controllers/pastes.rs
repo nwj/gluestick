@@ -15,16 +15,22 @@ use serde::Deserialize;
 use uuid::Uuid;
 use validator::Validate;
 
-pub async fn index(State(db): State<Database>) -> Result<impl IntoResponse, controllers::Error> {
+pub async fn index(
+    optional_user: Option<AuthenticatedUser>,
+    State(db): State<Database>,
+) -> Result<impl IntoResponse, controllers::Error> {
     let pastes = Paste::all(&db)
         .await
         .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?;
-    Ok(IndexPastesTemplate { pastes })
+    Ok(IndexPastesTemplate {
+        optional_user,
+        pastes,
+    })
 }
 
 pub async fn new(user: AuthenticatedUser) -> NewPastesTemplate {
-    tracing::info!("{:?}", user.0);
-    NewPastesTemplate {}
+    let optional_user = Some(user);
+    NewPastesTemplate { optional_user }
 }
 
 #[derive(Deserialize, Debug, Validate)]
@@ -50,13 +56,20 @@ pub async fn create(
 
 pub async fn show(
     Path(id): Path<Uuid>,
+    optional_user: Option<AuthenticatedUser>,
     State(db): State<Database>,
 ) -> Result<impl IntoResponse, controllers::Error> {
     match Paste::find(&db, id)
         .await
         .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?
     {
-        Some(paste) => Ok((StatusCode::OK, ShowPastesTemplate { paste })),
+        Some(paste) => Ok((
+            StatusCode::OK,
+            ShowPastesTemplate {
+                optional_user,
+                paste,
+            },
+        )),
         None => Err(controllers::Error::NotFound),
     }
 }
