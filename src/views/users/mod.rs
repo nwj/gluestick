@@ -3,5 +3,5 @@ use askama_axum::Template;
 #[derive(Template)]
 #[template(path = "users/new.html")]
 pub struct NewUsersTemplate {
-    pub optional_user: Option<()>,
+    pub current_user: Option<()>,
 }

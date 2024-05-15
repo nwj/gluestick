@@ -20,7 +20,7 @@ use validator::Validate;
 
 pub async fn new() -> NewSessionsTemplate {
     NewSessionsTemplate {
-        optional_user: None,
+        current_user: None,
     }
 }
 

@@ -18,13 +18,15 @@
                     <a href="/pastes">All Pastes</a>
                     <img class="ooze ooze1" src="/assets/images/ooze1.svg" />
                 </div>
-                <div class="ooze-link">
-                    <a href="/">New Paste</a>
-                    <img class="ooze ooze2" src="/assets/images/ooze2.svg" />
-                </div>
+                {% if current_user.is_some() %}
+                    <div class="ooze-link">
+                        <a href="/">New Paste</a>
+                        <img class="ooze ooze2" src="/assets/images/ooze2.svg" />
+                    </div>
+                {% endif %}
             </nav>
             <nav class="main-right-nav">
-                {% if optional_user.is_some() %}
+                {% if current_user.is_some() %}
                     <button hx-delete="/logout">Log Out</button>
                 {% else %}
                     <a href="/login">Login</a>

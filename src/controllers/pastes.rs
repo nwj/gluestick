@@ -16,21 +16,21 @@ use uuid::Uuid;
 use validator::Validate;
 
 pub async fn index(
-    optional_user: Option<AuthenticatedUser>,
+    current_user: Option<AuthenticatedUser>,
     State(db): State<Database>,
 ) -> Result<impl IntoResponse, controllers::Error> {
     let pastes = Paste::all(&db)
         .await
         .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?;
     Ok(IndexPastesTemplate {
-        optional_user,
+        current_user,
         pastes,
     })
 }
 
 pub async fn new(user: AuthenticatedUser) -> NewPastesTemplate {
-    let optional_user = Some(user);
-    NewPastesTemplate { optional_user }
+    let current_user = Some(user);
+    NewPastesTemplate { current_user }
 }
 
 #[derive(Deserialize, Debug, Validate)]
@@ -56,7 +56,7 @@ pub async fn create(
 
 pub async fn show(
     Path(id): Path<Uuid>,
-    optional_user: Option<AuthenticatedUser>,
+    current_user: Option<AuthenticatedUser>,
     State(db): State<Database>,
 ) -> Result<impl IntoResponse, controllers::Error> {
     match Paste::find(&db, id)
@@ -66,7 +66,7 @@ pub async fn show(
         Some(paste) => Ok((
             StatusCode::OK,
             ShowPastesTemplate {
-                optional_user,
+                current_user,
                 paste,
             },
         )),

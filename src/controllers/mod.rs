@@ -48,14 +48,16 @@ impl IntoResponse for Error {
 
             Error::NotFound => (
                 StatusCode::NOT_FOUND,
-                ErrorTemplate::NotFound(NotFoundTemplate {}),
+                ErrorTemplate::NotFound(NotFoundTemplate { current_user: None }),
             ),
 
             Error::InternalServerError(err) => {
                 tracing::error!(%err, "internal server error");
                 (
                     StatusCode::INTERNAL_SERVER_ERROR,
-                    ErrorTemplate::InternalServerError(InternalServerErrorTemplate {}),
+                    ErrorTemplate::InternalServerError(InternalServerErrorTemplate {
+                        current_user: None,
+                    }),
                 )
             }
         };
