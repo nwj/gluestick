@@ -1,7 +1,7 @@
 use askama_axum::Template;
 
 #[derive(Template)]
-#[template(path = "sessions_new.html")]
-pub struct NewSessionsTemplate {
+#[template(path = "users/new.html")]
+pub struct NewUsersTemplate {
     pub optional_user: Option<()>,
 }
