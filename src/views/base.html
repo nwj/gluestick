@@ -13,7 +13,7 @@
                 </div>
                 <div>
                     <a href="/pastes">All Pastes</a>
-                    {% if current_user.is_some() %}<a href="/">New Paste</a>{% endif %}
+                    {% if current_user.is_some() %}<a href="/pastes/new">New Paste</a>{% endif %}
                 </div>
                 <div>
                     {% if current_user.is_some() %}

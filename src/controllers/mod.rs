@@ -1,4 +1,7 @@
-use crate::views::{InternalServerErrorTemplate, NotFoundTemplate};
+use crate::{
+    auth::AuthenticatedUser,
+    views::{IndexTemplate, InternalServerErrorTemplate, NotFoundTemplate},
+};
 use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
@@ -9,6 +12,12 @@ pub mod health;
 pub mod pastes;
 pub mod sessions;
 pub mod users;
+
+pub async fn index(
+    current_user: Option<AuthenticatedUser>,
+) -> Result<impl IntoResponse, self::Error> {
+    Ok(IndexTemplate { current_user })
+}
 
 pub async fn not_found() -> Result<(), self::Error> {
     Err(self::Error::NotFound)

@@ -1,8 +1,15 @@
+use crate::auth::AuthenticatedUser;
 use askama::Template;
 
 pub mod pastes;
 pub mod sessions;
 pub mod users;
+
+#[derive(Template)]
+#[template(path = "index.html")]
+pub struct IndexTemplate {
+    pub current_user: Option<AuthenticatedUser>,
+}
 
 #[derive(Template)]
 #[template(path = "404.html")]
