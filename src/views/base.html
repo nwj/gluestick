@@ -2,36 +2,27 @@
 <html lang="en">
     <head>
         <script src="/assets/js/vendor/htmx.min.js"></script>
-        <link href="/assets/css/style.css" rel="stylesheet" />
+        <link href="/assets/css/main.css" rel="stylesheet" />
         {% block head %}{% endblock %}
     </head>
     <body>
-        <header>
-            <div class="logo">
-                <a href="/pastes">
-                    <img src="/assets/images/logo.png" />
-                    <h1>Gluestick</h1>
-                </a>
-            </div>
-            <nav class="main-center-nav">
-                <div class="ooze-link">
-                    <a href="/pastes">All Pastes</a>
-                    <img class="ooze ooze1" src="/assets/images/ooze1.svg" />
+        <header hx-boost="true">
+            <nav>
+                <div>
+                    <a class="logo" href="/">Gluestick</a>
                 </div>
-                {% if current_user.is_some() %}
-                    <div class="ooze-link">
-                        <a href="/">New Paste</a>
-                        <img class="ooze ooze2" src="/assets/images/ooze2.svg" />
-                    </div>
-                {% endif %}
-            </nav>
-            <nav class="main-right-nav">
-                {% if current_user.is_some() %}
-                    <button hx-delete="/logout">Log Out</button>
-                {% else %}
-                    <a href="/login">Login</a>
-                    <a href="/signup">Sign Up</a>
-                {% endif %}
+                <div>
+                    <a href="/pastes">All Pastes</a>
+                    {% if current_user.is_some() %}<a href="/">New Paste</a>{% endif %}
+                </div>
+                <div>
+                    {% if current_user.is_some() %}
+                        <a href="/logout" hx-delete="/logout">Sign Out</a>
+                    {% else %}
+                        <a href="/login">Sign In</a>
+                        <a href="/signup">Sign Up</a>
+                    {% endif %}
+                </div>
             </nav>
         </header>
         <main>
