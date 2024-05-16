@@ -1,6 +1,5 @@
 use crate::common::{spawn_app, test_paste::TestPaste};
 use rusqlite::named_params;
-use serde_rusqlite::to_params_named;
 use std::collections::HashSet;
 use uuid::Uuid;
 
@@ -23,21 +22,16 @@ async fn pastes_index_responds_with_all_pastes() {
     let app = spawn_app().await;
     let client = reqwest::Client::new();
     let mut pastes = HashSet::new();
-    pastes.insert(TestPaste::default());
-    pastes.insert(TestPaste::default());
-    pastes = app
-        .db
-        .conn
-        .call(move |conn| {
-            let mut statement =
-                conn.prepare("INSERT INTO pastes VALUES (:id, :title, :description, :body);")?;
-            for paste in &pastes {
-                statement.execute(to_params_named(&paste).unwrap().to_slice().as_slice())?;
-            }
-            Ok(pastes)
-        })
-        .await
-        .expect("Failed to write test pastes to db.");
+    pastes.insert(TestPaste::default().without_id());
+    pastes.insert(TestPaste::default().without_id());
+    for paste in &pastes {
+        client
+            .post(format!("http://{}/api/pastes", app.address))
+            .json(paste)
+            .send()
+            .await
+            .expect("Failed to setup test state.");
+    }
 
     let response = client
         .get(format!("http://{}/api/pastes", app.address))
@@ -49,7 +43,10 @@ async fn pastes_index_responds_with_all_pastes() {
         .await
         .expect("Failed to parse test response.");
 
-    assert_eq!(pastes, response_pastes);
+    assert_eq!(
+        pastes,
+        response_pastes.iter().map(|p| p.without_id()).collect()
+    );
 }
 
 #[tokio::test]
@@ -86,7 +83,7 @@ async fn pastes_create_persists_when_valid_input() {
         .await
         .expect("Failed to parse test response.");
 
-    let persisted_paste = app
+    let persisted_paste: TestPaste = app
         .db
         .conn
         .call(move |conn| {
@@ -105,7 +102,7 @@ async fn pastes_create_persists_when_valid_input() {
         .expect("Failed to read test paste from db.")
         .unwrap();
 
-    assert!(paste.compare_without_ids(persisted_paste))
+    assert_eq!(paste, persisted_paste.without_id())
 }
 
 #[tokio::test]
@@ -202,7 +199,7 @@ async fn pastes_show_responds_with_requested_paste_when_valid_input() {
         .await
         .expect("Failed to parse test request.");
 
-    assert!(paste.compare_without_ids(response_paste))
+    assert_eq!(paste, response_paste.without_id())
 }
 
 #[tokio::test]

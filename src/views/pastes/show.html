@@ -7,6 +7,8 @@
                 <button class="destructive" hx-delete="/pastes/{{ paste.id }}">Delete</button>
             </div>
         </div>
+        <p>Created: {{ paste.created_at }}</p>
+        <p>Updated: {{ paste.updated_at }}</p>
         <h3>{{ paste.description }}</h3>
         <div class="container">
             <code>{{ paste.body }}</code>

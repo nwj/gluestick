@@ -1,4 +1,8 @@
 use crate::db;
+use chrono::{
+    serde::ts_seconds,
+    {DateTime, Utc},
+};
 use rusqlite::named_params;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -9,6 +13,10 @@ pub struct Paste {
     pub title: String,
     pub description: String,
     pub body: String,
+    #[serde(with = "ts_seconds")]
+    pub created_at: DateTime<Utc>,
+    #[serde(with = "ts_seconds")]
+    pub updated_at: DateTime<Utc>,
 }
 
 impl Paste {
@@ -16,8 +24,9 @@ impl Paste {
         let pastes = db
             .conn
             .call(|conn| {
-                let mut statement =
-                    conn.prepare("SELECT id, title, description, body FROM pastes;")?;
+                let mut statement = conn.prepare(
+                    "SELECT id, title, description, body, created_at, updated_at FROM pastes;",
+                )?;
                 let results = serde_rusqlite::from_rows::<Paste>(statement.query([])?);
                 let mut pastes = Vec::new();
                 for result in results {
@@ -42,7 +51,7 @@ impl Paste {
             .call(move |conn| {
                 let id = Uuid::now_v7();
                 let mut statement =
-                    conn.prepare("INSERT INTO pastes VALUES (:id, :title, :description, :body);")?;
+                    conn.prepare("INSERT INTO pastes VALUES (:id, :title, :description, :body, unixepoch(), unixepoch());")?;
                 statement.execute(
                     named_params! {":id": id, ":title": title, ":description": description, ":body": body},
                 )?;
@@ -58,7 +67,7 @@ impl Paste {
             .conn
             .call(move |conn| {
                 let mut statement = conn
-                    .prepare("SELECT id, title, description, body FROM pastes WHERE id = :id;")?;
+                    .prepare("SELECT id, title, description, body, created_at, updated_at FROM pastes WHERE id = :id;")?;
                 let mut rows = statement.query(named_params! {":id": id})?;
                 match rows.next()? {
                     Some(row) => Ok(Some(

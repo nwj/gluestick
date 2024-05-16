@@ -31,10 +31,13 @@ impl TestPaste {
         }
     }
 
-    pub fn compare_without_ids(&self, other: TestPaste) -> bool {
-        self.title == other.title
-            && self.description == other.description
-            && self.body == other.body
+    pub fn without_id(&self) -> TestPaste {
+        TestPaste {
+            id: None,
+            title: self.title.clone(),
+            description: self.description.clone(),
+            body: self.body.clone(),
+        }
     }
 }
 

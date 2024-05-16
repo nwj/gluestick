@@ -19,5 +19,9 @@ CREATE TABLE pastes (
   id BLOB PRIMARY KEY CHECK(length(id) = 16),
   title TEXT NOT NULL CHECK(length(title) > 0),
   description TEXT NOT NULL CHECK(length(description) > 0),
-  body TEXT NOT NULL CHECK(length(body) > 0)
+  body TEXT NOT NULL CHECK(length(body) > 0),
+  -- created_at and updated_at are both unix timestamps, with seconds precision
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL,
+  CHECK(created_at <= updated_at)
 ) STRICT;
