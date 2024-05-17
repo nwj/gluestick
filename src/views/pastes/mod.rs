@@ -1,22 +1,22 @@
-use crate::models::{paste::Paste, user::User};
+use crate::models::{paste::Paste, session::Session};
 use askama_axum::Template;
 
 #[derive(Template)]
 #[template(path = "pastes/new.html")]
 pub struct NewPastesTemplate {
-    pub current_user: Option<User>,
+    pub session: Option<Session>,
 }
 
 #[derive(Template)]
 #[template(path = "pastes/index.html")]
 pub struct IndexPastesTemplate {
-    pub current_user: Option<User>,
+    pub session: Option<Session>,
     pub pastes: Vec<Paste>,
 }
 
 #[derive(Template)]
 #[template(path = "pastes/show.html")]
 pub struct ShowPastesTemplate {
-    pub current_user: Option<User>,
+    pub session: Option<Session>,
     pub paste: Paste,
 }

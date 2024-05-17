@@ -1,4 +1,4 @@
-use crate::models::user::User;
+use crate::models::session::Session;
 use askama::Template;
 
 pub mod pastes;
@@ -8,17 +8,17 @@ pub mod users;
 #[derive(Template)]
 #[template(path = "index.html")]
 pub struct IndexTemplate {
-    pub current_user: Option<User>,
+    pub session: Option<Session>,
 }
 
 #[derive(Template)]
 #[template(path = "404.html")]
 pub struct NotFoundTemplate {
-    pub current_user: Option<()>,
+    pub session: Option<()>,
 }
 
 #[derive(Template)]
 #[template(path = "500.html")]
 pub struct InternalServerErrorTemplate {
-    pub current_user: Option<()>,
+    pub session: Option<()>,
 }

@@ -1,7 +1,10 @@
 use crate::{
     controllers,
     db::Database,
-    models::{session::SessionToken, user::User},
+    models::{
+        session::{Session, SessionToken},
+        user::User,
+    },
 };
 use axum::{
     async_trait,
@@ -12,7 +15,7 @@ use axum::{
 use axum_extra::extract::CookieJar;
 
 #[async_trait]
-impl<S> FromRequestParts<S> for User
+impl<S> FromRequestParts<S> for Session
 where
     Database: FromRef<S>,
     S: Send + Sync,
@@ -28,18 +31,18 @@ where
         let cookie_jar = CookieJar::from_request_parts(parts, state)
             .await
             .map_err(|_| controllers::Error::Unauthorized)?;
-        let Some(cookie) = cookie_jar.get("session_token") else {
-            return Err(controllers::Error::Unauthorized);
-        };
-        let session_token =
+        let cookie = cookie_jar
+            .get("session_token")
+            .ok_or(controllers::Error::Unauthorized)?;
+        let token =
             SessionToken::parse(cookie.value()).map_err(|_| controllers::Error::Unauthorized)?;
 
-        let optional_user = User::find_by_session_token(&db, session_token)
+        let optional_user = User::find_by_session_token(&db, token.clone())
             .await
             .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?;
 
         match optional_user {
-            Some(user) => Ok(user),
+            Some(user) => Ok(Session { token, user }),
             None => Err(controllers::Error::Unauthorized),
         }
     }

@@ -1,11 +1,34 @@
-use crate::db::Database;
+use crate::{db::Database, models::user::User};
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use secrecy::{ExposeSecret, Secret};
 use sha2::{Digest, Sha256};
 use std::num::ParseIntError;
 use tokio_rusqlite::named_params;
-use uuid::Uuid;
+
+pub struct Session {
+    pub token: SessionToken,
+    pub user: User,
+}
+
+impl Session {
+    pub async fn insert(self, db: &Database) -> Result<usize, tokio_rusqlite::Error> {
+        let result = db
+            .conn
+            .call(move |conn| {
+                let mut statement =
+                    conn.prepare("INSERT INTO sessions VALUES (:session_token, :user_id);")?;
+                let result = statement.execute(named_params! {
+                    ":session_token": self.token.to_hash().expose_secret(),
+                    ":user_id": self.user.id,
+                })?;
+                Ok(result)
+            })
+            .await?;
+
+        Ok(result)
+    }
+}
 
 #[derive(Clone)]
 pub struct SessionToken(Secret<String>);
@@ -22,55 +45,16 @@ impl SessionToken {
         SessionToken(Secret::new(format!("{:032x}", rng.gen::<u128>())))
     }
 
-    pub fn to_hash(&self) -> HashedSessionToken {
-        HashedSessionToken(Secret::new(
-            Sha256::digest(self.expose_secret().as_bytes()).to_vec(),
-        ))
-    }
-
     pub fn parse(s: impl AsRef<str>) -> Result<Self, ParseIntError> {
         let s = s.as_ref();
         u128::from_str_radix(s, 16)?;
         Ok(SessionToken(Secret::new(s.to_string())))
     }
 
-    pub async fn insert(
-        self,
-        db: &Database,
-        user_id: Uuid,
-    ) -> Result<usize, tokio_rusqlite::Error> {
-        let result = db
-            .conn
-            .call(move |conn| {
-                let mut statement =
-                    conn.prepare("INSERT INTO sessions VALUES (:session_token, :user_id);")?;
-                let result = statement.execute(named_params! {
-                    ":session_token": self.to_hash().expose_secret(),
-                    ":user_id": user_id,
-                })?;
-                Ok(result)
-            })
-            .await?;
-
-        Ok(result)
-    }
-
-    pub async fn delete_by_user_id(
-        db: &Database,
-        user_id: Uuid,
-    ) -> Result<usize, tokio_rusqlite::Error> {
-        let result = db
-            .conn
-            .call(move |conn| {
-                let mut statement =
-                    conn.prepare("DELETE FROM sessions WHERE user_id = :user_id;")?;
-                let result = statement.execute(named_params! {
-                    ":user_id": user_id
-                })?;
-                Ok(result)
-            })
-            .await?;
-        Ok(result)
+    pub fn to_hash(&self) -> HashedSessionToken {
+        HashedSessionToken(Secret::new(
+            Sha256::digest(self.expose_secret().as_bytes()).to_vec(),
+        ))
     }
 }
 

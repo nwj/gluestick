@@ -1,5 +1,5 @@
 use crate::{
-    models::user::User,
+    models::session::Session,
     views::{IndexTemplate, InternalServerErrorTemplate, NotFoundTemplate},
 };
 use axum::{
@@ -13,8 +13,8 @@ pub mod pastes;
 pub mod sessions;
 pub mod users;
 
-pub async fn index(current_user: Option<User>) -> Result<impl IntoResponse, self::Error> {
-    Ok(IndexTemplate { current_user })
+pub async fn index(session: Option<Session>) -> Result<impl IntoResponse, self::Error> {
+    Ok(IndexTemplate { session })
 }
 
 pub async fn not_found() -> Result<(), self::Error> {
@@ -55,7 +55,7 @@ impl IntoResponse for Error {
 
             Error::NotFound => (
                 StatusCode::NOT_FOUND,
-                ErrorTemplate::NotFound(NotFoundTemplate { current_user: None }),
+                ErrorTemplate::NotFound(NotFoundTemplate { session: None }),
             ),
 
             Error::InternalServerError(err) => {
@@ -63,7 +63,7 @@ impl IntoResponse for Error {
                 (
                     StatusCode::INTERNAL_SERVER_ERROR,
                     ErrorTemplate::InternalServerError(InternalServerErrorTemplate {
-                        current_user: None,
+                        session: None,
                     }),
                 )
             }

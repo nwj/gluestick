@@ -1,7 +1,7 @@
 use crate::{
     controllers,
     db::Database,
-    models::{paste::Paste, user::User},
+    models::{paste::Paste, session::Session},
     validators,
     views::pastes::{IndexPastesTemplate, NewPastesTemplate, ShowPastesTemplate},
 };
@@ -15,21 +15,18 @@ use uuid::Uuid;
 use validator::Validate;
 
 pub async fn index(
-    current_user: Option<User>,
+    session: Option<Session>,
     State(db): State<Database>,
 ) -> Result<impl IntoResponse, controllers::Error> {
     let pastes = Paste::all(&db)
         .await
         .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?;
-    Ok(IndexPastesTemplate {
-        current_user,
-        pastes,
-    })
+    Ok(IndexPastesTemplate { session, pastes })
 }
 
-pub async fn new(current_user: User) -> NewPastesTemplate {
-    let current_user = Some(current_user);
-    NewPastesTemplate { current_user }
+pub async fn new(session: Session) -> NewPastesTemplate {
+    let session = Some(session);
+    NewPastesTemplate { session }
 }
 
 #[derive(Deserialize, Debug, Validate)]
@@ -55,20 +52,14 @@ pub async fn create(
 
 pub async fn show(
     Path(id): Path<Uuid>,
-    current_user: Option<User>,
+    session: Option<Session>,
     State(db): State<Database>,
 ) -> Result<impl IntoResponse, controllers::Error> {
     match Paste::find(&db, id)
         .await
         .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?
     {
-        Some(paste) => Ok((
-            StatusCode::OK,
-            ShowPastesTemplate {
-                current_user,
-                paste,
-            },
-        )),
+        Some(paste) => Ok((StatusCode::OK, ShowPastesTemplate { session, paste })),
         None => Err(controllers::Error::NotFound),
     }
 }

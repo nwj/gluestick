@@ -78,7 +78,7 @@ impl User {
         db: &Database,
         token: SessionToken,
     ) -> Result<Option<User>, tokio_rusqlite::Error> {
-        let maybe_user = db
+        let optional_user = db
             .conn
             .call(move |conn| {
                 let mut statement = conn.prepare(
@@ -98,7 +98,22 @@ impl User {
             })
             .await?;
 
-        Ok(maybe_user)
+        Ok(optional_user)
+    }
+
+    pub async fn delete_sessions(self, db: &Database) -> Result<usize, tokio_rusqlite::Error> {
+        let result = db
+            .conn
+            .call(move |conn| {
+                let mut statement =
+                    conn.prepare("DELETE FROM sessions WHERE user_id = :user_id;")?;
+                let result = statement.execute(named_params! {
+                    ":user_id": self.id
+                })?;
+                Ok(result)
+            })
+            .await?;
+        Ok(result)
     }
 }
 
