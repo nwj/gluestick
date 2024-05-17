@@ -1,5 +1,5 @@
 use crate::{
-    auth::AuthenticatedUser,
+    models::user::User,
     views::{IndexTemplate, InternalServerErrorTemplate, NotFoundTemplate},
 };
 use axum::{
@@ -13,9 +13,7 @@ pub mod pastes;
 pub mod sessions;
 pub mod users;
 
-pub async fn index(
-    current_user: Option<AuthenticatedUser>,
-) -> Result<impl IntoResponse, self::Error> {
+pub async fn index(current_user: Option<User>) -> Result<impl IntoResponse, self::Error> {
     Ok(IndexTemplate { current_user })
 }
 

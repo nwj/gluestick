@@ -1,4 +1,4 @@
-use crate::{auth::SessionToken, db::Database};
+use crate::{db::Database, models::session::SessionToken};
 use argon2::{
     password_hash::{rand_core::OsRng, PasswordHasher, SaltString},
     Argon2,

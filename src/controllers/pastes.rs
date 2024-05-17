@@ -1,8 +1,7 @@
 use crate::{
-    auth::AuthenticatedUser,
     controllers,
     db::Database,
-    models::paste::Paste,
+    models::{paste::Paste, user::User},
     validators,
     views::pastes::{IndexPastesTemplate, NewPastesTemplate, ShowPastesTemplate},
 };
@@ -16,7 +15,7 @@ use uuid::Uuid;
 use validator::Validate;
 
 pub async fn index(
-    current_user: Option<AuthenticatedUser>,
+    current_user: Option<User>,
     State(db): State<Database>,
 ) -> Result<impl IntoResponse, controllers::Error> {
     let pastes = Paste::all(&db)
@@ -28,8 +27,8 @@ pub async fn index(
     })
 }
 
-pub async fn new(user: AuthenticatedUser) -> NewPastesTemplate {
-    let current_user = Some(user);
+pub async fn new(current_user: User) -> NewPastesTemplate {
+    let current_user = Some(current_user);
     NewPastesTemplate { current_user }
 }
 
@@ -56,7 +55,7 @@ pub async fn create(
 
 pub async fn show(
     Path(id): Path<Uuid>,
-    current_user: Option<AuthenticatedUser>,
+    current_user: Option<User>,
     State(db): State<Database>,
 ) -> Result<impl IntoResponse, controllers::Error> {
     match Paste::find(&db, id)

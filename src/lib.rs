@@ -7,10 +7,10 @@ use axum::{
 use memory_serve::{load_assets, MemoryServe};
 use tower_http::trace::TraceLayer;
 
-pub mod auth;
 pub mod config;
 pub mod controllers;
 pub mod db;
+pub mod extractors;
 pub mod models;
 pub mod validators;
 pub mod views;

@@ -1,9 +1,7 @@
 use crate::{
-    auth::AuthenticatedUser,
-    auth::SessionToken,
     controllers,
     db::Database,
-    models::{session::Session, user::User},
+    models::{session::SessionToken, user::User},
     views::sessions::NewSessionsTemplate,
 };
 use argon2::{Argon2, PasswordHash, PasswordVerifier};
@@ -19,9 +17,7 @@ use serde::Deserialize;
 use validator::Validate;
 
 pub async fn new() -> NewSessionsTemplate {
-    NewSessionsTemplate {
-        current_user: None,
-    }
+    NewSessionsTemplate { current_user: None }
 }
 
 #[derive(Deserialize, Debug, Validate)]
@@ -53,9 +49,6 @@ pub async fn create(
     };
 
     let session_token = SessionToken::generate();
-    Session::insert(&db, session_token.clone(), user.id)
-        .await
-        .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?;
 
     let response = Response::builder()
         .status(StatusCode::SEE_OTHER)
@@ -70,14 +63,19 @@ pub async fn create(
         .body(Body::empty())
         .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?;
 
+    session_token
+        .insert(&db, user.id)
+        .await
+        .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?;
+
     Ok(response)
 }
 
 pub async fn delete(
-    user: AuthenticatedUser,
+    current_user: User,
     State(db): State<Database>,
 ) -> Result<impl IntoResponse, controllers::Error> {
-    Session::delete_by_user_id(&db, user.0.id)
+    SessionToken::delete_by_user_id(&db, current_user.id)
         .await
         .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?;
 
