@@ -1,3 +1,4 @@
+#[cfg(debug_assertions)]
 use dotenvy::dotenv;
 use gluestick::{config, db, router};
 use tokio::net::TcpListener;

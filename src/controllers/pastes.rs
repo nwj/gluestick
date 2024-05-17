@@ -51,7 +51,7 @@ pub async fn create(
     let id = Paste::insert(&db, input.title, input.description, input.body)
         .await
         .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?;
-    Ok(Redirect::to(format!("/pastes/{}", id).as_str()).into_response())
+    Ok(Redirect::to(format!("/pastes/{id}").as_str()).into_response())
 }
 
 pub async fn show(

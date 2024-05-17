@@ -82,9 +82,9 @@ impl User {
             .conn
             .call(move |conn| {
                 let mut statement = conn.prepare(
-                    r#"SELECT users.id, users.username, users.email, users.password
+                    r"SELECT users.id, users.username, users.email, users.password
                     FROM users JOIN sessions ON users.id = sessions.user_id
-                    WHERE sessions.session_token = :token;"#,
+                    WHERE sessions.session_token = :token;",
                 )?;
                 let mut rows =
                     statement.query(named_params! {":token": token.to_hash().expose_secret()})?;
