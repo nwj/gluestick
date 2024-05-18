@@ -1,4 +1,9 @@
-use crate::{controllers, db::Database, models::paste::Paste, validators};
+use crate::{
+    controllers,
+    db::Database,
+    models::{api_session::ApiSession, paste::Paste},
+    validators,
+};
 use axum::{
     extract::{Path, State},
     response::IntoResponse,
@@ -9,6 +14,7 @@ use uuid::Uuid;
 use validator::Validate;
 
 pub async fn index(
+    _session: ApiSession,
     State(db): State<Database>,
 ) -> Result<impl IntoResponse, controllers::api::Error> {
     let pastes = Paste::all(&db)
@@ -28,6 +34,7 @@ pub struct CreatePaste {
 }
 
 pub async fn create(
+    _session: ApiSession,
     State(db): State<Database>,
     Json(input): Json<CreatePaste>,
 ) -> Result<impl IntoResponse, controllers::api::Error> {
@@ -39,6 +46,7 @@ pub async fn create(
 }
 
 pub async fn show(
+    _session: ApiSession,
     Path(id): Path<Uuid>,
     State(db): State<Database>,
 ) -> Result<impl IntoResponse, controllers::api::Error> {
@@ -52,6 +60,7 @@ pub async fn show(
 }
 
 pub async fn destroy(
+    _session: ApiSession,
     Path(id): Path<Uuid>,
     State(db): State<Database>,
 ) -> Result<impl IntoResponse, controllers::api::Error> {

@@ -10,6 +10,7 @@ async fn pastes_index_responds_with_200() {
 
     let response = client
         .get(format!("http://{}/api/pastes", app.address))
+        .header("X-GLUESTICK-API-KEY", &app.user.api_key)
         .send()
         .await
         .expect("Failed to send test request.");
@@ -27,6 +28,7 @@ async fn pastes_index_responds_with_all_pastes() {
     for paste in &pastes {
         client
             .post(format!("http://{}/api/pastes", app.address))
+            .header("X-GLUESTICK-API-KEY", &app.user.api_key)
             .json(paste)
             .send()
             .await
@@ -35,6 +37,7 @@ async fn pastes_index_responds_with_all_pastes() {
 
     let response = client
         .get(format!("http://{}/api/pastes", app.address))
+        .header("X-GLUESTICK-API-KEY", &app.user.api_key)
         .send()
         .await
         .expect("Failed to send test request.");
@@ -57,6 +60,7 @@ async fn pastes_create_responds_with_200_when_valid_input() {
 
     let response = client
         .post(format!("http://{}/api/pastes", app.address))
+        .header("X-GLUESTICK-API-KEY", &app.user.api_key)
         .json(&paste)
         .send()
         .await
@@ -73,6 +77,7 @@ async fn pastes_create_persists_when_valid_input() {
 
     let response = client
         .post(format!("http://{}/api/pastes", app.address))
+        .header("X-GLUESTICK-API-KEY", &app.user.api_key)
         .json(&paste)
         .send()
         .await
@@ -118,6 +123,7 @@ async fn pastes_create_responds_with_422_when_missing_input() {
     for bad_paste in bad_pastes {
         let response = client
             .post(format!("http://{}/api/pastes", app.address))
+            .header("X-GLUESTICK-API-KEY", &app.user.api_key)
             .json(&bad_paste)
             .send()
             .await
@@ -145,6 +151,7 @@ async fn pastes_create_responds_with_400_when_invalid_input() {
         let response = client
             .post(format!("http://{}/api/pastes", app.address))
             .header("Content-Type", "application/json")
+            .header("X-GLUESTICK-API-KEY", &app.user.api_key)
             .body(bad_paste)
             .send()
             .await
@@ -160,6 +167,7 @@ async fn pastes_show_responds_with_200_when_valid_input() {
     let paste = TestPaste::default_without_id();
     let response = client
         .post(format!("http://{}/api/pastes", app.address))
+        .header("X-GLUESTICK-API-KEY", &app.user.api_key)
         .json(&paste)
         .send()
         .await
@@ -168,6 +176,7 @@ async fn pastes_show_responds_with_200_when_valid_input() {
 
     let response = client
         .get(format!("http://{}/api/pastes/{}", app.address, paste_id))
+        .header("X-GLUESTICK-API-KEY", &app.user.api_key)
         .send()
         .await
         .expect("Failed to send test request.");
@@ -182,6 +191,7 @@ async fn pastes_show_responds_with_requested_paste_when_valid_input() {
     let paste = TestPaste::default_without_id();
     let response = client
         .post(format!("http://{}/api/pastes", app.address))
+        .header("X-GLUESTICK-API-KEY", &app.user.api_key)
         .json(&paste)
         .send()
         .await
@@ -190,6 +200,7 @@ async fn pastes_show_responds_with_requested_paste_when_valid_input() {
 
     let response = client
         .get(format!("http://{}/api/pastes/{}", app.address, paste_id))
+        .header("X-GLUESTICK-API-KEY", &app.user.api_key)
         .send()
         .await
         .expect("Failed to send test request.");
@@ -213,6 +224,7 @@ async fn pastes_show_responds_with_404_when_requested_paste_doesnt_exist() {
             app.address,
             Uuid::now_v7()
         ))
+        .header("X-GLUESTICK-API-KEY", &app.user.api_key)
         .send()
         .await
         .expect("Failed to send test request.");
@@ -227,6 +239,7 @@ async fn pastes_show_responds_with_400_when_invalid_input() {
 
     let response = client
         .get(format!("http://{}/api/pastes/some-nonsense", app.address))
+        .header("X-GLUESTICK-API-KEY", &app.user.api_key)
         .send()
         .await
         .expect("Failed to send test request.");
@@ -241,6 +254,7 @@ async fn pastes_destroy_responds_with_200_when_valid_input() {
     let paste = TestPaste::default_without_id();
     let response = client
         .post(format!("http://{}/api/pastes", app.address))
+        .header("X-GLUESTICK-API-KEY", &app.user.api_key)
         .json(&paste)
         .send()
         .await
@@ -249,6 +263,7 @@ async fn pastes_destroy_responds_with_200_when_valid_input() {
 
     let response = client
         .delete(format!("http://{}/api/pastes/{}", app.address, paste_id))
+        .header("X-GLUESTICK-API-KEY", &app.user.api_key)
         .send()
         .await
         .expect("failed to send test request.");
@@ -263,6 +278,7 @@ async fn pastes_destroy_deletes_requested_paste() {
     let paste = TestPaste::default_without_id();
     let response = client
         .post(format!("http://{}/api/pastes", app.address))
+        .header("X-GLUESTICK-API-KEY", &app.user.api_key)
         .json(&paste)
         .send()
         .await
@@ -271,12 +287,14 @@ async fn pastes_destroy_deletes_requested_paste() {
 
     client
         .delete(format!("http://{}/api/pastes/{}", app.address, paste_id))
+        .header("X-GLUESTICK-API-KEY", &app.user.api_key)
         .send()
         .await
         .expect("failed to send test request.");
 
     let response = client
         .get(format!("http://{}/api/pastes/{}", app.address, paste_id))
+        .header("X-GLUESTICK-API-KEY", &app.user.api_key)
         .send()
         .await
         .expect("failed to send test request.");
@@ -295,6 +313,7 @@ async fn pastes_destroy_responds_with_404_when_requested_paste_doesnt_exist() {
             app.address,
             Uuid::now_v7(),
         ))
+        .header("X-GLUESTICK-API-KEY", &app.user.api_key)
         .send()
         .await
         .expect("failed to send test request.");
@@ -309,6 +328,7 @@ async fn pastes_destroy_responds_with_400_when_invalid_input() {
 
     let response = client
         .delete(format!("http://{}/api/pastes/some-nonsense", app.address,))
+        .header("X-GLUESTICK-API-KEY", &app.user.api_key)
         .send()
         .await
         .expect("Failed to send test request.");
