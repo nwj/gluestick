@@ -16,6 +16,9 @@ pub enum Error {
     #[error("malformed request")]
     BadRequest(#[from] validator::ValidationErrors),
 
+    #[error("invalid authentication credentials")]
+    Unauthorized,
+
     #[error("resource not found")]
     NotFound,
 
@@ -30,6 +33,14 @@ impl IntoResponse for Error {
             Error::BadRequest(_err) => (
                 StatusCode::BAD_REQUEST,
                 ErrorBody::new(StatusCode::BAD_REQUEST, "Invalid request parameters."),
+            ),
+
+            Error::Unauthorized => (
+                StatusCode::UNAUTHORIZED,
+                ErrorBody::new(
+                    StatusCode::UNAUTHORIZED,
+                    "Invalid authentication credentials.",
+                ),
             ),
 
             Error::NotFound => (

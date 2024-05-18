@@ -1,6 +1,7 @@
 use crate::models::session::Session;
 use askama::Template;
 
+pub mod api_sessions;
 pub mod pastes;
 pub mod sessions;
 pub mod users;

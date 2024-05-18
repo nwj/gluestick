@@ -1,4 +1,7 @@
-use crate::{db::Database, models::session::SessionToken};
+use crate::{
+    db::Database,
+    models::{api_session::ApiKey, session::SessionToken},
+};
 use argon2::{
     password_hash::{rand_core::OsRng, PasswordHasher, SaltString},
     Argon2,
@@ -114,6 +117,33 @@ impl User {
             })
             .await?;
         Ok(result)
+    }
+
+    pub async fn find_by_api_key(
+        db: &Database,
+        key: ApiKey,
+    ) -> Result<Option<User>, tokio_rusqlite::Error> {
+        let optional_user = db
+            .conn
+            .call(move |conn| {
+                let mut statement = conn.prepare(
+                    r"SELECT users.id, users.username, users.email, users.password
+                    FROM users JOIN api_sessions ON users.id = api_sessions.user_id
+                    WHERE api_sessions.api_key = :key;",
+                )?;
+                let mut rows =
+                    statement.query(named_params! {":key": key.to_hash().expose_secret()})?;
+                match rows.next()? {
+                    Some(row) => Ok(Some(
+                        serde_rusqlite::from_row(row)
+                            .map_err(|e| tokio_rusqlite::Error::Other(Box::new(e)))?,
+                    )),
+                    None => Ok(None),
+                }
+            })
+            .await?;
+
+        Ok(optional_user)
     }
 }
 

@@ -14,6 +14,16 @@ CREATE TABLE sessions (
   user_id BLOB NOT NULL CHECK(length(user_id) = 16)
 ) STRICT;
 
+CREATE TABLE api_sessions (
+  -- api_key is a randomly generated u128, formatted as hex, hashed via SHA-256
+  api_key BLOB PRIMARY KEY CHECK(length(api_key) = 32),
+  -- user_id is a UUIDv7
+  user_id BLOB NOT NULL CHECK(length(user_id) = 16),
+  -- created_at is a unix timestamp, with seconds precision
+  created_at INTEGER NOT NULL,
+  FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+) STRICT;
+
 CREATE TABLE pastes (
   -- id is a UUIDv7
   id BLOB PRIMARY KEY CHECK(length(id) = 16),

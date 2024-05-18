@@ -8,6 +8,7 @@ use axum::{
 };
 
 pub mod api;
+pub mod api_sessions;
 pub mod health;
 pub mod pastes;
 pub mod sessions;

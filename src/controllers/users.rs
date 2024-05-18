@@ -1,5 +1,9 @@
 use crate::{
-    controllers, db::Database, models::user::User, validators, views::users::NewUsersTemplate,
+    controllers,
+    db::Database,
+    models::{session::Session, user::User},
+    validators,
+    views::users::{NewUsersTemplate, ShowUsersTemplate},
 };
 use axum::{
     extract::{Form, State},
@@ -31,4 +35,9 @@ pub async fn create(
         .await
         .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?;
     Ok(Redirect::to("/").into_response())
+}
+
+pub async fn show(session: Session) -> Result<impl IntoResponse, controllers::Error> {
+    let session = Some(session);
+    Ok(ShowUsersTemplate { session })
 }
