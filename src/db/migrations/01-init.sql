@@ -11,7 +11,8 @@ CREATE TABLE sessions (
   -- session_token is a randomly generated u128, formatted as hex, hashed via SHA-256
   session_token BLOB PRIMARY KEY CHECK(length(session_token) = 32),
   -- user_id is a UUIDv7
-  user_id BLOB NOT NULL CHECK(length(user_id) = 16)
+  user_id BLOB NOT NULL CHECK(length(user_id) = 16),
+  FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
 ) STRICT;
 
 CREATE TABLE api_sessions (
@@ -27,11 +28,14 @@ CREATE TABLE api_sessions (
 CREATE TABLE pastes (
   -- id is a UUIDv7
   id BLOB PRIMARY KEY CHECK(length(id) = 16),
+  -- user_id is a UUIDv7
+  user_id BLOB NOT NULL CHECK(length(user_id) = 16),
   title TEXT NOT NULL CHECK(length(title) > 0),
   description TEXT NOT NULL CHECK(length(description) > 0),
   body TEXT NOT NULL CHECK(length(body) > 0),
   -- created_at and updated_at are both unix timestamps, with seconds precision
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL,
-  CHECK(created_at <= updated_at)
+  CHECK(created_at <= updated_at),
+  FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
 ) STRICT;

@@ -40,13 +40,20 @@ pub struct CreateFormInput {
 }
 
 pub async fn create(
+    session: Session,
     State(db): State<Database>,
     Form(input): Form<CreateFormInput>,
 ) -> Result<impl IntoResponse, controllers::Error> {
     input.validate()?;
-    let id = Paste::insert(&db, input.title, input.description, input.body)
-        .await
-        .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?;
+    let id = Paste::insert(
+        &db,
+        session.user.id,
+        input.title,
+        input.description,
+        input.body,
+    )
+    .await
+    .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?;
     Ok(Redirect::to(format!("/pastes/{id}").as_str()).into_response())
 }
 

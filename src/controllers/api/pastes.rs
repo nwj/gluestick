@@ -34,14 +34,20 @@ pub struct CreatePaste {
 }
 
 pub async fn create(
-    _session: ApiSession,
+    session: ApiSession,
     State(db): State<Database>,
     Json(input): Json<CreatePaste>,
 ) -> Result<impl IntoResponse, controllers::api::Error> {
     input.validate()?;
-    let id = Paste::insert(&db, input.title, input.description, input.body)
-        .await
-        .map_err(|e| controllers::api::Error::InternalServerError(Box::new(e)))?;
+    let id = Paste::insert(
+        &db,
+        session.user.id,
+        input.title,
+        input.description,
+        input.body,
+    )
+    .await
+    .map_err(|e| controllers::api::Error::InternalServerError(Box::new(e)))?;
     Ok(Json(id))
 }
 

@@ -1,10 +1,17 @@
 use crate::common;
-use reqwest::StatusCode;
+use reqwest::{
+    header::{HeaderMap, HeaderValue, COOKIE},
+    Client, StatusCode,
+};
 
 #[tokio::test]
 async fn pastes_create_responds_with_200_for_valid_form_data() {
     let app = common::spawn_app().await;
-    let client = reqwest::Client::new();
+    let cookie_str = format!("session_token={}", &app.user.session_token);
+    let mut headers = HeaderMap::new();
+    headers.insert(COOKIE, HeaderValue::from_str(&cookie_str).unwrap());
+    let client = Client::builder().default_headers(headers).build().unwrap();
+
     let response = client
         .post(format!("http://{}/pastes", app.address))
         .form(&[
@@ -22,7 +29,10 @@ async fn pastes_create_responds_with_200_for_valid_form_data() {
 #[tokio::test]
 async fn pastes_create_persists_when_valid_form_data() {
     let app = common::spawn_app().await;
-    let client = reqwest::Client::new();
+    let cookie_str = format!("session_token={}", &app.user.session_token);
+    let mut headers = HeaderMap::new();
+    headers.insert(COOKIE, HeaderValue::from_str(&cookie_str).unwrap());
+    let client = Client::builder().default_headers(headers).build().unwrap();
 
     client
         .post(format!("http://{}/pastes", app.address))
@@ -57,7 +67,10 @@ async fn pastes_create_persists_when_valid_form_data() {
 #[tokio::test]
 async fn pastes_create_responds_with_422_when_data_missing() {
     let app = common::spawn_app().await;
-    let client = reqwest::Client::new();
+    let cookie_str = format!("session_token={}", &app.user.session_token);
+    let mut headers = HeaderMap::new();
+    headers.insert(COOKIE, HeaderValue::from_str(&cookie_str).unwrap());
+    let client = Client::builder().default_headers(headers).build().unwrap();
     let cases = vec![
         [("title", "Paste"), ("description", "A paste.")],
         [("description", "A paste."), ("body", "A paste body.")],
@@ -89,8 +102,10 @@ async fn pastes_index_responds_with_200() {
 #[tokio::test]
 async fn pastes_index_lists_all_pastes() {
     let app = common::spawn_app().await;
-    let client = reqwest::Client::new();
-
+    let cookie_str = format!("session_token={}", &app.user.session_token);
+    let mut headers = HeaderMap::new();
+    headers.insert(COOKIE, HeaderValue::from_str(&cookie_str).unwrap());
+    let client = Client::builder().default_headers(headers).build().unwrap();
     let paste1 = "Paste 1";
     let paste2 = "Paste 2";
 

@@ -11,8 +11,8 @@ pub struct TestPaste {
 }
 
 impl Default for TestPaste {
-    fn default() -> TestPaste {
-        TestPaste {
+    fn default() -> Self {
+        Self {
             id: Some(Uuid::now_v7()),
             title: Uuid::now_v7().to_string(),
             description: Uuid::now_v7().to_string(),
@@ -22,17 +22,12 @@ impl Default for TestPaste {
 }
 
 impl TestPaste {
-    pub fn default_without_id() -> TestPaste {
-        TestPaste {
-            id: None,
-            title: Uuid::now_v7().to_string(),
-            description: Uuid::now_v7().to_string(),
-            body: Uuid::now_v7().to_string(),
-        }
+    pub fn default_without_id() -> Self {
+        Self::default().without_id()
     }
 
-    pub fn without_id(&self) -> TestPaste {
-        TestPaste {
+    pub fn without_id(&self) -> Self {
+        Self {
             id: None,
             title: self.title.clone(),
             description: self.description.clone(),

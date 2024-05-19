@@ -10,6 +10,7 @@ use uuid::Uuid;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Paste {
     pub id: Uuid,
+    pub user_id: Uuid,
     pub title: String,
     pub description: String,
     pub body: String,
@@ -25,7 +26,7 @@ impl Paste {
             .conn
             .call(|conn| {
                 let mut statement = conn.prepare(
-                    "SELECT id, title, description, body, created_at, updated_at FROM pastes;",
+                    "SELECT id, user_id, title, description, body, created_at, updated_at FROM pastes;",
                 )?;
                 let results = serde_rusqlite::from_rows::<Paste>(statement.query([])?);
                 let mut pastes = Vec::new();
@@ -42,6 +43,7 @@ impl Paste {
 
     pub async fn insert(
         db: &db::Database,
+        user_id: Uuid,
         title: String,
         description: String,
         body: String,
@@ -51,9 +53,9 @@ impl Paste {
             .call(move |conn| {
                 let id = Uuid::now_v7();
                 let mut statement =
-                    conn.prepare("INSERT INTO pastes VALUES (:id, :title, :description, :body, unixepoch(), unixepoch());")?;
+                    conn.prepare("INSERT INTO pastes VALUES (:id, :user_id, :title, :description, :body, unixepoch(), unixepoch());")?;
                 statement.execute(
-                    named_params! {":id": id, ":title": title, ":description": description, ":body": body},
+                    named_params! {":id": id, ":user_id": user_id, ":title": title, ":description": description, ":body": body},
                 )?;
                 Ok(id)
             })
@@ -67,7 +69,7 @@ impl Paste {
             .conn
             .call(move |conn| {
                 let mut statement = conn
-                    .prepare("SELECT id, title, description, body, created_at, updated_at FROM pastes WHERE id = :id;")?;
+                    .prepare("SELECT id, user_id, title, description, body, created_at, updated_at FROM pastes WHERE id = :id;")?;
                 let mut rows = statement.query(named_params! {":id": id})?;
                 match rows.next()? {
                     Some(row) => Ok(Some(
