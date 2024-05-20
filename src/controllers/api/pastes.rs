@@ -66,15 +66,23 @@ pub async fn show(
 }
 
 pub async fn destroy(
-    _session: ApiSession,
+    session: ApiSession,
     Path(id): Path<Uuid>,
     State(db): State<Database>,
 ) -> Result<impl IntoResponse, controllers::api::Error> {
-    match Paste::delete(&db, id)
+    let optional_paste = Paste::find(&db, id)
         .await
-        .map_err(|e| controllers::api::Error::InternalServerError(Box::new(e)))?
-    {
-        0 => Err(controllers::api::Error::NotFound),
-        _ => Ok(()),
+        .map_err(|e| controllers::api::Error::InternalServerError(Box::new(e)))?;
+
+    match optional_paste {
+        Some(paste) if paste.user_id == session.user.id => {
+            paste
+                .delete(&db)
+                .await
+                .map_err(|e| controllers::api::Error::InternalServerError(Box::new(e)))?;
+            Ok(())
+        }
+        Some(_) => Err(controllers::api::Error::Forbidden),
+        None => Err(controllers::api::Error::NotFound),
     }
 }

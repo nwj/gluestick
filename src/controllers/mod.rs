@@ -30,6 +30,9 @@ pub enum Error {
     #[error("invalid authentication credentials")]
     Unauthorized,
 
+    #[error("insufficient privileges")]
+    Forbidden,
+
     #[error("resource not found")]
     NotFound,
 
@@ -53,6 +56,8 @@ impl IntoResponse for Error {
             }
 
             Error::Unauthorized => (StatusCode::UNAUTHORIZED, ErrorTemplate::Blank),
+
+            Error::Forbidden => (StatusCode::FORBIDDEN, ErrorTemplate::Blank),
 
             Error::NotFound => (
                 StatusCode::NOT_FOUND,

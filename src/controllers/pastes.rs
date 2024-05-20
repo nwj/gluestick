@@ -72,13 +72,26 @@ pub async fn show(
 }
 
 pub async fn destroy(
+    session: Session,
     Path(id): Path<Uuid>,
     State(db): State<Database>,
 ) -> Result<impl IntoResponse, controllers::Error> {
-    Paste::delete(&db, id)
+    let optional_paste = Paste::find(&db, id)
         .await
         .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?;
-    let mut headers = HeaderMap::new();
-    headers.insert("HX-Redirect", HeaderValue::from_static("/pastes"));
-    Ok(headers)
+
+    match optional_paste {
+        Some(paste) if paste.user_id == session.user.id => {
+            paste
+                .delete(&db)
+                .await
+                .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?;
+
+            let mut response = HeaderMap::new();
+            response.insert("HX-Redirect", HeaderValue::from_static("/pastes"));
+            Ok(response)
+        }
+        Some(_) => Err(controllers::Error::Forbidden),
+        None => Err(controllers::Error::NotFound),
+    }
 }

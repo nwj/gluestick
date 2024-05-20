@@ -4,7 +4,11 @@
         <div class="title-bar">
             <h2>{{ paste.title }}</h2>
             <div class="buttons">
-                <button class="destructive" hx-delete="/pastes/{{ paste.id }}">Delete</button>
+                {% if let Some(session) = session %}
+                    {% if session.user.id == paste.user_id %}
+                        <button class="destructive" hx-delete="/pastes/{{ paste.id }}">Delete</button>
+                    {% endif %}
+                {% endif %}
             </div>
         </div>
         <p>Created: {{ paste.created_at }}</p>

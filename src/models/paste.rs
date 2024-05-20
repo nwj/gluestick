@@ -84,12 +84,12 @@ impl Paste {
         Ok(maybe_paste)
     }
 
-    pub async fn delete(db: &db::Database, id: Uuid) -> Result<usize, tokio_rusqlite::Error> {
+    pub async fn delete(self, db: &db::Database) -> Result<usize, tokio_rusqlite::Error> {
         let result = db
             .conn
             .call(move |conn| {
                 let mut statement = conn.prepare("DELETE FROM pastes WHERE id = :id;")?;
-                let result = statement.execute(named_params! {":id": id})?;
+                let result = statement.execute(named_params! {":id": self.id})?;
                 Ok(result)
             })
             .await?;
