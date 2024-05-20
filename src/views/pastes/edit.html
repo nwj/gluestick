@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block content %}
+    <section class="pastes-edit">
+        <form hx-put="/pastes/{{ paste.id }}">
+            <div class="title-bar">
+                <input name="title" value="{{ paste.title }}" />
+            </div>
+            <input name="description" value="{{ paste.description }}" />
+            <div class="container">
+                <textarea name="body">{{ paste.body }}</textarea>
+            </div>
+            <button type="submit">Save</button>
+        </form>
+    </section>
+{% endblock %}

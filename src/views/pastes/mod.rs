@@ -20,3 +20,10 @@ pub struct ShowPastesTemplate {
     pub session: Option<Session>,
     pub paste: Paste,
 }
+
+#[derive(Template)]
+#[template(path = "pastes/edit.html")]
+pub struct EditPastesTemplate {
+    pub session: Option<Session>,
+    pub paste: Paste,
+}

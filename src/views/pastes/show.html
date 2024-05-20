@@ -6,6 +6,7 @@
             <div class="buttons">
                 {% if let Some(session) = session %}
                     {% if session.user.id == paste.user_id %}
+                        <a href="/pastes/{{ paste.id }}/edit">Edit</a>
                         <button class="destructive" hx-delete="/pastes/{{ paste.id }}">Delete</button>
                     {% endif %}
                 {% endif %}

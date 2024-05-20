@@ -1,4 +1,4 @@
-use crate::db;
+use crate::db::Database;
 use chrono::{
     serde::ts_seconds,
     {DateTime, Utc},
@@ -21,7 +21,7 @@ pub struct Paste {
 }
 
 impl Paste {
-    pub async fn all(db: &db::Database) -> Result<Vec<Paste>, tokio_rusqlite::Error> {
+    pub async fn all(db: &Database) -> Result<Vec<Paste>, tokio_rusqlite::Error> {
         let pastes = db
             .conn
             .call(|conn| {
@@ -42,7 +42,7 @@ impl Paste {
     }
 
     pub async fn insert(
-        db: &db::Database,
+        db: &Database,
         user_id: Uuid,
         title: String,
         description: String,
@@ -64,7 +64,7 @@ impl Paste {
         Ok(result)
     }
 
-    pub async fn find(db: &db::Database, id: Uuid) -> Result<Option<Paste>, tokio_rusqlite::Error> {
+    pub async fn find(db: &Database, id: Uuid) -> Result<Option<Paste>, tokio_rusqlite::Error> {
         let maybe_paste = db
             .conn
             .call(move |conn| {
@@ -84,7 +84,20 @@ impl Paste {
         Ok(maybe_paste)
     }
 
-    pub async fn delete(self, db: &db::Database) -> Result<usize, tokio_rusqlite::Error> {
+    pub async fn update(self, db: &Database) -> Result<usize, tokio_rusqlite::Error> {
+        let result = db.conn.call(move |conn| {
+            let mut statement = conn.prepare(
+                r"UPDATE pastes
+                SET title = :title, description = :desc, body = :body, updated_at = unixepoch()
+                WHERE id = :id;"
+            )?;
+            let result = statement.execute(named_params! {":title": self.title, ":desc": self.description, ":body": self.body, ":id": self.id})?;
+            Ok(result)
+        }).await?;
+        Ok(result)
+    }
+
+    pub async fn delete(self, db: &Database) -> Result<usize, tokio_rusqlite::Error> {
         let result = db
             .conn
             .call(move |conn| {

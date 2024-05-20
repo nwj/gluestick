@@ -1,7 +1,7 @@
 use crate::db::Database;
 use axum::{
     extract::Request,
-    routing::{delete, get, post},
+    routing::{delete, get, post, put},
     Router,
 };
 use memory_serve::{load_assets, MemoryServe};
@@ -41,7 +41,9 @@ pub fn router(db: Database) -> Router {
         .route("/pastes", post(controllers::pastes::create))
         .route("/pastes/new", get(controllers::pastes::new))
         .route("/pastes/:id", get(controllers::pastes::show))
+        .route("/pastes/:id", put(controllers::pastes::update))
         .route("/pastes/:id", delete(controllers::pastes::destroy))
+        .route("/pastes/:id/edit", get(controllers::pastes::edit))
         .fallback(controllers::not_found)
         .nest("/api", json_api_router)
         .nest("/assets", assets_router)
