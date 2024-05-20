@@ -11,40 +11,44 @@ use secrecy::{ExposeSecret, Secret};
 use serde::Deserialize;
 use uuid::Uuid;
 
-#[derive(Deserialize, Debug)]
+#[derive(Clone, Deserialize, Debug)]
 pub struct User {
     pub id: Uuid,
-    pub email: String,
     pub username: String,
+    pub email: String,
     pub password: Secret<String>,
 }
 
 impl User {
-    pub async fn insert(
-        db: &Database,
-        username: String,
-        email: String,
-        password: Secret<String>,
-    ) -> Result<usize, Error> {
+    pub fn new(username: String, email: String, password: Secret<String>) -> Result<Self, Error> {
         let id = Uuid::now_v7();
         let salt = SaltString::generate(&mut OsRng);
         let argon2 = Argon2::default();
-        let password_hash = Secret::new(
+        let password = Secret::new(
             argon2
                 .hash_password(password.expose_secret().as_bytes(), &salt)?
                 .to_string(),
         );
 
+        Ok(User {
+            id,
+            username,
+            email,
+            password,
+        })
+    }
+
+    pub async fn insert(self, db: &Database) -> Result<usize, Error> {
         let result = db
             .conn
             .call(move |conn| {
                 let mut statement =
                     conn.prepare("INSERT INTO users VALUES (:id, :username, :email, :password);")?;
                 let result = statement.execute(named_params! {
-                    ":id": id,
-                    ":username": username.to_lowercase(),
-                    ":email": email.to_lowercase(),
-                    ":password": password_hash.expose_secret()
+                    ":id": self.id,
+                    ":username": self.username.to_lowercase(),
+                    ":email": self.email.to_lowercase(),
+                    ":password": self.password.expose_secret()
                 })?;
                 Ok(result)
             })
