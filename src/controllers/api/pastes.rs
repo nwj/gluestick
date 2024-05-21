@@ -1,7 +1,10 @@
 use crate::{
     controllers,
     db::Database,
-    models::{api_session::ApiSession, paste::Paste},
+    models::{
+        api_session::ApiSession,
+        paste::{Paste, Visibility},
+    },
     validators,
 };
 use axum::{
@@ -31,6 +34,7 @@ pub struct CreatePaste {
     description: String,
     #[validate(custom(function = "validators::not_empty_when_trimmed"))]
     body: String,
+    visibility: Visibility,
 }
 
 pub async fn create(
@@ -39,15 +43,18 @@ pub async fn create(
     Json(input): Json<CreatePaste>,
 ) -> Result<impl IntoResponse, controllers::api::Error> {
     input.validate()?;
-    let id = Paste::insert(
-        &db,
+    let paste = Paste::new(
         session.user.id,
         input.title,
         input.description,
         input.body,
-    )
-    .await
-    .map_err(|e| controllers::api::Error::InternalServerError(Box::new(e)))?;
+        input.visibility,
+    );
+    let id = paste.id;
+    paste
+        .insert(&db)
+        .await
+        .map_err(|e| controllers::api::Error::InternalServerError(Box::new(e)))?;
     Ok(Json(id))
 }
 

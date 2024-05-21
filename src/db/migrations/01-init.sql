@@ -33,6 +33,7 @@ CREATE TABLE pastes (
   title TEXT NOT NULL CHECK(length(title) > 0),
   description TEXT NOT NULL CHECK(length(description) > 0),
   body TEXT NOT NULL CHECK(length(body) > 0),
+  visibility TEXT NOT NULL CHECK(visibility IN ('public', 'secret')),
   -- created_at and updated_at are both unix timestamps, with seconds precision
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL,

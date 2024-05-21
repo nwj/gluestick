@@ -3,7 +3,10 @@ use chrono::{
     serde::ts_seconds,
     {DateTime, Utc},
 };
-use rusqlite::named_params;
+use rusqlite::{
+    named_params,
+    types::{FromSql, FromSqlError, FromSqlResult, ToSql, ToSqlOutput, ValueRef},
+};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -14,6 +17,7 @@ pub struct Paste {
     pub title: String,
     pub description: String,
     pub body: String,
+    pub visibility: Visibility,
     #[serde(with = "ts_seconds")]
     pub created_at: DateTime<Utc>,
     #[serde(with = "ts_seconds")]
@@ -21,12 +25,35 @@ pub struct Paste {
 }
 
 impl Paste {
+    pub fn new(
+        user_id: Uuid,
+        title: String,
+        description: String,
+        body: String,
+        visibility: Visibility,
+    ) -> Self {
+        let id = Uuid::now_v7();
+        let created_at = Utc::now();
+        let updated_at = Utc::now();
+
+        Self {
+            id,
+            user_id,
+            title,
+            description,
+            body,
+            visibility,
+            created_at,
+            updated_at,
+        }
+    }
+
     pub async fn all(db: &Database) -> Result<Vec<Paste>, tokio_rusqlite::Error> {
         let pastes = db
             .conn
             .call(|conn| {
                 let mut statement = conn.prepare(
-                    "SELECT id, user_id, title, description, body, created_at, updated_at FROM pastes;",
+                    "SELECT id, user_id, title, description, body, visibility, created_at, updated_at FROM pastes WHERE visibility = 'public';",
                 )?;
                 let results = serde_rusqlite::from_rows::<Paste>(statement.query([])?);
                 let mut pastes = Vec::new();
@@ -41,23 +68,27 @@ impl Paste {
         Ok(pastes)
     }
 
-    pub async fn insert(
-        db: &Database,
-        user_id: Uuid,
-        title: String,
-        description: String,
-        body: String,
-    ) -> Result<Uuid, tokio_rusqlite::Error> {
+    pub async fn insert(self, db: &Database) -> Result<usize, tokio_rusqlite::Error> {
         let result = db
             .conn
             .call(move |conn| {
-                let id = Uuid::now_v7();
-                let mut statement =
-                    conn.prepare("INSERT INTO pastes VALUES (:id, :user_id, :title, :description, :body, unixepoch(), unixepoch());")?;
-                statement.execute(
-                    named_params! {":id": id, ":user_id": user_id, ":title": title, ":description": description, ":body": body},
+                let mut statement = conn.prepare(
+                    r"INSERT INTO pastes
+                    VALUES (:id, :user_id, :title, :description, :body, :visibility, :created_at, :updated_at);"
                 )?;
-                Ok(id)
+                let result = statement.execute(
+                    named_params! {
+                        ":id": self.id,
+                        ":user_id": self.user_id,
+                        ":title": self.title,
+                        ":description": self.description,
+                        ":body": self.body,
+                        ":visibility": self.visibility,
+                        ":created_at": self.created_at.timestamp(),
+                        ":updated_at": self.updated_at.timestamp(),
+                    }
+                )?;
+                Ok(result)
             })
             .await?;
 
@@ -69,7 +100,7 @@ impl Paste {
             .conn
             .call(move |conn| {
                 let mut statement = conn
-                    .prepare("SELECT id, user_id, title, description, body, created_at, updated_at FROM pastes WHERE id = :id;")?;
+                    .prepare("SELECT id, user_id, title, description, body, visibility, created_at, updated_at FROM pastes WHERE id = :id;")?;
                 let mut rows = statement.query(named_params! {":id": id})?;
                 match rows.next()? {
                     Some(row) => Ok(Some(
@@ -107,5 +138,34 @@ impl Paste {
             })
             .await?;
         Ok(result)
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub enum Visibility {
+    #[serde(rename = "public")]
+    Public,
+    #[serde(rename = "secret")]
+    Secret,
+}
+
+impl ToSql for Visibility {
+    fn to_sql(&self) -> Result<ToSqlOutput<'_>, rusqlite::Error> {
+        match self {
+            Visibility::Public => Ok("public".into()),
+            Visibility::Secret => Ok("secret".into()),
+        }
+    }
+}
+
+impl FromSql for Visibility {
+    fn column_result(value: ValueRef) -> FromSqlResult<Self> {
+        String::column_result(value).and_then(|as_string| match as_string.as_str() {
+            "public" => Ok(Visibility::Public),
+            "secret" => Ok(Visibility::Secret),
+            _ => Err(FromSqlError::Other(
+                "Unrecognized value for visibility".into(),
+            )),
+        })
     }
 }

@@ -18,6 +18,7 @@ async fn pastes_create_responds_with_200_for_valid_form_data() {
             ("title", "Paste"),
             ("description", "description"),
             ("body", "body"),
+            ("visibility", "public"),
         ])
         .send()
         .await
@@ -40,6 +41,7 @@ async fn pastes_create_persists_when_valid_form_data() {
             ("title", "Paste"),
             ("description", "description"),
             ("body", "body"),
+            ("visibility", "public"),
         ])
         .send()
         .await
@@ -115,6 +117,7 @@ async fn pastes_index_lists_all_pastes() {
             ("title", paste1),
             ("description", "description"),
             ("body", "body"),
+            ("visibility", "public"),
         ])
         .send()
         .await
@@ -126,6 +129,7 @@ async fn pastes_index_lists_all_pastes() {
             ("title", paste2),
             ("description", "description"),
             ("body", "body"),
+            ("visibility", "public"),
         ])
         .send()
         .await

@@ -9,6 +9,13 @@
             <div class="container">
                 <textarea name="body" placeholder="Paste body..."></textarea>
             </div>
+            <fieldset>
+                <legend>Visibility:</legend>
+                <label for="visibility-secret">Secret - visible to anyone you give the URL to</label>
+                <input type="radio" id="visibility-secret" name="visibility" value="secret" checked />
+                <label for="visiblitity-public">Public - visible to everyone</label>
+                <input type="radio" id="visiblitity-public" name="visibility" value="public" />
+            </fieldset>
             <button class="primary" type="submit">Create Paste</button>
         </form>
     </section>

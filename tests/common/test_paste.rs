@@ -8,15 +8,17 @@ pub struct TestPaste {
     title: String,
     description: String,
     body: String,
+    visibility: String,
 }
 
 impl Default for TestPaste {
     fn default() -> Self {
         Self {
             id: Some(Uuid::now_v7()),
-            title: Uuid::now_v7().to_string(),
-            description: Uuid::now_v7().to_string(),
-            body: Uuid::now_v7().to_string(),
+            title: Uuid::now_v7().into(),
+            description: Uuid::now_v7().into(),
+            body: Uuid::now_v7().into(),
+            visibility: "public".into(),
         }
     }
 }
@@ -32,6 +34,7 @@ impl TestPaste {
             title: self.title.clone(),
             description: self.description.clone(),
             body: self.body.clone(),
+            visibility: self.visibility.clone(),
         }
     }
 }

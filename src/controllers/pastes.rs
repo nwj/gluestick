@@ -1,7 +1,10 @@
 use crate::{
     controllers,
     db::Database,
-    models::{paste::Paste, session::Session},
+    models::{
+        paste::{Paste, Visibility},
+        session::Session,
+    },
     validators,
     views::pastes::{
         EditPastesTemplate, IndexPastesTemplate, NewPastesTemplate, ShowPastesTemplate,
@@ -39,6 +42,7 @@ pub struct CreatePaste {
     pub description: String,
     #[validate(custom(function = "validators::not_empty_when_trimmed"))]
     pub body: String,
+    pub visibility: Visibility,
 }
 
 pub async fn create(
@@ -47,15 +51,19 @@ pub async fn create(
     Form(input): Form<CreatePaste>,
 ) -> Result<impl IntoResponse, controllers::Error> {
     input.validate()?;
-    let id = Paste::insert(
-        &db,
+    let paste = Paste::new(
         session.user.id,
         input.title,
         input.description,
         input.body,
-    )
-    .await
-    .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?;
+        input.visibility,
+    );
+    let id = paste.id;
+    paste
+        .insert(&db)
+        .await
+        .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?;
+
     Ok(Redirect::to(format!("/pastes/{id}").as_str()).into_response())
 }
 

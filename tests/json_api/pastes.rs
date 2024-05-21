@@ -92,8 +92,9 @@ async fn pastes_create_persists_when_valid_input() {
         .db
         .conn
         .call(move |conn| {
-            let mut statement =
-                conn.prepare("SELECT id, title, description, body FROM pastes WHERE id = :id;")?;
+            let mut statement = conn.prepare(
+                "SELECT id, title, description, body, visibility FROM pastes WHERE id = :id;",
+            )?;
             let mut rows = statement.query(named_params! {":id": id})?;
             match rows.next()? {
                 Some(row) => Ok(Some(
@@ -137,12 +138,12 @@ async fn pastes_create_responds_with_400_when_invalid_input() {
     let app = spawn_app().await;
     let client = reqwest::Client::new();
     let bad_pastes = vec![
-        "{\"title\":\"\",\"description\":\"A description.\",\"body\":\"A body.\"}",
-        "{\"title\":\"A title\",\"description\":\"\",\"body\":\"A body.\"}",
-        "{\"title\":\"A title\",\"description\":\"A description.\",\"body\":\"\"}",
-        "{\"title\":\" \",\"description\":\"A description.\",\"body\":\"A body.\"}",
-        "{\"title\":\"A title\",\"description\":\" \",\"body\":\"A body.\"}",
-        "{\"title\":\"A title\",\"description\":\"A description.\",\"body\":\" \"}",
+        "{\"title\":\"\",\"description\":\"A description.\",\"body\":\"A body.\",\"visibility\":\"public\"}",
+        "{\"title\":\"A title\",\"description\":\"\",\"body\":\"A body.\",\"visibility\":\"public\"}",
+        "{\"title\":\"A title\",\"description\":\"A description.\",\"body\":\"\",\"visibility\":\"public\"}",
+        "{\"title\":\" \",\"description\":\"A description.\",\"body\":\"A body.\",\"visibility\":\"public\"}",
+        "{\"title\":\"A title\",\"description\":\" \",\"body\":\"A body.\",\"visibility\":\"public\"}",
+        "{\"title\":\"A title\",\"description\":\"A description.\",\"body\":\" \",\"visibility\":\"public\"}",
     ];
 
     // Reqwest's .json strips out empty fields, so we set the json header manually and pass in raw
