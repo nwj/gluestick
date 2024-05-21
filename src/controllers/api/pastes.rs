@@ -65,6 +65,49 @@ pub async fn show(
     }
 }
 
+#[derive(Debug, Deserialize, Validate)]
+pub struct UpdatePaste {
+    #[validate(custom(function = "validators::not_empty_when_trimmed"))]
+    title: Option<String>,
+    #[validate(custom(function = "validators::not_empty_when_trimmed"))]
+    description: Option<String>,
+    #[validate(custom(function = "validators::not_empty_when_trimmed"))]
+    body: Option<String>,
+}
+
+pub async fn update(
+    session: ApiSession,
+    Path(id): Path<Uuid>,
+    State(db): State<Database>,
+    Json(input): Json<UpdatePaste>,
+) -> Result<impl IntoResponse, controllers::api::Error> {
+    let optional_paste = Paste::find(&db, id)
+        .await
+        .map_err(|e| controllers::api::Error::InternalServerError(Box::new(e)))?;
+
+    match optional_paste {
+        Some(mut paste) if paste.user_id == session.user.id => {
+            if let Some(title) = input.title {
+                paste.title = title;
+            }
+            if let Some(description) = input.description {
+                paste.description = description;
+            }
+            if let Some(body) = input.body {
+                paste.body = body;
+            }
+
+            paste
+                .update(&db)
+                .await
+                .map_err(|e| controllers::api::Error::InternalServerError(Box::new(e)))?;
+            Ok(())
+        }
+        Some(_) => Err(controllers::api::Error::Forbidden),
+        None => Err(controllers::api::Error::NotFound),
+    }
+}
+
 pub async fn destroy(
     session: ApiSession,
     Path(id): Path<Uuid>,
