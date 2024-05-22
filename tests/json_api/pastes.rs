@@ -1,5 +1,4 @@
 use crate::common::{spawn_app, test_paste::TestPaste};
-use rusqlite::named_params;
 use std::collections::HashSet;
 use uuid::Uuid;
 
@@ -88,25 +87,17 @@ async fn pastes_create_persists_when_valid_input() {
         .await
         .expect("Failed to parse test response.");
 
-    let persisted_paste: TestPaste = app
-        .db
-        .conn
-        .call(move |conn| {
-            let mut statement = conn.prepare(
-                "SELECT id, title, description, body, visibility FROM pastes WHERE id = :id;",
-            )?;
-            let mut rows = statement.query(named_params! {":id": id})?;
-            match rows.next()? {
-                Some(row) => Ok(Some(
-                    serde_rusqlite::from_row(row)
-                        .map_err(|e| tokio_rusqlite::Error::Other(Box::new(e)))?,
-                )),
-                None => Ok(None),
-            }
-        })
+    let response = client
+        .get(format!("http://{}/api/pastes/{}", app.address, id))
+        .header("X-GLUESTICK-API-KEY", &app.user.api_key)
+        .send()
         .await
-        .expect("Failed to read test paste from db.")
-        .unwrap();
+        .expect("Failed to send test request");
+
+    let persisted_paste: TestPaste = response
+        .json()
+        .await
+        .expect("Failed to parse test request.");
 
     assert_eq!(paste, persisted_paste.without_id())
 }

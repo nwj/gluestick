@@ -7,7 +7,11 @@ use argon2::{
     password_hash::{rand_core::OsRng, PasswordHasher, SaltString},
     Argon2,
 };
-use rusqlite::named_params;
+use rusqlite::{
+    named_params,
+    types::{FromSql, FromSqlResult, ToSql, ToSqlOutput, ValueRef},
+    Row,
+};
 use secrecy::{ExposeSecret, Secret};
 use serde::Deserialize;
 use uuid::Uuid;
@@ -17,25 +21,25 @@ pub struct User {
     pub id: Uuid,
     pub username: String,
     pub email: String,
-    pub password: Secret<String>,
+    pub password: HashedPassword,
 }
 
 impl User {
-    pub fn new(username: String, email: String, password: Secret<String>) -> models::Result<Self> {
-        let id = Uuid::now_v7();
-        let salt = SaltString::generate(&mut OsRng);
-        let argon2 = Argon2::default();
-        let password = Secret::new(
-            argon2
-                .hash_password(password.expose_secret().as_bytes(), &salt)?
-                .to_string(),
-        );
-
+    pub fn new(username: String, email: String, password: Password) -> models::Result<Self> {
         Ok(User {
-            id,
+            id: Uuid::now_v7(),
             username,
             email,
-            password,
+            password: password.to_hash()?,
+        })
+    }
+
+    pub fn from_sql_row(row: &Row) -> models::Result<Self> {
+        Ok(User {
+            id: row.get(0)?,
+            username: row.get(1)?,
+            email: row.get(2)?,
+            password: row.get(3)?,
         })
     }
 
@@ -59,7 +63,7 @@ impl User {
     }
 
     pub async fn find_by_email(db: &Database, email: String) -> models::Result<Option<User>> {
-        let optional_user = db
+        let optional_result = db
             .conn
             .call(move |conn| {
                 let mut statement = conn.prepare(
@@ -67,15 +71,13 @@ impl User {
                 )?;
                 let mut rows = statement.query(named_params! {":email": email})?;
                 match rows.next()? {
-                    Some(row) => Ok(Some(
-                        serde_rusqlite::from_row(row)
-                            .map_err(|e| tokio_rusqlite::Error::Other(Box::new(e)))?,
-                    )),
+                    Some(row) => Ok(Some(User::from_sql_row(row))),
                     None => Ok(None),
                 }
             })
             .await?;
 
+        let optional_user = optional_result.transpose()?;
         Ok(optional_user)
     }
 
@@ -83,7 +85,7 @@ impl User {
         db: &Database,
         token: SessionToken,
     ) -> models::Result<Option<User>> {
-        let optional_user = db
+        let optional_result = db
             .conn
             .call(move |conn| {
                 let mut statement = conn.prepare(
@@ -94,15 +96,13 @@ impl User {
                 let mut rows =
                     statement.query(named_params! {":token": token.to_hash().expose_secret()})?;
                 match rows.next()? {
-                    Some(row) => Ok(Some(
-                        serde_rusqlite::from_row(row)
-                            .map_err(|e| tokio_rusqlite::Error::Other(Box::new(e)))?,
-                    )),
+                    Some(row) => Ok(Some(User::from_sql_row(row))),
                     None => Ok(None),
                 }
             })
             .await?;
 
+        let optional_user = optional_result.transpose()?;
         Ok(optional_user)
     }
 
@@ -122,7 +122,7 @@ impl User {
     }
 
     pub async fn find_by_api_key(db: &Database, key: ApiKey) -> models::Result<Option<User>> {
-        let optional_user = db
+        let optional_result = db
             .conn
             .call(move |conn| {
                 let mut statement = conn.prepare(
@@ -133,15 +133,63 @@ impl User {
                 let mut rows =
                     statement.query(named_params! {":key": key.to_hash().expose_secret()})?;
                 match rows.next()? {
-                    Some(row) => Ok(Some(
-                        serde_rusqlite::from_row(row)
-                            .map_err(|e| tokio_rusqlite::Error::Other(Box::new(e)))?,
-                    )),
+                    Some(row) => Ok(Some(User::from_sql_row(row))),
                     None => Ok(None),
                 }
             })
             .await?;
 
+        let optional_user = optional_result.transpose()?;
         Ok(optional_user)
+    }
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct Password(Secret<String>);
+
+impl Password {
+    pub fn new(password: Secret<String>) -> Self {
+        Self(password)
+    }
+
+    pub fn to_hash(self) -> models::Result<HashedPassword> {
+        Ok(HashedPassword(Self::hash_password(self.0)?))
+    }
+
+    fn hash_password(password: Secret<String>) -> models::Result<Secret<String>> {
+        Ok(Secret::new(
+            Argon2::default()
+                .hash_password(
+                    password.expose_secret().as_bytes(),
+                    &SaltString::generate(&mut OsRng),
+                )?
+                .to_string(),
+        ))
+    }
+}
+
+impl ExposeSecret<String> for Password {
+    fn expose_secret(&self) -> &String {
+        self.0.expose_secret()
+    }
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct HashedPassword(Secret<String>);
+
+impl ExposeSecret<String> for HashedPassword {
+    fn expose_secret(&self) -> &String {
+        self.0.expose_secret()
+    }
+}
+impl ToSql for HashedPassword {
+    fn to_sql(&self) -> Result<ToSqlOutput<'_>, rusqlite::Error> {
+        self.expose_secret().to_sql()
+    }
+}
+
+impl FromSql for HashedPassword {
+    fn column_result(value: ValueRef) -> FromSqlResult<Self> {
+        String::column_result(value).map(|as_string| Ok(HashedPassword(Secret::new(as_string))))?
     }
 }

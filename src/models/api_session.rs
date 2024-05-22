@@ -6,11 +6,18 @@ use sha2::{Digest, Sha256};
 use tokio_rusqlite::named_params;
 
 pub struct ApiSession {
-    pub api_key: ApiKey,
+    pub api_key: HashedApiKey,
     pub user: User,
 }
 
 impl ApiSession {
+    pub fn new(api_key: ApiKey, user: User) -> Self {
+        Self {
+            api_key: api_key.to_hash(),
+            user,
+        }
+    }
+
     pub async fn insert(self, db: &Database) -> models::Result<usize> {
         let result = db
             .conn
@@ -19,7 +26,7 @@ impl ApiSession {
                     "INSERT INTO api_sessions VALUES (:api_key, :user_id, unixepoch());",
                 )?;
                 let result = statement.execute(named_params! {
-                    ":api_key": self.api_key.to_hash().expose_secret(),
+                    ":api_key": self.api_key.expose_secret(),
                     ":user_id": self.user.id,
                 })?;
                 Ok(result)

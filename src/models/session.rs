@@ -6,11 +6,18 @@ use sha2::{Digest, Sha256};
 use tokio_rusqlite::named_params;
 
 pub struct Session {
-    pub token: SessionToken,
+    pub token: HashedSessionToken,
     pub user: User,
 }
 
 impl Session {
+    pub fn new(token: SessionToken, user: User) -> Self {
+        Self {
+            token: token.to_hash(),
+            user,
+        }
+    }
+
     pub async fn insert(self, db: &Database) -> models::Result<usize> {
         let result = db
             .conn
@@ -18,7 +25,7 @@ impl Session {
                 let mut statement =
                     conn.prepare("INSERT INTO sessions VALUES (:session_token, :user_id);")?;
                 let result = statement.execute(named_params! {
-                    ":session_token": self.token.to_hash().expose_secret(),
+                    ":session_token": self.token.expose_secret(),
                     ":user_id": self.user.id,
                 })?;
                 Ok(result)

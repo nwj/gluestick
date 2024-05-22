@@ -27,7 +27,6 @@ rusqlite = { version = "0.31.0", features = ["bundled", "uuid"] }
 rusqlite_migration = { version = "1.2.0", features = ["alpha-async-tokio-rusqlite"] }
 secrecy = { version = "0.8.0", features = ["serde"] }
 serde = { version = "1.0.202", features = ["derive"] }
-serde_rusqlite = "0.35.0"
 sha2 = "0.10.8"
 thiserror = "1.0.60"
 tokio = { version = "1.37.0", features = ["macros", "rt-multi-thread", "signal"] }

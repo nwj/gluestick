@@ -15,13 +15,10 @@ pub async fn create(
 ) -> controllers::Result<impl IntoResponse> {
     let api_key = ApiKey::generate();
 
-    ApiSession {
-        api_key: api_key.clone(),
-        user: session.user,
-    }
-    .insert(&db)
-    .await
-    .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?;
+    ApiSession::new(api_key.clone(), session.user)
+        .insert(&db)
+        .await
+        .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?;
 
     Ok(ApiSessionsCreateTemplate { api_key })
 }

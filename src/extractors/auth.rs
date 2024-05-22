@@ -45,7 +45,7 @@ where
             .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?;
 
         match optional_user {
-            Some(user) => Ok(Session { token, user }),
+            Some(user) => Ok(Session::new(token, user)),
             None => Err(controllers::Error::Unauthorized),
         }
     }
@@ -80,7 +80,7 @@ where
             .map_err(|e| controllers::api::Error::InternalServerError(Box::new(e)))?;
 
         match optional_user {
-            Some(user) => Ok(ApiSession { api_key, user }),
+            Some(user) => Ok(ApiSession::new(api_key, user)),
             None => Err(controllers::api::Error::Unauthorized),
         }
     }

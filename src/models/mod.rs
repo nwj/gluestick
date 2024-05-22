@@ -9,11 +9,17 @@ type Result<T, E = Error> = std::result::Result<T, E>;
 #[error(transparent)]
 pub enum Error {
     #[error(transparent)]
-    Database(#[from] tokio_rusqlite::Error),
+    TokioRusqlite(#[from] tokio_rusqlite::Error),
+
+    #[error(transparent)]
+    Rusqlite(#[from] rusqlite::Error),
 
     #[error(transparent)]
     Argon2(#[from] argon2::password_hash::Error),
 
+    #[error("failed to parse i64 to DateTime")]
+    ParseDateTime,
+
     #[error(transparent)]
-    Parse(#[from] std::num::ParseIntError),
+    ParseInt(#[from] std::num::ParseIntError),
 }

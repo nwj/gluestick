@@ -3,7 +3,7 @@ use crate::{
     db::Database,
     models::{
         session::{Session, SessionToken},
-        user::User,
+        user::{Password, User},
     },
     validators,
     views::users::{NewUsersTemplate, ShowUsersTemplate},
@@ -14,7 +14,7 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use secrecy::{ExposeSecret, Secret};
+use secrecy::ExposeSecret;
 use serde::Deserialize;
 use validator::Validate;
 
@@ -28,7 +28,7 @@ pub struct CreateUser {
     pub username: String,
     #[validate(email)]
     pub email: String,
-    pub password: Secret<String>,
+    pub password: Password,
 }
 
 pub async fn create(
@@ -57,7 +57,7 @@ pub async fn create(
         .body(Body::empty())
         .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?;
 
-    Session { token, user }
+    Session::new(token, user)
         .insert(&db)
         .await
         .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?;

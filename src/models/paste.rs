@@ -6,6 +6,7 @@ use chrono::{
 use rusqlite::{
     named_params,
     types::{FromSql, FromSqlError, FromSqlResult, ToSql, ToSqlOutput, ValueRef},
+    Row,
 };
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -32,50 +33,52 @@ impl Paste {
         body: String,
         visibility: Visibility,
     ) -> Self {
-        let id = Uuid::now_v7();
-        let created_at = Utc::now();
-        let updated_at = Utc::now();
-
         Self {
-            id,
+            id: Uuid::now_v7(),
             user_id,
             title,
             description,
             body,
             visibility,
-            created_at,
-            updated_at,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
         }
     }
 
+    pub fn from_sql_row(row: &Row) -> models::Result<Self> {
+        Ok(Self {
+            id: row.get(0)?,
+            user_id: row.get(1)?,
+            title: row.get(2)?,
+            description: row.get(3)?,
+            body: row.get(4)?,
+            visibility: row.get(5)?,
+            created_at: DateTime::from_timestamp(row.get(6)?, 0)
+                .ok_or(models::Error::ParseDateTime)?,
+            updated_at: DateTime::from_timestamp(row.get(7)?, 0)
+                .ok_or(models::Error::ParseDateTime)?,
+        })
+    }
+
     pub async fn all(db: &Database) -> models::Result<Vec<Paste>> {
-        let pastes = db
+        let paste_results: Vec<_> = db
             .conn
             .call(|conn| {
                 let mut statement = conn.prepare(
                     "SELECT id, user_id, title, description, body, visibility, created_at, updated_at FROM pastes WHERE visibility = 'public';",
                 )?;
-                let results = serde_rusqlite::from_rows::<Paste>(statement.query([])?);
-                let mut pastes = Vec::new();
-                for result in results {
-                    let paste = result.map_err(|e| tokio_rusqlite::Error::Other(Box::new(e)))?;
-                    pastes.push(paste);
-                }
-                Ok(pastes)
-            })
-            .await?;
-
-        Ok(pastes)
+                let paste_iter = statement.query_map([], |row| {Ok(Paste::from_sql_row(row))})?;
+                Ok(paste_iter.collect::<Result<Vec<_>, _>>()?)
+        })
+        .await?;
+        paste_results.into_iter().collect::<Result<Vec<_>, _>>()
     }
 
     pub async fn insert(self, db: &Database) -> models::Result<usize> {
         let result = db
             .conn
             .call(move |conn| {
-                let mut statement = conn.prepare(
-                    r"INSERT INTO pastes
-                    VALUES (:id, :user_id, :title, :description, :body, :visibility, :created_at, :updated_at);"
-                )?;
+                let mut statement = conn.prepare("INSERT INTO pastes VALUES (:id, :user_id, :title, :description, :body, :visibility, :created_at, :updated_at);")?;
                 let result = statement.execute(
                     named_params! {
                         ":id": self.id,
@@ -96,7 +99,7 @@ impl Paste {
     }
 
     pub async fn find(db: &Database, id: Uuid) -> models::Result<Option<Paste>> {
-        let optional_paste = db
+        let optional_result = db
             .conn
             .call(move |conn| {
                 let mut statement = conn
@@ -104,14 +107,14 @@ impl Paste {
                 let mut rows = statement.query(named_params! {":id": id})?;
                 match rows.next()? {
                     Some(row) => Ok(Some(
-                        serde_rusqlite::from_row(row)
-                            .map_err(|e| tokio_rusqlite::Error::Other(Box::new(e)))?,
+                        Paste::from_sql_row(row)
                     )),
                     None => Ok(None),
                 }
             })
             .await?;
 
+        let optional_paste = optional_result.transpose()?;
         Ok(optional_paste)
     }
 

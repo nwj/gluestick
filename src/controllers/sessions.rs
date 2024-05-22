@@ -66,7 +66,7 @@ pub async fn create(
         .body(Body::empty())
         .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?;
 
-    Session { token, user }
+    Session::new(token, user)
         .insert(&db)
         .await
         .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?;
