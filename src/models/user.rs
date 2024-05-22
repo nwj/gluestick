@@ -1,5 +1,6 @@
 use crate::{
     db::Database,
+    models,
     models::{api_session::ApiKey, session::SessionToken},
 };
 use argon2::{
@@ -20,7 +21,7 @@ pub struct User {
 }
 
 impl User {
-    pub fn new(username: String, email: String, password: Secret<String>) -> Result<Self, Error> {
+    pub fn new(username: String, email: String, password: Secret<String>) -> models::Result<Self> {
         let id = Uuid::now_v7();
         let salt = SaltString::generate(&mut OsRng);
         let argon2 = Argon2::default();
@@ -38,7 +39,7 @@ impl User {
         })
     }
 
-    pub async fn insert(self, db: &Database) -> Result<usize, Error> {
+    pub async fn insert(self, db: &Database) -> models::Result<usize> {
         let result = db
             .conn
             .call(move |conn| {
@@ -57,10 +58,7 @@ impl User {
         Ok(result)
     }
 
-    pub async fn find_by_email(
-        db: &Database,
-        email: String,
-    ) -> Result<Option<User>, tokio_rusqlite::Error> {
+    pub async fn find_by_email(db: &Database, email: String) -> models::Result<Option<User>> {
         let maybe_user = db
             .conn
             .call(move |conn| {
@@ -84,7 +82,7 @@ impl User {
     pub async fn find_by_session_token(
         db: &Database,
         token: SessionToken,
-    ) -> Result<Option<User>, tokio_rusqlite::Error> {
+    ) -> models::Result<Option<User>> {
         let optional_user = db
             .conn
             .call(move |conn| {
@@ -108,7 +106,7 @@ impl User {
         Ok(optional_user)
     }
 
-    pub async fn delete_sessions(self, db: &Database) -> Result<usize, tokio_rusqlite::Error> {
+    pub async fn delete_sessions(self, db: &Database) -> models::Result<usize> {
         let result = db
             .conn
             .call(move |conn| {
@@ -123,10 +121,7 @@ impl User {
         Ok(result)
     }
 
-    pub async fn find_by_api_key(
-        db: &Database,
-        key: ApiKey,
-    ) -> Result<Option<User>, tokio_rusqlite::Error> {
+    pub async fn find_by_api_key(db: &Database, key: ApiKey) -> models::Result<Option<User>> {
         let optional_user = db
             .conn
             .call(move |conn| {
@@ -149,13 +144,4 @@ impl User {
 
         Ok(optional_user)
     }
-}
-
-#[derive(Debug, thiserror::Error)]
-#[error(transparent)]
-pub enum Error {
-    #[error(transparent)]
-    Database(#[from] tokio_rusqlite::Error),
-    #[error(transparent)]
-    Argon2(#[from] argon2::password_hash::Error),
 }
