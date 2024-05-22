@@ -33,7 +33,7 @@ pub struct CreateSession {
 pub async fn create(
     State(db): State<Database>,
     Form(input): Form<CreateSession>,
-) -> Result<impl IntoResponse, controllers::Error> {
+) -> controllers::Result<impl IntoResponse> {
     input.validate()?;
 
     let Some(user) = User::find_by_email(&db, input.email)
@@ -77,7 +77,7 @@ pub async fn create(
 pub async fn delete(
     session: Session,
     State(db): State<Database>,
-) -> Result<impl IntoResponse, controllers::Error> {
+) -> controllers::Result<impl IntoResponse> {
     session
         .user
         .delete_sessions(&db)

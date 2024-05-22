@@ -34,7 +34,7 @@ pub struct CreateUser {
 pub async fn create(
     State(db): State<Database>,
     Form(input): Form<CreateUser>,
-) -> Result<impl IntoResponse, controllers::Error> {
+) -> controllers::Result<impl IntoResponse> {
     input.validate()?;
     let user = User::new(input.username, input.email, input.password)
         .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?;
@@ -65,7 +65,7 @@ pub async fn create(
     Ok(response)
 }
 
-pub async fn show(session: Session) -> Result<impl IntoResponse, controllers::Error> {
+pub async fn show(session: Session) -> controllers::Result<impl IntoResponse> {
     let session = Some(session);
     Ok(ShowUsersTemplate { session })
 }

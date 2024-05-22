@@ -12,7 +12,7 @@ use axum::{extract::State, response::IntoResponse};
 pub async fn create(
     session: Session,
     State(db): State<Database>,
-) -> Result<impl IntoResponse, controllers::Error> {
+) -> controllers::Result<impl IntoResponse> {
     let api_key = ApiKey::generate();
 
     ApiSession {

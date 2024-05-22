@@ -22,7 +22,7 @@ use validator::Validate;
 pub async fn index(
     session: Option<Session>,
     State(db): State<Database>,
-) -> Result<impl IntoResponse, controllers::Error> {
+) -> controllers::Result<impl IntoResponse> {
     let pastes = Paste::all(&db)
         .await
         .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?;
@@ -49,7 +49,7 @@ pub async fn create(
     session: Session,
     State(db): State<Database>,
     Form(input): Form<CreatePaste>,
-) -> Result<impl IntoResponse, controllers::Error> {
+) -> controllers::Result<impl IntoResponse> {
     input.validate()?;
     let paste = Paste::new(
         session.user.id,
@@ -71,7 +71,7 @@ pub async fn show(
     session: Option<Session>,
     State(db): State<Database>,
     Path(id): Path<Uuid>,
-) -> Result<impl IntoResponse, controllers::Error> {
+) -> controllers::Result<impl IntoResponse> {
     match Paste::find(&db, id)
         .await
         .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?
@@ -85,7 +85,7 @@ pub async fn edit(
     session: Session,
     State(db): State<Database>,
     Path(id): Path<Uuid>,
-) -> Result<impl IntoResponse, controllers::Error> {
+) -> controllers::Result<impl IntoResponse> {
     let optional_paste = Paste::find(&db, id)
         .await
         .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?;
@@ -118,7 +118,7 @@ pub async fn update(
     State(db): State<Database>,
     Path(id): Path<Uuid>,
     Form(input): Form<UpdatePaste>,
-) -> Result<impl IntoResponse, controllers::Error> {
+) -> controllers::Result<impl IntoResponse> {
     let optional_paste = Paste::find(&db, id)
         .await
         .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?;
@@ -151,7 +151,7 @@ pub async fn destroy(
     session: Session,
     State(db): State<Database>,
     Path(id): Path<Uuid>,
-) -> Result<impl IntoResponse, controllers::Error> {
+) -> controllers::Result<impl IntoResponse> {
     let optional_paste = Paste::find(&db, id)
         .await
         .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?;

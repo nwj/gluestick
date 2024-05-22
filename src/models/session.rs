@@ -1,9 +1,8 @@
-use crate::{db::Database, models::user::User};
+use crate::{db::Database, models, models::user::User};
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use secrecy::{ExposeSecret, Secret};
 use sha2::{Digest, Sha256};
-use std::num::ParseIntError;
 use tokio_rusqlite::named_params;
 
 pub struct Session {
@@ -12,7 +11,7 @@ pub struct Session {
 }
 
 impl Session {
-    pub async fn insert(self, db: &Database) -> Result<usize, tokio_rusqlite::Error> {
+    pub async fn insert(self, db: &Database) -> models::Result<usize> {
         let result = db
             .conn
             .call(move |conn| {
@@ -45,7 +44,7 @@ impl SessionToken {
         Self(Secret::new(format!("{:032x}", rng.gen::<u128>())))
     }
 
-    pub fn parse(s: impl AsRef<str>) -> Result<Self, ParseIntError> {
+    pub fn parse(s: impl AsRef<str>) -> models::Result<Self> {
         let s = s.as_ref();
         u128::from_str_radix(s, 16)?;
         Ok(Self(Secret::new(s.to_string())))

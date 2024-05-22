@@ -19,7 +19,7 @@ use validator::Validate;
 pub async fn index(
     _session: ApiSession,
     State(db): State<Database>,
-) -> Result<impl IntoResponse, controllers::api::Error> {
+) -> controllers::api::Result<impl IntoResponse> {
     let pastes = Paste::all(&db)
         .await
         .map_err(|e| controllers::api::Error::InternalServerError(Box::new(e)))?;
@@ -41,7 +41,7 @@ pub async fn create(
     session: ApiSession,
     State(db): State<Database>,
     Json(input): Json<CreatePaste>,
-) -> Result<impl IntoResponse, controllers::api::Error> {
+) -> controllers::api::Result<impl IntoResponse> {
     input.validate()?;
     let paste = Paste::new(
         session.user.id,
@@ -62,7 +62,7 @@ pub async fn show(
     _session: ApiSession,
     Path(id): Path<Uuid>,
     State(db): State<Database>,
-) -> Result<impl IntoResponse, controllers::api::Error> {
+) -> controllers::api::Result<impl IntoResponse> {
     match Paste::find(&db, id)
         .await
         .map_err(|e| controllers::api::Error::InternalServerError(Box::new(e)))?
@@ -87,7 +87,7 @@ pub async fn update(
     Path(id): Path<Uuid>,
     State(db): State<Database>,
     Json(input): Json<UpdatePaste>,
-) -> Result<impl IntoResponse, controllers::api::Error> {
+) -> controllers::api::Result<impl IntoResponse> {
     let optional_paste = Paste::find(&db, id)
         .await
         .map_err(|e| controllers::api::Error::InternalServerError(Box::new(e)))?;
@@ -119,7 +119,7 @@ pub async fn destroy(
     session: ApiSession,
     Path(id): Path<Uuid>,
     State(db): State<Database>,
-) -> Result<impl IntoResponse, controllers::api::Error> {
+) -> controllers::api::Result<impl IntoResponse> {
     let optional_paste = Paste::find(&db, id)
         .await
         .map_err(|e| controllers::api::Error::InternalServerError(Box::new(e)))?;

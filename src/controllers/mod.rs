@@ -18,9 +18,11 @@ pub async fn index(session: Option<Session>) -> Result<impl IntoResponse, self::
     Ok(IndexTemplate { session })
 }
 
-pub async fn not_found() -> Result<(), self::Error> {
+pub async fn not_found() -> Result<()> {
     Err(self::Error::NotFound)
 }
+
+type Result<T, E = Error> = std::result::Result<T, E>;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -41,50 +43,30 @@ pub enum Error {
     InternalServerError(#[from] Box<dyn std::error::Error>),
 }
 
-enum ErrorTemplate {
-    Blank,
-    NotFound(NotFoundTemplate),
-    InternalServerError(InternalServerErrorTemplate),
-}
-
 impl IntoResponse for Error {
     fn into_response(self) -> Response {
-        let (status, template) = match self {
+        match self {
             Error::BadRequest(err) => {
                 tracing::error!(%err, "bad request");
-                (StatusCode::BAD_REQUEST, ErrorTemplate::Blank)
+                (StatusCode::BAD_REQUEST, ()).into_response()
             }
 
-            Error::Unauthorized => (StatusCode::UNAUTHORIZED, ErrorTemplate::Blank),
+            Error::Unauthorized => (StatusCode::UNAUTHORIZED, ()).into_response(),
 
-            Error::Forbidden => (StatusCode::FORBIDDEN, ErrorTemplate::Blank),
+            Error::Forbidden => (StatusCode::FORBIDDEN, ()).into_response(),
 
-            Error::NotFound => (
-                StatusCode::NOT_FOUND,
-                ErrorTemplate::NotFound(NotFoundTemplate { session: None }),
-            ),
+            Error::NotFound => {
+                (StatusCode::NOT_FOUND, NotFoundTemplate { session: None }).into_response()
+            }
 
             Error::InternalServerError(err) => {
                 tracing::error!(%err, "internal server error");
                 (
                     StatusCode::INTERNAL_SERVER_ERROR,
-                    ErrorTemplate::InternalServerError(InternalServerErrorTemplate {
-                        session: None,
-                    }),
+                    InternalServerErrorTemplate { session: None },
                 )
+                    .into_response()
             }
-        };
-
-        (status, template).into_response()
-    }
-}
-
-impl IntoResponse for ErrorTemplate {
-    fn into_response(self) -> Response {
-        match self {
-            ErrorTemplate::InternalServerError(template) => template.into_response(),
-            ErrorTemplate::NotFound(template) => template.into_response(),
-            ErrorTemplate::Blank => ().into_response(),
         }
     }
 }

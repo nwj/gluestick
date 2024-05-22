@@ -1,4 +1,4 @@
-use crate::db::Database;
+use crate::{db::Database, models};
 use chrono::{
     serde::ts_seconds,
     {DateTime, Utc},
@@ -48,7 +48,7 @@ impl Paste {
         }
     }
 
-    pub async fn all(db: &Database) -> Result<Vec<Paste>, tokio_rusqlite::Error> {
+    pub async fn all(db: &Database) -> models::Result<Vec<Paste>> {
         let pastes = db
             .conn
             .call(|conn| {
@@ -68,7 +68,7 @@ impl Paste {
         Ok(pastes)
     }
 
-    pub async fn insert(self, db: &Database) -> Result<usize, tokio_rusqlite::Error> {
+    pub async fn insert(self, db: &Database) -> models::Result<usize> {
         let result = db
             .conn
             .call(move |conn| {
@@ -95,7 +95,7 @@ impl Paste {
         Ok(result)
     }
 
-    pub async fn find(db: &Database, id: Uuid) -> Result<Option<Paste>, tokio_rusqlite::Error> {
+    pub async fn find(db: &Database, id: Uuid) -> models::Result<Option<Paste>> {
         let maybe_paste = db
             .conn
             .call(move |conn| {
@@ -115,7 +115,7 @@ impl Paste {
         Ok(maybe_paste)
     }
 
-    pub async fn update(self, db: &Database) -> Result<usize, tokio_rusqlite::Error> {
+    pub async fn update(self, db: &Database) -> models::Result<usize> {
         let result = db.conn.call(move |conn| {
             let mut statement = conn.prepare(
                 r"UPDATE pastes
@@ -128,7 +128,7 @@ impl Paste {
         Ok(result)
     }
 
-    pub async fn delete(self, db: &Database) -> Result<usize, tokio_rusqlite::Error> {
+    pub async fn delete(self, db: &Database) -> models::Result<usize> {
         let result = db
             .conn
             .call(move |conn| {
