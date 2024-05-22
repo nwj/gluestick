@@ -96,7 +96,7 @@ impl Paste {
     }
 
     pub async fn find(db: &Database, id: Uuid) -> models::Result<Option<Paste>> {
-        let maybe_paste = db
+        let optional_paste = db
             .conn
             .call(move |conn| {
                 let mut statement = conn
@@ -112,7 +112,7 @@ impl Paste {
             })
             .await?;
 
-        Ok(maybe_paste)
+        Ok(optional_paste)
     }
 
     pub async fn update(self, db: &Database) -> models::Result<usize> {

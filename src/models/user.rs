@@ -59,7 +59,7 @@ impl User {
     }
 
     pub async fn find_by_email(db: &Database, email: String) -> models::Result<Option<User>> {
-        let maybe_user = db
+        let optional_user = db
             .conn
             .call(move |conn| {
                 let mut statement = conn.prepare(
@@ -76,7 +76,7 @@ impl User {
             })
             .await?;
 
-        Ok(maybe_user)
+        Ok(optional_user)
     }
 
     pub async fn find_by_session_token(
