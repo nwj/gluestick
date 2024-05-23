@@ -5,7 +5,6 @@ use crate::{
         session::{Session, SessionToken},
         user::{Password, User},
     },
-    validators,
     views::users::{NewUsersTemplate, ShowUsersTemplate},
 };
 use axum::{
@@ -16,17 +15,14 @@ use axum::{
 };
 use secrecy::ExposeSecret;
 use serde::Deserialize;
-use validator::Validate;
 
 pub async fn new() -> NewUsersTemplate {
     NewUsersTemplate { session: None }
 }
 
-#[derive(Deserialize, Debug, Validate)]
+#[derive(Deserialize, Debug)]
 pub struct CreateUser {
-    #[validate(custom(function = "validators::is_valid_username"))]
     pub username: String,
-    #[validate(email)]
     pub email: String,
     pub password: Password,
 }
@@ -35,7 +31,6 @@ pub async fn create(
     State(db): State<Database>,
     Form(input): Form<CreateUser>,
 ) -> controllers::Result<impl IntoResponse> {
-    input.validate()?;
     let user = User::new(input.username, input.email, input.password)
         .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?;
     user.clone()

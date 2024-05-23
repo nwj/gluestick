@@ -15,12 +15,13 @@ use rusqlite::{
 use secrecy::{ExposeSecret, Secret};
 use serde::Deserialize;
 use uuid::Uuid;
+use validator::Validate;
 
-#[derive(Clone, Deserialize, Debug)]
+#[derive(Clone, Debug)]
 pub struct User {
     pub id: Uuid,
-    pub username: String,
-    pub email: String,
+    pub username: Username,
+    pub email: EmailAddress,
     pub password: HashedPassword,
 }
 
@@ -28,8 +29,8 @@ impl User {
     pub fn new(username: String, email: String, password: Password) -> models::Result<Self> {
         Ok(User {
             id: Uuid::now_v7(),
-            username,
-            email,
+            username: Username::parse(&username)?,
+            email: EmailAddress::parse(&email)?,
             password: password.to_hash()?,
         })
     }
@@ -51,8 +52,8 @@ impl User {
                     conn.prepare("INSERT INTO users VALUES (:id, :username, :email, :password);")?;
                 let result = statement.execute(named_params! {
                     ":id": self.id,
-                    ":username": self.username.to_lowercase(),
-                    ":email": self.email.to_lowercase(),
+                    ":username": self.username,
+                    ":email": self.email,
                     ":password": self.password.expose_secret()
                 })?;
                 Ok(result)
@@ -144,6 +145,96 @@ impl User {
     }
 }
 
+#[derive(Debug, Clone, Validate)]
+pub struct Username {
+    #[validate(length(min = 3, max = 32), custom(function = "validate_alphanumeric"))]
+    private: String,
+}
+
+fn validate_alphanumeric(username: &str) -> Result<(), validator::ValidationError> {
+    if username.chars().all(char::is_alphanumeric) {
+        Ok(())
+    } else {
+        Err(validator::ValidationError::new(
+            "username must be alphanumeric",
+        ))
+    }
+}
+
+impl Username {
+    pub fn parse(s: &str) -> models::Result<Self> {
+        let username = Self {
+            private: s.to_string(),
+        };
+        username.validate()?;
+        Ok(username)
+    }
+}
+
+impl AsRef<str> for Username {
+    fn as_ref(&self) -> &str {
+        &self.private
+    }
+}
+
+impl std::fmt::Display for Username {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", &self.private)
+    }
+}
+
+impl ToSql for Username {
+    fn to_sql(&self) -> Result<ToSqlOutput<'_>, rusqlite::Error> {
+        self.private.to_sql()
+    }
+}
+
+impl FromSql for Username {
+    fn column_result(value: ValueRef) -> FromSqlResult<Self> {
+        String::column_result(value).map(|as_string| Ok(Self { private: as_string }))?
+    }
+}
+
+#[derive(Debug, Clone, Validate)]
+pub struct EmailAddress {
+    #[validate(email)]
+    private: String,
+}
+
+impl EmailAddress {
+    pub fn parse(s: &str) -> models::Result<Self> {
+        let email = Self {
+            private: s.to_string(),
+        };
+        email.validate()?;
+        Ok(email)
+    }
+}
+
+impl AsRef<str> for EmailAddress {
+    fn as_ref(&self) -> &str {
+        &self.private
+    }
+}
+
+impl std::fmt::Display for EmailAddress {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", &self.private)
+    }
+}
+
+impl ToSql for EmailAddress {
+    fn to_sql(&self) -> Result<ToSqlOutput<'_>, rusqlite::Error> {
+        self.private.to_sql()
+    }
+}
+
+impl FromSql for EmailAddress {
+    fn column_result(value: ValueRef) -> FromSqlResult<Self> {
+        String::column_result(value).map(|as_string| Ok(Self { private: as_string }))?
+    }
+}
+
 #[derive(Debug, Clone, Deserialize)]
 pub struct Password(Secret<String>);
 
@@ -174,7 +265,7 @@ impl ExposeSecret<String> for Password {
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct HashedPassword(Secret<String>);
 
 impl ExposeSecret<String> for HashedPassword {
@@ -182,6 +273,7 @@ impl ExposeSecret<String> for HashedPassword {
         self.0.expose_secret()
     }
 }
+
 impl ToSql for HashedPassword {
     fn to_sql(&self) -> Result<ToSqlOutput<'_>, rusqlite::Error> {
         self.expose_secret().to_sql()

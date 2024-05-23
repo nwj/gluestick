@@ -22,4 +22,7 @@ pub enum Error {
 
     #[error(transparent)]
     ParseInt(#[from] std::num::ParseIntError),
+
+    #[error(transparent)]
+    Validation(#[from] validator::ValidationErrors)
 }
