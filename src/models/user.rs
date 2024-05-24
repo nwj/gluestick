@@ -169,6 +169,12 @@ impl Username {
         username.validate()?;
         Ok(username)
     }
+
+    pub fn from_sql_row(row: &Row, col: usize) -> models::Result<Self> {
+        Ok(Self {
+            private: row.get(col)?,
+        })
+    }
 }
 
 impl AsRef<str> for Username {

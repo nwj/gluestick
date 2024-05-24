@@ -24,5 +24,5 @@ pub enum Error {
     ParseInt(#[from] std::num::ParseIntError),
 
     #[error(transparent)]
-    Validation(#[from] validator::ValidationErrors)
+    Validation(#[from] validator::ValidationErrors),
 }

@@ -1,16 +1,21 @@
 {% extends "base.html" %}
 {% block content %}
-    {% if pastes.len() > 0 %}
+    {% if username_paste_pairs.len() > 0 %}
+        <h1>Recent Pastes</h1>
         <section class="pastes-index">
             <ul>
-                {% for paste in pastes %}
-                    <a href="pastes/{{ paste.id }}">
-                        <li class="container">
-                            <h2 class="title">{{ paste.title }}</h2>
-                            <p class="description">{{ paste.description }}</p>
-                            <code class="body">{{ paste.body|truncate(300) }}</code>
-                        </li>
-                    </a>
+                {% for pair in username_paste_pairs %}
+                    <li class="paste">
+                        <div class="title-bar">
+                            {{ pair.0 }} / <a href="pastes/{{ pair.1.id }}">{{ pair.1.title }}</a>
+                        </div>
+                        <div class="metadata-bar">
+                            <span title="{{ pair.1.updated_at }}">Updated {{ pair.1.updated_at|format_relative_time }}</span>,
+                            {{ pair.1.body|format_byte_size }}
+                        </div>
+                        <div class="description-bar">{{ pair.1.description }}</div>
+                        <pre><code>{{ pair.1.body|linewise_truncate(10) }}</code></pre>
+                    </li>
                 {% endfor %}
             </ul>
         {% else %}

@@ -1,4 +1,4 @@
-use crate::{db::Database, models};
+use crate::{db::Database, models, models::user::Username};
 use chrono::{
     serde::ts_seconds,
     {DateTime, Utc},
@@ -65,13 +65,51 @@ impl Paste {
             .conn
             .call(|conn| {
                 let mut statement = conn.prepare(
-                    "SELECT id, user_id, title, description, body, visibility, created_at, updated_at FROM pastes WHERE visibility = 'public';",
+                    r"SELECT id, user_id, title, description, body, visibility, created_at, updated_at FROM pastes
+                    WHERE visibility = 'public'
+                    ORDER BY updated_at DESC;",
                 )?;
                 let paste_iter = statement.query_map([], |row| {Ok(Paste::from_sql_row(row))})?;
                 Ok(paste_iter.collect::<Result<Vec<_>, _>>()?)
         })
         .await?;
         paste_results.into_iter().collect::<Result<Vec<_>, _>>()
+    }
+
+    pub async fn all_with_usernames(db: &Database) -> models::Result<Vec<(Username, Paste)>> {
+        let paste_results: Vec<_> = db
+            .conn
+            .call(|conn| {
+                let mut statement = conn.prepare(
+                    r"SELECT
+                      pastes.id,
+                      pastes.user_id,
+                      pastes.title,
+                      pastes.description,
+                      pastes.body,
+                      pastes.visibility,
+                      pastes.created_at,
+                      pastes.updated_at,
+                      users.username
+                    FROM pastes JOIN users ON pastes.user_id = users.id
+                    WHERE pastes.visibility = 'public'
+                    ORDER BY pastes.updated_at DESC;",
+                )?;
+                let paste_iter = statement.query_map([], |row| {
+                    let username_result = Username::from_sql_row(row, 8);
+                    let paste_result = Paste::from_sql_row(row);
+                    Ok((username_result, paste_result))
+                })?;
+                Ok(paste_iter.collect::<Result<Vec<_>, _>>()?)
+            })
+            .await?;
+
+        paste_results
+            .into_iter()
+            .map(|(username_result, paste_result)| {
+                username_result.and_then(|username| paste_result.map(|paste| (username, paste)))
+            })
+            .collect()
     }
 
     pub async fn insert(self, db: &Database) -> models::Result<usize> {

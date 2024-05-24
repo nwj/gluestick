@@ -23,10 +23,13 @@ pub async fn index(
     session: Option<Session>,
     State(db): State<Database>,
 ) -> controllers::Result<impl IntoResponse> {
-    let pastes = Paste::all(&db)
+    let username_paste_pairs = Paste::all_with_usernames(&db)
         .await
         .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?;
-    Ok(IndexPastesTemplate { session, pastes })
+    Ok(IndexPastesTemplate {
+        session,
+        username_paste_pairs,
+    })
 }
 
 pub async fn new(session: Session) -> NewPastesTemplate {
