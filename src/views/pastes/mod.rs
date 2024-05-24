@@ -11,7 +11,7 @@ pub struct NewPastesTemplate {
 #[template(path = "pastes/index.html")]
 pub struct IndexPastesTemplate {
     pub session: Option<Session>,
-    pub username_paste_pairs: Vec<(Username, Paste)>,
+    pub paste_username_pairs: Vec<(Paste, Username)>,
 }
 
 #[derive(Template)]
@@ -19,6 +19,7 @@ pub struct IndexPastesTemplate {
 pub struct ShowPastesTemplate {
     pub session: Option<Session>,
     pub paste: Paste,
+    pub username: Username,
 }
 
 #[derive(Template)]

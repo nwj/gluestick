@@ -1,22 +1,54 @@
 {% extends "base.html" %}
 {% block content %}
+    <h1>
+        {{ username }} / <a href="/pastes/{{ paste.id }}">{{ paste.title }}</a>
+    </h1>
     <section class="pastes-show">
-        <div class="title-bar">
-            <h2>{{ paste.title }}</h2>
-            <div class="buttons">
+        <div class="description-bar">{{ paste.description }}</div>
+        <div class="metadata-bar">
+            <div class="metadata">
+                <span title="{{ paste.updated_at }}">Updated {{ paste.updated_at|format_relative_time }}</span>,
+                {{ paste.body|format_byte_size }}
+            </div>
+            <div class="actions">
+                <a href="#">
+                    <svg class="icon">
+                        <use href="/assets/images/vendor/feather-sprite.v4.29.0.svg#code" />
+                    </svg>
+                    Raw
+                </a>
+                <a href="#">
+                    <svg class="icon">
+                        <use href="/assets/images/vendor/feather-sprite.v4.29.0.svg#copy" />
+                    </svg>
+                    Copy
+                </a>
+                <a href="#">
+                    <svg class="icon">
+                        <use href="/assets/images/vendor/feather-sprite.v4.29.0.svg#download" />
+                    </svg>
+                    Download
+                </a>
                 {% if let Some(session) = session %}
                     {% if session.user.id == paste.user_id %}
-                        <a href="/pastes/{{ paste.id }}/edit">Edit</a>
-                        <button class="destructive" hx-delete="/pastes/{{ paste.id }}">Delete</button>
+                        <a href="/pastes/{{ paste.id }}/edit">
+                            <svg class="icon">
+                                <use href="/assets/images/vendor/feather-sprite.v4.29.0.svg#edit" />
+                            </svg>
+                            Edit
+                        </a>
+                        <button hx-confirm="Are you sure you want to delete this paste?"
+                                hx-delete="/pastes/{{ paste.id }}">
+                            <svg class="icon">
+                                <use href="/assets/images/vendor/feather-sprite.v4.29.0.svg#trash-2" />
+                            </svg>
+                            Delete
+                        </button>
                     {% endif %}
                 {% endif %}
             </div>
         </div>
-        <p>Created: {{ paste.created_at }}</p>
-        <p>Updated: {{ paste.updated_at }}</p>
-        <h3>{{ paste.description }}</h3>
-        <div class="container">
-            <code>{{ paste.body }}</code>
-        </div>
-    </section>
+    </div>
+    <pre><code>{{ paste.body }}</code></pre>
+</section>
 {% endblock %}

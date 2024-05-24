@@ -76,7 +76,7 @@ impl Paste {
         paste_results.into_iter().collect::<Result<Vec<_>, _>>()
     }
 
-    pub async fn all_with_usernames(db: &Database) -> models::Result<Vec<(Username, Paste)>> {
+    pub async fn all_with_usernames(db: &Database) -> models::Result<Vec<(Paste, Username)>> {
         let paste_results: Vec<_> = db
             .conn
             .call(|conn| {
@@ -96,9 +96,9 @@ impl Paste {
                     ORDER BY pastes.updated_at DESC;",
                 )?;
                 let paste_iter = statement.query_map([], |row| {
-                    let username_result = Username::from_sql_row(row, 8);
                     let paste_result = Paste::from_sql_row(row);
-                    Ok((username_result, paste_result))
+                    let username_result = Username::from_sql_row(row, 8);
+                    Ok((paste_result, username_result))
                 })?;
                 Ok(paste_iter.collect::<Result<Vec<_>, _>>()?)
             })
@@ -116,7 +116,9 @@ impl Paste {
         let result = db
             .conn
             .call(move |conn| {
-                let mut statement = conn.prepare("INSERT INTO pastes VALUES (:id, :user_id, :title, :description, :body, :visibility, :created_at, :updated_at);")?;
+                let mut statement = conn.prepare(
+                    "INSERT INTO pastes VALUES (:id, :user_id, :title, :description, :body, :visibility, :created_at, :updated_at);"
+                )?;
                 let result = statement.execute(
                     named_params! {
                         ":id": self.id,
@@ -154,6 +156,43 @@ impl Paste {
 
         let optional_paste = optional_result.transpose()?;
         Ok(optional_paste)
+    }
+
+    pub async fn find_with_username(
+        db: &Database,
+        id: Uuid,
+    ) -> models::Result<Option<(Paste, Username)>> {
+        let optional_result = db
+            .conn
+            .call(move |conn| {
+                let mut statement = conn.prepare(
+                    r"SELECT
+                          pastes.id,
+                          pastes.user_id,
+                          pastes.title,
+                          pastes.description,
+                          pastes.body,
+                          pastes.visibility,
+                          pastes.created_at,
+                          pastes.updated_at,
+                          users.username
+                        FROM pastes JOIN users ON pastes.user_id = users.id
+                        WHERE pastes.id = :id;",
+                )?;
+                let mut rows = statement.query(named_params! {":id": id})?;
+                match rows.next()? {
+                    Some(row) => Ok(Some((
+                        Paste::from_sql_row(row),
+                        Username::from_sql_row(row, 8),
+                    ))),
+                    None => Ok(None),
+                }
+            })
+            .await?;
+
+        optional_result
+            .map(|(res_a, res_b)| res_a.and_then(|a| res_b.map(|b| (a, b))))
+            .transpose()
     }
 
     pub async fn update(self, db: &Database) -> models::Result<usize> {
