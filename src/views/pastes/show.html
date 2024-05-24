@@ -17,12 +17,12 @@
                     </svg>
                     Raw
                 </a>
-                <a href="#">
+                <button hx-on:click="navigator.clipboard.writeText(document.getElementById('paste-body').innerHTML)">
                     <svg class="icon">
                         <use href="/assets/images/vendor/feather-sprite.v4.29.0.svg#copy" />
                     </svg>
                     Copy
-                </a>
+                </button>
                 <a href="#">
                     <svg class="icon">
                         <use href="/assets/images/vendor/feather-sprite.v4.29.0.svg#download" />
@@ -49,6 +49,6 @@
             </div>
         </div>
     </div>
-    <pre><code>{{ paste.body }}</code></pre>
+    <pre><code id="paste-body">{{ paste.body }}</code></pre>
 </section>
 {% endblock %}
