@@ -44,6 +44,7 @@ pub fn router(db: Database) -> Router {
         .route("/pastes/new", get(controllers::pastes::new))
         .route("/pastes/:id", get(controllers::pastes::show))
         .route("/pastes/:id/raw", get(controllers::pastes::show_raw))
+        .route("/pastes/:id/download", get(controllers::pastes::download))
         .route("/pastes/:id", put(controllers::pastes::update))
         .route("/pastes/:id/edit", get(controllers::pastes::edit))
         .route("/pastes/:id", delete(controllers::pastes::destroy))

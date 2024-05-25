@@ -104,6 +104,26 @@ pub async fn show_raw(
     }
 }
 
+pub async fn download(
+    State(db): State<Database>,
+    Path(id): Path<Uuid>,
+) -> controllers::Result<impl IntoResponse> {
+    match Paste::find(&db, id)
+        .await
+        .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?
+    {
+        Some(paste) => Ok((
+            StatusCode::OK,
+            [(
+                "Content-Disposition",
+                format!("attachment; filename=\"{}\"", paste.title),
+            )],
+            paste.body,
+        )),
+        None => Err(controllers::Error::NotFound),
+    }
+}
+
 pub async fn edit(
     session: Session,
     State(db): State<Database>,
