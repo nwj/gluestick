@@ -97,8 +97,8 @@ impl Paste {
                 )?;
                 let paste_iter = statement.query_map([], |row| {
                     let paste_result = Paste::from_sql_row(row);
-                    let username_result = Username::from_sql_row(row, 8);
-                    Ok((paste_result, username_result))
+                    let username: Username = row.get(8)?;
+                    Ok((paste_result, username))
                 })?;
                 Ok(paste_iter.collect::<Result<Vec<_>, _>>()?)
             })
@@ -106,9 +106,7 @@ impl Paste {
 
         paste_results
             .into_iter()
-            .map(|(username_result, paste_result)| {
-                username_result.and_then(|username| paste_result.map(|paste| (username, paste)))
-            })
+            .map(|(paste_result, username)| paste_result.map(|paste| (paste, username)))
             .collect()
     }
 
@@ -183,7 +181,7 @@ impl Paste {
                 match rows.next()? {
                     Some(row) => Ok(Some((
                         Paste::from_sql_row(row),
-                        Username::from_sql_row(row, 8),
+                        row.get::<usize, Username>(8)?,
                     ))),
                     None => Ok(None),
                 }
@@ -191,7 +189,7 @@ impl Paste {
             .await?;
 
         optional_result
-            .map(|(res_a, res_b)| res_a.and_then(|a| res_b.map(|b| (a, b))))
+            .map(|(paste_result, username)| paste_result.map(|paste| (paste, username)))
             .transpose()
     }
 
@@ -232,8 +230,8 @@ pub enum Visibility {
 impl ToSql for Visibility {
     fn to_sql(&self) -> Result<ToSqlOutput<'_>, rusqlite::Error> {
         match self {
-            Visibility::Public => Ok("public".into()),
-            Visibility::Secret => Ok("secret".into()),
+            Self::Public => Ok("public".into()),
+            Self::Secret => Ok("secret".into()),
         }
     }
 }
@@ -241,8 +239,8 @@ impl ToSql for Visibility {
 impl FromSql for Visibility {
     fn column_result(value: ValueRef) -> FromSqlResult<Self> {
         String::column_result(value).and_then(|as_string| match as_string.as_str() {
-            "public" => Ok(Visibility::Public),
-            "secret" => Ok(Visibility::Secret),
+            "public" => Ok(Self::Public),
+            "secret" => Ok(Self::Secret),
             _ => Err(FromSqlError::Other(
                 "Unrecognized value for visibility".into(),
             )),

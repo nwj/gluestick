@@ -7,9 +7,10 @@ use argon2::{
     password_hash::{rand_core::OsRng, PasswordHasher, SaltString},
     Argon2,
 };
+use derive_more::{AsRef, Display, From, Into};
 use rusqlite::{
     named_params,
-    types::{FromSql, FromSqlResult, ToSql, ToSqlOutput, ValueRef},
+    types::{FromSql, FromSqlError, FromSqlResult, ToSql, ToSqlOutput, ValueRef},
     Row,
 };
 use secrecy::{ExposeSecret, Secret};
@@ -29,8 +30,8 @@ impl User {
     pub fn new(username: String, email: String, password: Password) -> models::Result<Self> {
         Ok(User {
             id: Uuid::now_v7(),
-            username: Username::parse(&username)?,
-            email: EmailAddress::parse(&email)?,
+            username: Username::try_from(username)?,
+            email: EmailAddress::try_from(email)?,
             password: password.to_hash()?,
         })
     }
@@ -145,10 +146,10 @@ impl User {
     }
 }
 
-#[derive(Debug, Clone, Validate)]
+#[derive(Debug, Display, Clone, AsRef, Into, Validate)]
 pub struct Username {
     #[validate(length(min = 3, max = 32), custom(function = "validate_alphanumeric"))]
-    private: String,
+    inner: String,
 }
 
 fn validate_alphanumeric(username: &str) -> Result<(), validator::ValidationError> {
@@ -162,82 +163,82 @@ fn validate_alphanumeric(username: &str) -> Result<(), validator::ValidationErro
 }
 
 impl Username {
-    pub fn parse(s: &str) -> models::Result<Self> {
-        let username = Self {
-            private: s.to_string(),
-        };
+    pub fn new(s: String) -> models::Result<Self> {
+        let username = Self { inner: s };
         username.validate()?;
         Ok(username)
     }
+}
 
-    pub fn from_sql_row(row: &Row, col: usize) -> models::Result<Self> {
-        Ok(Self {
-            private: row.get(col)?,
-        })
+impl TryFrom<String> for Username {
+    type Error = models::Error;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        Self::new(value)
     }
 }
 
-impl AsRef<str> for Username {
-    fn as_ref(&self) -> &str {
-        &self.private
-    }
-}
+impl std::str::FromStr for Username {
+    type Err = <Self as TryFrom<String>>::Error;
 
-impl std::fmt::Display for Username {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", &self.private)
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        <Self as TryFrom<String>>::try_from(s.to_string())
     }
 }
 
 impl ToSql for Username {
     fn to_sql(&self) -> Result<ToSqlOutput<'_>, rusqlite::Error> {
-        self.private.to_sql()
+        self.inner.to_sql()
     }
 }
 
 impl FromSql for Username {
     fn column_result(value: ValueRef) -> FromSqlResult<Self> {
-        String::column_result(value).map(|as_string| Ok(Self { private: as_string }))?
+        String::column_result(value)
+            .map(|s| Self::try_from(s).map_err(|e| FromSqlError::Other(Box::new(e))))?
     }
 }
 
-#[derive(Debug, Clone, Validate)]
+#[derive(Debug, Display, Clone, AsRef, Into, Validate)]
 pub struct EmailAddress {
     #[validate(email)]
-    private: String,
+    inner: String,
 }
 
 impl EmailAddress {
-    pub fn parse(s: &str) -> models::Result<Self> {
-        let email = Self {
-            private: s.to_string(),
-        };
+    pub fn new(s: String) -> models::Result<Self> {
+        let email = Self { inner: s };
         email.validate()?;
         Ok(email)
     }
 }
 
-impl AsRef<str> for EmailAddress {
-    fn as_ref(&self) -> &str {
-        &self.private
+impl TryFrom<String> for EmailAddress {
+    type Error = models::Error;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        Self::new(value)
     }
 }
 
-impl std::fmt::Display for EmailAddress {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", &self.private)
+impl std::str::FromStr for EmailAddress {
+    type Err = <Self as TryFrom<String>>::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        <Self as TryFrom<String>>::try_from(s.to_string())
     }
 }
 
 impl ToSql for EmailAddress {
     fn to_sql(&self) -> Result<ToSqlOutput<'_>, rusqlite::Error> {
-        self.private.to_sql()
+        self.inner.to_sql()
     }
 }
 
 impl FromSql for EmailAddress {
     fn column_result(value: ValueRef) -> FromSqlResult<Self> {
-        String::column_result(value).map(|as_string| Ok(Self { private: as_string }))?
+        String::column_result(value)
+            .map(|s| Self::try_from(s).map_err(|e| FromSqlError::Other(Box::new(e))))?
     }
 }
 
@@ -245,10 +246,6 @@ impl FromSql for EmailAddress {
 pub struct Password(Secret<String>);
 
 impl Password {
-    pub fn new(password: Secret<String>) -> Self {
-        Self(password)
-    }
-
     pub fn to_hash(self) -> models::Result<HashedPassword> {
         Ok(HashedPassword(Self::hash_password(self.0)?))
     }
@@ -271,7 +268,7 @@ impl ExposeSecret<String> for Password {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, From)]
 pub struct HashedPassword(Secret<String>);
 
 impl ExposeSecret<String> for HashedPassword {
@@ -288,6 +285,6 @@ impl ToSql for HashedPassword {
 
 impl FromSql for HashedPassword {
     fn column_result(value: ValueRef) -> FromSqlResult<Self> {
-        String::column_result(value).map(|as_string| Ok(HashedPassword(Secret::new(as_string))))?
+        String::column_result(value).map(|string| Ok(Secret::new(string).into()))?
     }
 }
