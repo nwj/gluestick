@@ -91,6 +91,19 @@ pub async fn show(
     }
 }
 
+pub async fn show_raw(
+    State(db): State<Database>,
+    Path(id): Path<Uuid>,
+) -> controllers::Result<impl IntoResponse> {
+    match Paste::find(&db, id)
+        .await
+        .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?
+    {
+        Some(paste) => Ok((StatusCode::OK, paste.body)),
+        None => Err(controllers::Error::NotFound),
+    }
+}
+
 pub async fn edit(
     session: Session,
     State(db): State<Database>,

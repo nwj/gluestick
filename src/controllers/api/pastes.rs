@@ -72,6 +72,20 @@ pub async fn show(
     }
 }
 
+pub async fn show_raw(
+    _session: ApiSession,
+    Path(id): Path<Uuid>,
+    State(db): State<Database>,
+) -> controllers::api::Result<impl IntoResponse> {
+    match Paste::find(&db, id)
+        .await
+        .map_err(|e| controllers::api::Error::InternalServerError(Box::new(e)))?
+    {
+        Some(paste) => Ok(paste.body),
+        None => Err(controllers::api::Error::NotFound),
+    }
+}
+
 #[derive(Debug, Deserialize, Validate)]
 pub struct UpdatePaste {
     #[validate(custom(function = "validators::not_empty_when_trimmed"))]

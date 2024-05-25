@@ -11,7 +11,7 @@
                 {{ paste.body|format_byte_size }}
             </div>
             <div class="actions">
-                <a href="#">
+                <a hx-boost="false" href="/pastes/{{ paste.id }}/raw">
                     <svg class="icon">
                         <use href="/assets/images/vendor/feather-sprite.v4.29.0.svg#code" />
                     </svg>
