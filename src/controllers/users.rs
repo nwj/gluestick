@@ -31,12 +31,8 @@ pub async fn create(
     State(db): State<Database>,
     Form(input): Form<CreateUser>,
 ) -> controllers::Result<impl IntoResponse> {
-    let user = User::new(input.username, input.email, input.password)
-        .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?;
-    user.clone()
-        .insert(&db)
-        .await
-        .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?;
+    let user = User::new(input.username, input.email, input.password)?;
+    user.clone().insert(&db).await?;
 
     let token = SessionToken::generate();
     let response = Response::builder()
@@ -52,10 +48,7 @@ pub async fn create(
         .body(Body::empty())
         .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?;
 
-    Session::new(token, user)
-        .insert(&db)
-        .await
-        .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?;
+    Session::new(token, user).insert(&db).await?;
 
     Ok(response)
 }

@@ -5,7 +5,6 @@ use crate::{
         paste::{Paste, Visibility},
         session::Session,
     },
-    validators,
     views::pastes::{
         EditPastesTemplate, IndexPastesTemplate, NewPastesTemplate, ShowPastesTemplate,
     },
@@ -23,9 +22,7 @@ pub async fn index(
     session: Option<Session>,
     State(db): State<Database>,
 ) -> controllers::Result<impl IntoResponse> {
-    let paste_username_pairs = Paste::all_with_usernames(&db)
-        .await
-        .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?;
+    let paste_username_pairs = Paste::all_with_usernames(&db).await?;
     Ok(IndexPastesTemplate {
         session,
         paste_username_pairs,
@@ -39,11 +36,8 @@ pub async fn new(session: Session) -> NewPastesTemplate {
 
 #[derive(Deserialize, Debug, Validate)]
 pub struct CreatePaste {
-    #[validate(custom(function = "validators::not_empty_when_trimmed"))]
     pub title: String,
-    #[validate(custom(function = "validators::not_empty_when_trimmed"))]
     pub description: String,
-    #[validate(custom(function = "validators::not_empty_when_trimmed"))]
     pub body: String,
     pub visibility: Visibility,
 }
@@ -53,19 +47,15 @@ pub async fn create(
     State(db): State<Database>,
     Form(input): Form<CreatePaste>,
 ) -> controllers::Result<impl IntoResponse> {
-    input.validate()?;
     let paste = Paste::new(
         session.user.id,
         input.title,
         input.description,
         input.body,
         input.visibility,
-    );
+    )?;
     let id = paste.id;
-    paste
-        .insert(&db)
-        .await
-        .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?;
+    paste.insert(&db).await?;
 
     Ok(Redirect::to(format!("/pastes/{id}").as_str()).into_response())
 }
@@ -75,10 +65,7 @@ pub async fn show(
     State(db): State<Database>,
     Path(id): Path<Uuid>,
 ) -> controllers::Result<impl IntoResponse> {
-    match Paste::find_with_username(&db, id)
-        .await
-        .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?
-    {
+    match Paste::find_with_username(&db, id).await? {
         Some((paste, username)) => Ok((
             StatusCode::OK,
             ShowPastesTemplate {
@@ -95,11 +82,8 @@ pub async fn show_raw(
     State(db): State<Database>,
     Path(id): Path<Uuid>,
 ) -> controllers::Result<impl IntoResponse> {
-    match Paste::find(&db, id)
-        .await
-        .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?
-    {
-        Some(paste) => Ok((StatusCode::OK, paste.body)),
+    match Paste::find(&db, id).await? {
+        Some(paste) => Ok((StatusCode::OK, paste.body.to_string())),
         None => Err(controllers::Error::NotFound),
     }
 }
@@ -108,17 +92,14 @@ pub async fn download(
     State(db): State<Database>,
     Path(id): Path<Uuid>,
 ) -> controllers::Result<impl IntoResponse> {
-    match Paste::find(&db, id)
-        .await
-        .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?
-    {
+    match Paste::find(&db, id).await? {
         Some(paste) => Ok((
             StatusCode::OK,
             [(
                 "Content-Disposition",
                 format!("attachment; filename=\"{}\"", paste.title),
             )],
-            paste.body,
+            paste.body.to_string(),
         )),
         None => Err(controllers::Error::NotFound),
     }
@@ -129,9 +110,7 @@ pub async fn edit(
     State(db): State<Database>,
     Path(id): Path<Uuid>,
 ) -> controllers::Result<impl IntoResponse> {
-    let optional_paste = Paste::find(&db, id)
-        .await
-        .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?;
+    let optional_paste = Paste::find(&db, id).await?;
 
     match optional_paste {
         Some(paste) if paste.user_id == session.user.id => {
@@ -148,11 +127,8 @@ pub async fn edit(
 
 #[derive(Deserialize, Debug, Validate)]
 pub struct UpdatePaste {
-    #[validate(custom(function = "validators::not_empty_when_trimmed"))]
     pub title: String,
-    #[validate(custom(function = "validators::not_empty_when_trimmed"))]
-    pub description: String,
-    #[validate(custom(function = "validators::not_empty_when_trimmed"))]
+    pub description: Option<String>,
     pub body: String,
 }
 
@@ -162,16 +138,10 @@ pub async fn update(
     Path(id): Path<Uuid>,
     Form(input): Form<UpdatePaste>,
 ) -> controllers::Result<impl IntoResponse> {
-    let optional_paste = Paste::find(&db, id)
-        .await
-        .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?;
+    let optional_paste = Paste::find(&db, id).await?;
 
     match optional_paste {
-        Some(mut paste) if paste.user_id == session.user.id => {
-            paste.title = input.title;
-            paste.description = input.description;
-            paste.body = input.body;
-
+        Some(paste) if paste.user_id == session.user.id => {
             let mut response = HeaderMap::new();
             response.insert(
                 "HX-Redirect",
@@ -179,9 +149,8 @@ pub async fn update(
             );
 
             paste
-                .update(&db)
-                .await
-                .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?;
+                .update(&db, Some(input.title), input.description, Some(input.body))
+                .await?;
 
             Ok(response)
         }
@@ -195,16 +164,11 @@ pub async fn destroy(
     State(db): State<Database>,
     Path(id): Path<Uuid>,
 ) -> controllers::Result<impl IntoResponse> {
-    let optional_paste = Paste::find(&db, id)
-        .await
-        .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?;
+    let optional_paste = Paste::find(&db, id).await?;
 
     match optional_paste {
         Some(paste) if paste.user_id == session.user.id => {
-            paste
-                .delete(&db)
-                .await
-                .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?;
+            paste.delete(&db).await?;
 
             let mut response = HeaderMap::new();
             response.insert("HX-Redirect", HeaderValue::from_static("/pastes"));

@@ -5,7 +5,7 @@ use crate::{
 };
 use argon2::{
     password_hash::{rand_core::OsRng, PasswordHasher, SaltString},
-    Argon2,
+    Argon2, PasswordHash, PasswordVerifier,
 };
 use derive_more::{AsRef, Display, From, Into};
 use rusqlite::{
@@ -43,6 +43,14 @@ impl User {
             email: row.get(2)?,
             password: row.get(3)?,
         })
+    }
+
+    pub fn verify_password(&self, password: Password) -> models::Result<()> {
+        Argon2::default().verify_password(
+            password.expose_secret().as_bytes(),
+            &PasswordHash::new(self.password.expose_secret())?,
+        )?;
+        Ok(())
     }
 
     pub async fn insert(self, db: &Database) -> models::Result<usize> {

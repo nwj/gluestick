@@ -3,6 +3,7 @@ use chrono::{
     serde::ts_seconds,
     {DateTime, Utc},
 };
+use derive_more::{AsRef, Display, Into};
 use rusqlite::{
     named_params,
     types::{FromSql, FromSqlError, FromSqlResult, ToSql, ToSqlOutput, ValueRef},
@@ -10,14 +11,15 @@ use rusqlite::{
 };
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+use validator::Validate;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Paste {
     pub id: Uuid,
     pub user_id: Uuid,
-    pub title: String,
-    pub description: String,
-    pub body: String,
+    pub title: Title,
+    pub description: Description,
+    pub body: Body,
     pub visibility: Visibility,
     #[serde(with = "ts_seconds")]
     pub created_at: DateTime<Utc>,
@@ -32,17 +34,17 @@ impl Paste {
         description: String,
         body: String,
         visibility: Visibility,
-    ) -> Self {
-        Self {
+    ) -> models::Result<Self> {
+        Ok(Self {
             id: Uuid::now_v7(),
             user_id,
-            title,
-            description,
-            body,
+            title: Title::try_from(title)?,
+            description: Description::try_from(description)?,
+            body: Body::try_from(body)?,
             visibility,
             created_at: Utc::now(),
             updated_at: Utc::now(),
-        }
+        })
     }
 
     pub fn from_sql_row(row: &Row) -> models::Result<Self> {
@@ -193,7 +195,23 @@ impl Paste {
             .transpose()
     }
 
-    pub async fn update(self, db: &Database) -> models::Result<usize> {
+    pub async fn update(
+        mut self,
+        db: &Database,
+        title: Option<String>,
+        description: Option<String>,
+        body: Option<String>,
+    ) -> models::Result<usize> {
+        if let Some(title) = title {
+            self.title = Title::try_from(title)?;
+        }
+        if let Some(description) = description {
+            self.description = Description::try_from(description)?;
+        }
+        if let Some(body) = body {
+            self.body = Body::try_from(body)?;
+        }
+
         let result = db.conn.call(move |conn| {
             let mut statement = conn.prepare(
                 r"UPDATE pastes
@@ -216,6 +234,152 @@ impl Paste {
             })
             .await?;
         Ok(result)
+    }
+}
+
+#[derive(Debug, Display, Clone, AsRef, Into, Validate, Serialize, Deserialize)]
+#[serde(try_from = "String", into = "String")]
+pub struct Title {
+    #[validate(length(min = 1, max = 256))]
+    inner: String,
+}
+
+impl Title {
+    pub fn new(s: String) -> models::Result<Self> {
+        let title = Self {
+            inner: s.trim().to_string(),
+        };
+        title.validate()?;
+        Ok(title)
+    }
+}
+
+impl TryFrom<String> for Title {
+    type Error = models::Error;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        Self::new(value)
+    }
+}
+
+impl std::str::FromStr for Title {
+    type Err = <Self as TryFrom<String>>::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        <Self as TryFrom<String>>::try_from(s.to_string())
+    }
+}
+
+impl ToSql for Title {
+    fn to_sql(&self) -> Result<ToSqlOutput<'_>, rusqlite::Error> {
+        self.inner.to_sql()
+    }
+}
+
+impl FromSql for Title {
+    fn column_result(value: ValueRef) -> FromSqlResult<Self> {
+        String::column_result(value)
+            .map(|s| Self::try_from(s).map_err(|e| FromSqlError::Other(Box::new(e))))?
+    }
+}
+
+#[derive(Debug, Display, Clone, AsRef, Into, Validate, Serialize, Deserialize)]
+#[serde(try_from = "String", into = "String")]
+pub struct Description {
+    #[validate(length(max = 256))]
+    inner: String,
+}
+
+impl Description {
+    pub fn new(s: String) -> models::Result<Self> {
+        let description = Self {
+            inner: s.trim().to_string(),
+        };
+        description.validate()?;
+        Ok(description)
+    }
+
+    pub fn len(&self) -> usize {
+        self.inner.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+}
+
+impl TryFrom<String> for Description {
+    type Error = models::Error;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        Self::new(value)
+    }
+}
+
+impl std::str::FromStr for Description {
+    type Err = <Self as TryFrom<String>>::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        <Self as TryFrom<String>>::try_from(s.to_string())
+    }
+}
+
+impl ToSql for Description {
+    fn to_sql(&self) -> Result<ToSqlOutput<'_>, rusqlite::Error> {
+        self.inner.to_sql()
+    }
+}
+
+impl FromSql for Description {
+    fn column_result(value: ValueRef) -> FromSqlResult<Self> {
+        String::column_result(value)
+            .map(|s| Self::try_from(s).map_err(|e| FromSqlError::Other(Box::new(e))))?
+    }
+}
+
+#[derive(Debug, Display, Clone, AsRef, Into, Validate, Serialize, Deserialize)]
+#[serde(try_from = "String", into = "String")]
+pub struct Body {
+    #[validate(length(min = 1))]
+    inner: String,
+}
+
+impl Body {
+    pub fn new(s: String) -> models::Result<Self> {
+        let body = Self {
+            inner: s.trim().to_string(),
+        };
+        body.validate()?;
+        Ok(body)
+    }
+}
+
+impl TryFrom<String> for Body {
+    type Error = models::Error;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        Self::new(value)
+    }
+}
+
+impl std::str::FromStr for Body {
+    type Err = <Self as TryFrom<String>>::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        <Self as TryFrom<String>>::try_from(s.to_string())
+    }
+}
+
+impl ToSql for Body {
+    fn to_sql(&self) -> Result<ToSqlOutput<'_>, rusqlite::Error> {
+        self.inner.to_sql()
+    }
+}
+
+impl FromSql for Body {
+    fn column_result(value: ValueRef) -> FromSqlResult<Self> {
+        String::column_result(value)
+            .map(|s| Self::try_from(s).map_err(|e| FromSqlError::Other(Box::new(e))))?
     }
 }
 

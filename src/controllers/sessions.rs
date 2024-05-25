@@ -3,11 +3,10 @@ use crate::{
     db::Database,
     models::{
         session::{Session, SessionToken},
-        user::User,
+        user::{Password, User},
     },
     views::sessions::NewSessionsTemplate,
 };
-use argon2::{Argon2, PasswordHash, PasswordVerifier};
 use axum::{
     body::Body,
     extract::{Form, State},
@@ -15,7 +14,6 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use secrecy::ExposeSecret;
-use secrecy::Secret;
 use serde::Deserialize;
 use validator::Validate;
 
@@ -25,31 +23,20 @@ pub async fn new() -> NewSessionsTemplate {
 
 #[derive(Deserialize, Debug, Validate)]
 pub struct CreateSession {
-    #[validate(email)]
     pub email: String,
-    pub password: Secret<String>,
+    pub password: Password,
 }
 
 pub async fn create(
     State(db): State<Database>,
     Form(input): Form<CreateSession>,
 ) -> controllers::Result<impl IntoResponse> {
-    input.validate()?;
-
-    let Some(user) = User::find_by_email(&db, input.email)
-        .await
-        .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?
-    else {
+    let Some(user) = User::find_by_email(&db, input.email).await? else {
         return Err(controllers::Error::Unauthorized);
     };
 
-    if let Err(_e) = Argon2::default().verify_password(
-        input.password.expose_secret().as_bytes(),
-        &PasswordHash::new(user.password.expose_secret())
-            .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?,
-    ) {
-        return Err(controllers::Error::Unauthorized);
-    };
+    user.verify_password(input.password)
+        .map_err(|_| controllers::Error::Unauthorized)?;
 
     let token = SessionToken::generate();
 
@@ -66,10 +53,7 @@ pub async fn create(
         .body(Body::empty())
         .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?;
 
-    Session::new(token, user)
-        .insert(&db)
-        .await
-        .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?;
+    Session::new(token, user).insert(&db).await?;
 
     Ok(response)
 }
@@ -78,11 +62,7 @@ pub async fn delete(
     session: Session,
     State(db): State<Database>,
 ) -> controllers::Result<impl IntoResponse> {
-    session
-        .user
-        .delete_sessions(&db)
-        .await
-        .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?;
+    session.user.delete_sessions(&db).await?;
 
     let mut headers = HeaderMap::new();
     headers.insert("HX-Redirect", HeaderValue::from_static("/login"));

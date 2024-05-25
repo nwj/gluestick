@@ -17,8 +17,7 @@ pub async fn create(
 
     ApiSession::new(api_key.clone(), session.user)
         .insert(&db)
-        .await
-        .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?;
+        .await?;
 
     Ok(ApiSessionsCreateTemplate { api_key })
 }

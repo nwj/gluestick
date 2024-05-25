@@ -1,3 +1,4 @@
+use crate::models::Error as ModelsError;
 use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
@@ -16,7 +17,7 @@ type Result<T, E = Error> = std::result::Result<T, E>;
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("malformed request")]
-    BadRequest(#[from] validator::ValidationErrors),
+    BadRequest(Box<dyn std::error::Error>),
 
     #[error("invalid authentication credentials")]
     Unauthorized,
@@ -28,7 +29,18 @@ pub enum Error {
     NotFound,
 
     #[error("internal server error: {0}")]
-    InternalServerError(#[from] Box<dyn std::error::Error>),
+    InternalServerError(Box<dyn std::error::Error>),
+}
+
+impl From<ModelsError> for Error {
+    fn from(error: ModelsError) -> Self {
+        match error {
+            ModelsError::Validation(_) | ModelsError::ParseInt(_) => {
+                Self::BadRequest(Box::new(error))
+            }
+            _ => Self::InternalServerError(Box::new(error)),
+        }
+    }
 }
 
 impl IntoResponse for Error {

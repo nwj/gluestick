@@ -4,7 +4,7 @@
         {{ username }} / <a href="/pastes/{{ paste.id }}">{{ paste.title }}</a>
     </h1>
     <section class="pastes-show">
-        <div class="description-bar">{{ paste.description }}</div>
+        {% if !paste.description.is_empty() %}<div class="description-bar">{{ paste.description }}</div>{% endif %}
         <div class="metadata-bar">
             <div class="metadata">
                 <span title="{{ paste.updated_at }}">Updated {{ paste.updated_at|format_relative_time }}</span>,

@@ -1,5 +1,6 @@
 use crate::{
     models::session::Session,
+    models::Error as ModelsError,
     views::{IndexTemplate, InternalServerErrorTemplate, NotFoundTemplate},
 };
 use axum::{
@@ -27,7 +28,7 @@ type Result<T, E = Error> = std::result::Result<T, E>;
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("malformed request")]
-    BadRequest(#[from] validator::ValidationErrors),
+    BadRequest(Box<dyn std::error::Error>),
 
     #[error("invalid authentication credentials")]
     Unauthorized,
@@ -40,7 +41,18 @@ pub enum Error {
 
     #[allow(clippy::enum_variant_names)]
     #[error("internal server error: {0}")]
-    InternalServerError(#[from] Box<dyn std::error::Error>),
+    InternalServerError(Box<dyn std::error::Error>),
+}
+
+impl From<ModelsError> for Error {
+    fn from(error: ModelsError) -> Self {
+        match error {
+            ModelsError::Validation(_) | ModelsError::ParseInt(_) => {
+                Self::BadRequest(Box::new(error))
+            }
+            _ => Self::InternalServerError(Box::new(error)),
+        }
+    }
 }
 
 impl IntoResponse for Error {

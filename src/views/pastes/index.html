@@ -9,7 +9,7 @@
                         <div class="title-bar">
                             {{ username }} / <a href="pastes/{{ paste.id }}">{{ paste.title }}</a>
                         </div>
-                        <div class="description-bar">{{ paste.description }}</div>
+                        {% if !paste.description.is_empty() %}<div class="description-bar">{{ paste.description }}</div>{% endif %}
                         <div class="metadata-bar">
                             <span title="{{ paste.updated_at }}">Updated {{ paste.updated_at|format_relative_time }}</span>,
                             {{ paste.body|format_byte_size }}

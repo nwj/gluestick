@@ -5,7 +5,6 @@ use crate::{
         api_session::ApiSession,
         paste::{Paste, Visibility},
     },
-    validators,
 };
 use axum::{
     extract::{Path, State},
@@ -20,19 +19,14 @@ pub async fn index(
     _session: ApiSession,
     State(db): State<Database>,
 ) -> controllers::api::Result<impl IntoResponse> {
-    let pastes = Paste::all(&db)
-        .await
-        .map_err(|e| controllers::api::Error::InternalServerError(Box::new(e)))?;
+    let pastes = Paste::all(&db).await?;
     Ok(Json(pastes))
 }
 
 #[derive(Debug, Deserialize, Validate)]
 pub struct CreatePaste {
-    #[validate(custom(function = "validators::not_empty_when_trimmed"))]
     title: String,
-    #[validate(custom(function = "validators::not_empty_when_trimmed"))]
     description: String,
-    #[validate(custom(function = "validators::not_empty_when_trimmed"))]
     body: String,
     visibility: Visibility,
 }
@@ -42,19 +36,15 @@ pub async fn create(
     State(db): State<Database>,
     Json(input): Json<CreatePaste>,
 ) -> controllers::api::Result<impl IntoResponse> {
-    input.validate()?;
     let paste = Paste::new(
         session.user.id,
         input.title,
         input.description,
         input.body,
         input.visibility,
-    );
+    )?;
     let id = paste.id;
-    paste
-        .insert(&db)
-        .await
-        .map_err(|e| controllers::api::Error::InternalServerError(Box::new(e)))?;
+    paste.insert(&db).await?;
     Ok(Json(id))
 }
 
@@ -63,10 +53,7 @@ pub async fn show(
     Path(id): Path<Uuid>,
     State(db): State<Database>,
 ) -> controllers::api::Result<impl IntoResponse> {
-    match Paste::find(&db, id)
-        .await
-        .map_err(|e| controllers::api::Error::InternalServerError(Box::new(e)))?
-    {
+    match Paste::find(&db, id).await? {
         Some(paste) => Ok(Json(paste)),
         None => Err(controllers::api::Error::NotFound),
     }
@@ -77,22 +64,16 @@ pub async fn show_raw(
     Path(id): Path<Uuid>,
     State(db): State<Database>,
 ) -> controllers::api::Result<impl IntoResponse> {
-    match Paste::find(&db, id)
-        .await
-        .map_err(|e| controllers::api::Error::InternalServerError(Box::new(e)))?
-    {
-        Some(paste) => Ok(paste.body),
+    match Paste::find(&db, id).await? {
+        Some(paste) => Ok(paste.body.to_string()),
         None => Err(controllers::api::Error::NotFound),
     }
 }
 
 #[derive(Debug, Deserialize, Validate)]
 pub struct UpdatePaste {
-    #[validate(custom(function = "validators::not_empty_when_trimmed"))]
     title: Option<String>,
-    #[validate(custom(function = "validators::not_empty_when_trimmed"))]
     description: Option<String>,
-    #[validate(custom(function = "validators::not_empty_when_trimmed"))]
     body: Option<String>,
 }
 
@@ -102,26 +83,13 @@ pub async fn update(
     State(db): State<Database>,
     Json(input): Json<UpdatePaste>,
 ) -> controllers::api::Result<impl IntoResponse> {
-    let optional_paste = Paste::find(&db, id)
-        .await
-        .map_err(|e| controllers::api::Error::InternalServerError(Box::new(e)))?;
+    let optional_paste = Paste::find(&db, id).await?;
 
     match optional_paste {
-        Some(mut paste) if paste.user_id == session.user.id => {
-            if let Some(title) = input.title {
-                paste.title = title;
-            }
-            if let Some(description) = input.description {
-                paste.description = description;
-            }
-            if let Some(body) = input.body {
-                paste.body = body;
-            }
-
+        Some(paste) if paste.user_id == session.user.id => {
             paste
-                .update(&db)
-                .await
-                .map_err(|e| controllers::api::Error::InternalServerError(Box::new(e)))?;
+                .update(&db, input.title, input.description, input.body)
+                .await?;
             Ok(())
         }
         Some(_) => Err(controllers::api::Error::Forbidden),
@@ -134,16 +102,11 @@ pub async fn destroy(
     Path(id): Path<Uuid>,
     State(db): State<Database>,
 ) -> controllers::api::Result<impl IntoResponse> {
-    let optional_paste = Paste::find(&db, id)
-        .await
-        .map_err(|e| controllers::api::Error::InternalServerError(Box::new(e)))?;
+    let optional_paste = Paste::find(&db, id).await?;
 
     match optional_paste {
         Some(paste) if paste.user_id == session.user.id => {
-            paste
-                .delete(&db)
-                .await
-                .map_err(|e| controllers::api::Error::InternalServerError(Box::new(e)))?;
+            paste.delete(&db).await?;
             Ok(())
         }
         Some(_) => Err(controllers::api::Error::Forbidden),

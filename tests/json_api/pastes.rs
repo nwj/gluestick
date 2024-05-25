@@ -130,10 +130,8 @@ async fn pastes_create_responds_with_400_when_invalid_input() {
     let client = reqwest::Client::new();
     let bad_pastes = vec![
         "{\"title\":\"\",\"description\":\"A description.\",\"body\":\"A body.\",\"visibility\":\"public\"}",
-        "{\"title\":\"A title\",\"description\":\"\",\"body\":\"A body.\",\"visibility\":\"public\"}",
         "{\"title\":\"A title\",\"description\":\"A description.\",\"body\":\"\",\"visibility\":\"public\"}",
         "{\"title\":\" \",\"description\":\"A description.\",\"body\":\"A body.\",\"visibility\":\"public\"}",
-        "{\"title\":\"A title\",\"description\":\" \",\"body\":\"A body.\",\"visibility\":\"public\"}",
         "{\"title\":\"A title\",\"description\":\"A description.\",\"body\":\" \",\"visibility\":\"public\"}",
     ];
 
