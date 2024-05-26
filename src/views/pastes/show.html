@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% block title %}{{ username }} / {{ paste.title }}{% endblock %}
 {% block content %}
     <h1>
         {{ username }} / <a href="/pastes/{{ paste.id }}">{{ paste.title }}</a>

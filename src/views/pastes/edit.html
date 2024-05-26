@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% block title %}Edit {{ paste.title }}{% endblock %}
 {% block content %}
     <section class="pastes-edit">
         <form hx-put="/pastes/{{ paste.id }}">

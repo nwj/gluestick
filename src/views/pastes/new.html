@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% block title %}New Paste{% endblock %}
 {% block content %}
     <section class="pastes-new">
         <form action="/pastes" method="post">
@@ -12,7 +13,11 @@
             <fieldset>
                 <legend>Visibility:</legend>
                 <label for="visibility-secret">Secret - visible to anyone you give the URL to</label>
-                <input type="radio" id="visibility-secret" name="visibility" value="secret" checked />
+                <input type="radio"
+                       id="visibility-secret"
+                       name="visibility"
+                       value="secret"
+                       checked />
                 <label for="visiblitity-public">Public - visible to everyone</label>
                 <input type="radio" id="visiblitity-public" name="visibility" value="public" />
             </fieldset>
