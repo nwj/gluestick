@@ -25,7 +25,7 @@ pub async fn index(
 
 #[derive(Debug, Deserialize, Validate)]
 pub struct CreatePaste {
-    title: String,
+    filename: String,
     description: String,
     body: String,
     visibility: Visibility,
@@ -38,7 +38,7 @@ pub async fn create(
 ) -> controllers::api::Result<impl IntoResponse> {
     let paste = Paste::new(
         session.user.id,
-        input.title,
+        input.filename,
         input.description,
         input.body,
         input.visibility,
@@ -72,7 +72,7 @@ pub async fn show_raw(
 
 #[derive(Debug, Deserialize, Validate)]
 pub struct UpdatePaste {
-    title: Option<String>,
+    filename: Option<String>,
     description: Option<String>,
     body: Option<String>,
 }
@@ -88,7 +88,7 @@ pub async fn update(
     match optional_paste {
         Some(paste) if paste.user_id == session.user.id => {
             paste
-                .update(&db, input.title, input.description, input.body)
+                .update(&db, input.filename, input.description, input.body)
                 .await?;
             Ok(())
         }

@@ -17,7 +17,7 @@ use validator::Validate;
 pub struct Paste {
     pub id: Uuid,
     pub user_id: Uuid,
-    pub title: Title,
+    pub filename: Filename,
     pub description: Description,
     pub body: Body,
     pub visibility: Visibility,
@@ -30,7 +30,7 @@ pub struct Paste {
 impl Paste {
     pub fn new(
         user_id: Uuid,
-        title: String,
+        filename: String,
         description: String,
         body: String,
         visibility: Visibility,
@@ -38,7 +38,7 @@ impl Paste {
         Ok(Self {
             id: Uuid::now_v7(),
             user_id,
-            title: Title::try_from(title)?,
+            filename: Filename::try_from(filename)?,
             description: Description::try_from(description)?,
             body: Body::try_from(body)?,
             visibility,
@@ -51,7 +51,7 @@ impl Paste {
         Ok(Self {
             id: row.get(0)?,
             user_id: row.get(1)?,
-            title: row.get(2)?,
+            filename: row.get(2)?,
             description: row.get(3)?,
             body: row.get(4)?,
             visibility: row.get(5)?,
@@ -67,7 +67,7 @@ impl Paste {
             .conn
             .call(|conn| {
                 let mut statement = conn.prepare(
-                    r"SELECT id, user_id, title, description, body, visibility, created_at, updated_at FROM pastes
+                    r"SELECT id, user_id, filename, description, body, visibility, created_at, updated_at FROM pastes
                     WHERE visibility = 'public'
                     ORDER BY updated_at DESC;",
                 )?;
@@ -86,7 +86,7 @@ impl Paste {
                     r"SELECT
                       pastes.id,
                       pastes.user_id,
-                      pastes.title,
+                      pastes.filename,
                       pastes.description,
                       pastes.body,
                       pastes.visibility,
@@ -117,13 +117,13 @@ impl Paste {
             .conn
             .call(move |conn| {
                 let mut statement = conn.prepare(
-                    "INSERT INTO pastes VALUES (:id, :user_id, :title, :description, :body, :visibility, :created_at, :updated_at);"
+                    "INSERT INTO pastes VALUES (:id, :user_id, :filename, :description, :body, :visibility, :created_at, :updated_at);"
                 )?;
                 let result = statement.execute(
                     named_params! {
                         ":id": self.id,
                         ":user_id": self.user_id,
-                        ":title": self.title,
+                        ":filename": self.filename,
                         ":description": self.description,
                         ":body": self.body,
                         ":visibility": self.visibility,
@@ -143,7 +143,7 @@ impl Paste {
             .conn
             .call(move |conn| {
                 let mut statement = conn
-                    .prepare("SELECT id, user_id, title, description, body, visibility, created_at, updated_at FROM pastes WHERE id = :id;")?;
+                    .prepare("SELECT id, user_id, filename, description, body, visibility, created_at, updated_at FROM pastes WHERE id = :id;")?;
                 let mut rows = statement.query(named_params! {":id": id})?;
                 match rows.next()? {
                     Some(row) => Ok(Some(
@@ -169,7 +169,7 @@ impl Paste {
                     r"SELECT
                           pastes.id,
                           pastes.user_id,
-                          pastes.title,
+                          pastes.filename,
                           pastes.description,
                           pastes.body,
                           pastes.visibility,
@@ -198,12 +198,12 @@ impl Paste {
     pub async fn update(
         mut self,
         db: &Database,
-        title: Option<String>,
+        filename: Option<String>,
         description: Option<String>,
         body: Option<String>,
     ) -> models::Result<usize> {
-        if let Some(title) = title {
-            self.title = Title::try_from(title)?;
+        if let Some(filename) = filename {
+            self.filename = Filename::try_from(filename)?;
         }
         if let Some(description) = description {
             self.description = Description::try_from(description)?;
@@ -215,10 +215,10 @@ impl Paste {
         let result = db.conn.call(move |conn| {
             let mut statement = conn.prepare(
                 r"UPDATE pastes
-                SET title = :title, description = :desc, body = :body, updated_at = unixepoch()
+                SET filename = :filename, description = :desc, body = :body, updated_at = unixepoch()
                 WHERE id = :id;"
             )?;
-            let result = statement.execute(named_params! {":title": self.title, ":desc": self.description, ":body": self.body, ":id": self.id})?;
+            let result = statement.execute(named_params! {":filename": self.filename, ":desc": self.description, ":body": self.body, ":id": self.id})?;
             Ok(result)
         }).await?;
         Ok(result)
@@ -239,22 +239,41 @@ impl Paste {
 
 #[derive(Debug, Display, Clone, AsRef, Into, Validate, Serialize, Deserialize)]
 #[serde(try_from = "String", into = "String")]
-pub struct Title {
-    #[validate(length(min = 1, max = 256))]
+pub struct Filename {
+    #[validate(
+        length(min = 1, max = 256),
+        custom(function = "Filename::validate_no_illegal_characters")
+    )]
     inner: String,
 }
 
-impl Title {
+impl Filename {
     pub fn new(s: String) -> models::Result<Self> {
-        let title = Self {
+        let filename = Self {
             inner: s.trim().to_string(),
         };
-        title.validate()?;
-        Ok(title)
+        filename.validate()?;
+        Ok(filename)
+    }
+
+    pub fn validate_no_illegal_characters(
+        filename: &str,
+    ) -> Result<(), validator::ValidationError> {
+        if filename.contains(&['<', '>', ':', '"', '/', '\\', '|', '?', '*'][..]) {
+            Err(validator::ValidationError::new(
+                "filenames may not include the following characters: '<', '>', ':', '\"', '/', '\\', '|', '?', or '*'",
+            ))
+        } else if filename.ends_with('.') {
+            Err(validator::ValidationError::new(
+                "filenames may not end with a '.' character",
+            ))
+        } else {
+            Ok(())
+        }
     }
 }
 
-impl TryFrom<String> for Title {
+impl TryFrom<String> for Filename {
     type Error = models::Error;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
@@ -262,7 +281,7 @@ impl TryFrom<String> for Title {
     }
 }
 
-impl std::str::FromStr for Title {
+impl std::str::FromStr for Filename {
     type Err = <Self as TryFrom<String>>::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -270,13 +289,13 @@ impl std::str::FromStr for Title {
     }
 }
 
-impl ToSql for Title {
+impl ToSql for Filename {
     fn to_sql(&self) -> Result<ToSqlOutput<'_>, rusqlite::Error> {
         self.inner.to_sql()
     }
 }
 
-impl FromSql for Title {
+impl FromSql for Filename {
     fn column_result(value: ValueRef) -> FromSqlResult<Self> {
         String::column_result(value)
             .map(|s| Self::try_from(s).map_err(|e| FromSqlError::Other(Box::new(e))))?

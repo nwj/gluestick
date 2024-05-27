@@ -7,8 +7,8 @@
             <ul>
                 {% for (paste, username) in paste_username_pairs %}
                     <li class="paste">
-                        <div class="title-bar">
-                            {{ username }} / <a href="pastes/{{ paste.id }}">{{ paste.title }}</a>
+                        <div class="filename-bar">
+                            {{ username }} / <a href="pastes/{{ paste.id }}">{{ paste.filename }}</a>
                         </div>
                         {% if !paste.description.is_empty() %}<div class="description-bar">{{ paste.description }}</div>{% endif %}
                         <div class="metadata-bar">

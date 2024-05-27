@@ -15,7 +15,7 @@ async fn pastes_create_responds_with_200_for_valid_form_data() {
     let response = client
         .post(format!("http://{}/pastes", app.address))
         .form(&[
-            ("title", "Paste"),
+            ("filename", "Paste"),
             ("description", "description"),
             ("body", "body"),
             ("visibility", "public"),
@@ -38,7 +38,7 @@ async fn pastes_create_persists_when_valid_form_data() {
     client
         .post(format!("http://{}/pastes", app.address))
         .form(&[
-            ("title", "Paste"),
+            ("filename", "Paste"),
             ("description", "description"),
             ("body", "body"),
             ("visibility", "public"),
@@ -52,7 +52,7 @@ async fn pastes_create_persists_when_valid_form_data() {
         .conn
         .call(|conn| {
             Ok(conn
-                .prepare("SELECT title, description, body FROM pastes")?
+                .prepare("SELECT filename, description, body FROM pastes")?
                 .query_map([], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)))?
                 .collect::<Result<Vec<(String, String, String)>, _>>())
         })
@@ -74,9 +74,9 @@ async fn pastes_create_responds_with_422_when_data_missing() {
     headers.insert(COOKIE, HeaderValue::from_str(&cookie_str).unwrap());
     let client = Client::builder().default_headers(headers).build().unwrap();
     let cases = vec![
-        [("title", "Paste"), ("description", "A paste.")],
+        [("filename", "Paste"), ("description", "A paste.")],
         [("description", "A paste."), ("body", "A paste body.")],
-        [("title", "Paste"), ("body", "A paste body.")],
+        [("filename", "Paste"), ("body", "A paste body.")],
     ];
 
     for invalid_body in cases {
@@ -114,7 +114,7 @@ async fn pastes_index_lists_all_pastes() {
     client
         .post(format!("http://{}/pastes", app.address))
         .form(&[
-            ("title", paste1),
+            ("filename", paste1),
             ("description", "description"),
             ("body", "body"),
             ("visibility", "public"),
@@ -126,7 +126,7 @@ async fn pastes_index_lists_all_pastes() {
     client
         .post(format!("http://{}/pastes", app.address))
         .form(&[
-            ("title", paste2),
+            ("filename", paste2),
             ("description", "description"),
             ("body", "body"),
             ("visibility", "public"),

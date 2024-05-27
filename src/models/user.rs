@@ -156,18 +156,11 @@ impl User {
 
 #[derive(Debug, Display, Clone, AsRef, Into, Validate)]
 pub struct Username {
-    #[validate(length(min = 3, max = 32), custom(function = "validate_alphanumeric"))]
+    #[validate(
+        length(min = 3, max = 32),
+        custom(function = "Username::validate_alphanumeric")
+    )]
     inner: String,
-}
-
-fn validate_alphanumeric(username: &str) -> Result<(), validator::ValidationError> {
-    if username.chars().all(char::is_alphanumeric) {
-        Ok(())
-    } else {
-        Err(validator::ValidationError::new(
-            "username must be alphanumeric",
-        ))
-    }
 }
 
 impl Username {
@@ -175,6 +168,16 @@ impl Username {
         let username = Self { inner: s };
         username.validate()?;
         Ok(username)
+    }
+
+    fn validate_alphanumeric(username: &str) -> Result<(), validator::ValidationError> {
+        if username.chars().all(char::is_alphanumeric) {
+            Ok(())
+        } else {
+            Err(validator::ValidationError::new(
+                "username must be alphanumeric",
+            ))
+        }
     }
 }
 

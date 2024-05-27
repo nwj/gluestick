@@ -30,7 +30,7 @@ CREATE TABLE pastes (
   id BLOB PRIMARY KEY CHECK(length(id) = 16),
   -- user_id is a UUIDv7
   user_id BLOB NOT NULL CHECK(length(user_id) = 16),
-  title TEXT NOT NULL CHECK(length(title) BETWEEN 1 AND 256),
+  filename TEXT NOT NULL CHECK(length(filename) BETWEEN 1 AND 256),
   description TEXT NOT NULL CHECK(length(description) <= 256),
   body TEXT NOT NULL CHECK(length(body) > 0),
   visibility TEXT NOT NULL CHECK(visibility IN ('public', 'secret')),

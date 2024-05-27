@@ -36,7 +36,7 @@ pub async fn new(session: Session) -> NewPastesTemplate {
 
 #[derive(Deserialize, Debug, Validate)]
 pub struct CreatePaste {
-    pub title: String,
+    pub filename: String,
     pub description: String,
     pub body: String,
     pub visibility: Visibility,
@@ -49,7 +49,7 @@ pub async fn create(
 ) -> controllers::Result<impl IntoResponse> {
     let paste = Paste::new(
         session.user.id,
-        input.title,
+        input.filename,
         input.description,
         input.body,
         input.visibility,
@@ -97,7 +97,7 @@ pub async fn download(
             StatusCode::OK,
             [(
                 "Content-Disposition",
-                format!("attachment; filename=\"{}\"", paste.title),
+                format!("attachment; filename=\"{}\"", paste.filename),
             )],
             paste.body.to_string(),
         )),
@@ -127,7 +127,7 @@ pub async fn edit(
 
 #[derive(Deserialize, Debug, Validate)]
 pub struct UpdatePaste {
-    pub title: String,
+    pub filename: String,
     pub description: Option<String>,
     pub body: String,
 }
@@ -149,7 +149,12 @@ pub async fn update(
             );
 
             paste
-                .update(&db, Some(input.title), input.description, Some(input.body))
+                .update(
+                    &db,
+                    Some(input.filename),
+                    input.description,
+                    Some(input.body),
+                )
                 .await?;
 
             Ok(response)

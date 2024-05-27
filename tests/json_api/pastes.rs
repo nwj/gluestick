@@ -107,9 +107,12 @@ async fn pastes_create_responds_with_422_when_missing_input() {
     let app = spawn_app().await;
     let client = reqwest::Client::new();
     let bad_pastes = vec![
-        (("title", Uuid::now_v7()), ("description", Uuid::now_v7())),
+        (
+            ("filename", Uuid::now_v7()),
+            ("description", Uuid::now_v7()),
+        ),
         (("description", Uuid::now_v7()), ("body", Uuid::now_v7())),
-        (("title", Uuid::now_v7()), ("body", Uuid::now_v7())),
+        (("filename", Uuid::now_v7()), ("body", Uuid::now_v7())),
     ];
 
     for bad_paste in bad_pastes {
@@ -129,10 +132,10 @@ async fn pastes_create_responds_with_400_when_invalid_input() {
     let app = spawn_app().await;
     let client = reqwest::Client::new();
     let bad_pastes = vec![
-        "{\"title\":\"\",\"description\":\"A description.\",\"body\":\"A body.\",\"visibility\":\"public\"}",
-        "{\"title\":\"A title\",\"description\":\"A description.\",\"body\":\"\",\"visibility\":\"public\"}",
-        "{\"title\":\" \",\"description\":\"A description.\",\"body\":\"A body.\",\"visibility\":\"public\"}",
-        "{\"title\":\"A title\",\"description\":\"A description.\",\"body\":\" \",\"visibility\":\"public\"}",
+        "{\"filename\":\"\",\"description\":\"A description.\",\"body\":\"A body.\",\"visibility\":\"public\"}",
+        "{\"filename\":\"A filename\",\"description\":\"A description.\",\"body\":\"\",\"visibility\":\"public\"}",
+        "{\"filename\":\" \",\"description\":\"A description.\",\"body\":\"A body.\",\"visibility\":\"public\"}",
+        "{\"filename\":\"A filename\",\"description\":\"A description.\",\"body\":\" \",\"visibility\":\"public\"}",
     ];
 
     // Reqwest's .json strips out empty fields, so we set the json header manually and pass in raw

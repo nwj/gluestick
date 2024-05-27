@@ -3,7 +3,9 @@
 {% block content %}
     <section class="pastes-new">
         <form action="/pastes" method="post">
-            <input class="title" name="title" placeholder="Title" />
+            <input class="filename"
+                   name="filename"
+                   placeholder="Filename including extension... (Required)" />
             <input class="description"
                    name="description"
                    placeholder="Paste description..." />

@@ -181,7 +181,7 @@ main {
     .paste {
       margin-bottom: var(--spacing-xl);
 
-      .title-bar {
+      .filename-bar {
         margin-bottom: var(--spacing-xs);
         font-size: var(--font-size-lg);
         line-height: var(--line-height-heading);
@@ -278,7 +278,7 @@ main {
       border: solid 2px var(--green-500);
     }
 
-    .title {
+    .filename {
       width: 40vw;
       font-size: 26px;
     }

@@ -5,7 +5,7 @@ use uuid::Uuid;
 pub struct TestPaste {
     #[serde(serialize_with = "serialize_uuid")]
     id: Option<Uuid>,
-    title: String,
+    filename: String,
     description: String,
     body: String,
     visibility: String,
@@ -15,7 +15,7 @@ impl Default for TestPaste {
     fn default() -> Self {
         Self {
             id: Some(Uuid::now_v7()),
-            title: Uuid::now_v7().into(),
+            filename: Uuid::now_v7().into(),
             description: Uuid::now_v7().into(),
             body: Uuid::now_v7().into(),
             visibility: "public".into(),
@@ -31,7 +31,7 @@ impl TestPaste {
     pub fn without_id(&self) -> Self {
         Self {
             id: None,
-            title: self.title.clone(),
+            filename: self.filename.clone(),
             description: self.description.clone(),
             body: self.body.clone(),
             visibility: self.visibility.clone(),
