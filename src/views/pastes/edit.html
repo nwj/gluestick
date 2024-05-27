@@ -4,13 +4,14 @@
     <section class="pastes-edit">
         <form hx-put="/pastes/{{ paste.id }}">
             <div class="filename-bar">
-                <input name="filename" value="{{ paste.filename }}" />
+                {% if let Some(session) = session %}{{ session.user.username }} /{% endif %}
+                <input type="text" name="filename" value="{{ paste.filename }}" />
             </div>
-            <input name="description" value="{{ paste.description }}" />
-            <div class="container">
-                <textarea name="body">{{ paste.body }}</textarea>
+            <div class="description-bar">
+                <input type="text" name="description" value="{{ paste.description }}" />
             </div>
-            <button type="submit">Save</button>
+            <textarea name="body">{{ paste.body }}</textarea>
+            <button class="primary" type="submit">Save</button>
         </form>
     </section>
 {% endblock %}

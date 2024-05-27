@@ -1,4 +1,5 @@
-@import url("/assets/css/vendor/modern-normalize.v2.0.0.min.css") layer(normalize);
+@import url("/assets/css/vendor/modern-normalize.v2.0.0.min.css")
+layer(normalize);
 
 @layer reset {
   :root {
@@ -67,8 +68,8 @@ svg.icon {
   --color-feather-yellow: #fffae6;
   --color-midnight-blue: #242836;
   --color-jigglypuff-pink: #ffa7ee;
-  --color-fusion-red: #ff565b;
   --color-caramel-orange: #ffce91;
+  --color-fusion-red: #ff565b;
   --color-celery-green: #bffea4;
   --color-air-blue: #98eefa;
   --color-magic-purple: #4e3b4a;
@@ -172,9 +173,44 @@ main {
   pre {
     margin: unset;
     background-color: var(--color-grey-800);
+    border: 1px solid var(--color-grey-500);
     padding: var(--spacing-sm);
     box-shadow: 10px 10px 0 0 var(--color-black);
     overflow-y: auto;
+  }
+
+  input[type="text"] {
+    color: var(--color-white);
+    background-color: var(--color-grey-800);
+    border: 1px solid var(--color-grey-500);
+    line-height: var(--line-height-heading);
+    padding: var(--spacing-2xs) var(--spacing-xs);
+    box-shadow: 10px 10px 0 0 var(--color-black);
+  }
+
+  textarea {
+    color: var(--color-white);
+    background-color: var(--color-grey-800);
+    border: 1px solid var(--color-grey-500);
+    padding: var(--spacing-sm);
+    box-shadow: 10px 10px 0 0 var(--color-black);
+    resize: none;
+    white-space: pre;
+    line-height: var(--line-height-text);
+  }
+
+  fieldset {
+    background-color: var(--color-grey-800);
+    border: 1px solid var(--color-grey-500);
+    box-shadow: 10px 10px 0 0 var(--color-black);
+  }
+
+  button.primary {
+    border: unset;
+    background-color: var(--color-celery-green);
+    box-shadow: 10px 10px 0 0 var(--color-black);
+    padding: var(--spacing-2xs) var(--spacing-sm);
+    cursor: pointer;
   }
 
   .pastes-index {
@@ -254,47 +290,35 @@ main {
       }
     }
   }
-}
 
-.pastes-new {
-  form {
-    input {
-      display: block;
-      color: var(--color-white);
-      margin-bottom: 15px;
-      background: var(--grey-950);
-      border: solid 2px var(--grey-700);
-      border-radius: 8px;
-      padding: 8px 12px;
+  .pastes-new,
+  .pastes-edit {
+    .filename-bar {
+      font-size: var(--font-size-3xl);
+      margin-bottom: var(--spacing-md);
     }
 
-    textarea::placeholder,
-    input::placeholder {
-      color: var(--grey-300);
-    }
+    .description-bar {
+      font-size: var(--font-size-xl);
+      margin-bottom: var(--spacing-md);
 
-    textarea:focus,
-    input:focus {
-      border: solid 2px var(--green-500);
-    }
-
-    .filename {
-      width: 40vw;
-      font-size: 26px;
-    }
-
-    .description {
-      width: 60vw;
+      input {
+        width: 100%;
+      }
     }
 
     textarea {
-      color: var(--color-white);
       width: 100%;
-      background: var(--grey-950);
-      border: solid 2px transparent;
-      border-radius: 8px;
-      min-height: 30vh;
-      padding: 8px 12px;
+      min-height: 20rem;
+      margin-bottom: var(--spacing-md);
+    }
+
+    .visibility {
+      margin-bottom: var(--spacing-md);
+
+      label {
+        display: block;
+      }
     }
   }
 }

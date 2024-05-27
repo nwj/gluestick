@@ -3,25 +3,34 @@
 {% block content %}
     <section class="pastes-new">
         <form action="/pastes" method="post">
-            <input class="filename"
-                   name="filename"
-                   placeholder="Filename including extension... (Required)" />
-            <input class="description"
-                   name="description"
-                   placeholder="Paste description..." />
-            <div class="container">
-                <textarea name="body" placeholder="Paste body..."></textarea>
+            <div class="filename-bar">
+                {% if let Some(session) = session %}{{ session.user.username }} /{% endif %}
+                <input type="text"
+                       class="filename"
+                       name="filename"
+                       placeholder="Filename including extension..." />
             </div>
-            <fieldset>
+            <div class="description-bar">
+                <input type="text"
+                       class="description"
+                       name="description"
+                       placeholder="(Optional) Paste description..." />
+            </div>
+            <textarea name="body" placeholder="Paste body..."></textarea>
+            <fieldset class="visibility">
                 <legend>Visibility:</legend>
-                <label for="visibility-secret">Secret - visible to anyone you give the URL to</label>
-                <input type="radio"
-                       id="visibility-secret"
-                       name="visibility"
-                       value="secret"
-                       checked />
-                <label for="visiblitity-public">Public - visible to everyone</label>
-                <input type="radio" id="visiblitity-public" name="visibility" value="public" />
+                <label for="visibility-secret">
+                    <input type="radio"
+                           id="visibility-secret"
+                           name="visibility"
+                           value="secret"
+                           checked />
+                    Secret - visible to anyone you give the URL to
+                </label>
+                <label for="visiblitity-public">
+                    <input type="radio" id="visiblitity-public" name="visibility" value="public" />
+                    Public - visible to everyone
+                </label>
             </fieldset>
             <button class="primary" type="submit">Create Paste</button>
         </form>
