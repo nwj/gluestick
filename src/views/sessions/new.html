@@ -1,11 +1,12 @@
 {% extends "base.html" %}
 {% block title %}Login{% endblock %}
 {% block content %}
+    <h1>Sign-in to Gluestick</h1>
     <section class="login">
         <form action="/login" method="post">
             <input type="email" name="email" placeholder="Your email address..." />
             <input type="password" name="password" placeholder="Your password..." />
-            <button class="primary" type="submit">Login</button>
+            <button class="primary" type="submit">Sign In</button>
         </form>
     </section>
 {% endblock %}

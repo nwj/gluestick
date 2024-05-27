@@ -179,7 +179,9 @@ main {
     overflow-y: auto;
   }
 
-  input[type="text"] {
+  input[type="text"],
+  input[type="email"],
+  input[type="password"] {
     color: var(--color-white);
     background-color: var(--color-grey-800);
     border: 1px solid var(--color-grey-500);
@@ -211,6 +213,15 @@ main {
     box-shadow: 10px 10px 0 0 var(--color-black);
     padding: var(--spacing-2xs) var(--spacing-sm);
     cursor: pointer;
+  }
+
+  .login,
+  .signup {
+    input {
+      display: block;
+      margin-bottom: var(--spacing-md);
+      font-size: var(--font-size-xl);
+    }
   }
 
   .pastes-index {
