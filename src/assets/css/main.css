@@ -72,6 +72,9 @@ svg.icon {
   --color-fusion-red: #ff565b;
   --color-celery-green: #bffea4;
 
+  --font-monospace: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo,
+    Consolas, "DejaVu Sans Mono", monospace;
+
   --font-size-xs: 0.75rem;
   --font-size-sm: 0.875rem;
   --font-size-md: 1rem;
@@ -199,6 +202,32 @@ main {
     resize: none;
     white-space: pre;
     line-height: var(--line-height-text);
+    font-family: var(--font-monospace);
+  }
+
+  .grow-wrap {
+    display: grid;
+
+    &::after {
+      content: attr(data-replicated-value) " ";
+      visibility: hidden;
+    }
+
+    textarea {
+      resize: none;
+      overflow: hidden;
+    }
+
+    &::after,
+    textarea {
+      grid-area: 1 / 1 / 2 / 2;
+      white-space: pre-wrap;
+      padding: var(--spacing-sm);
+      border: 1px solid var(--color-grey-500);
+      border-radius: unset;
+      font-family: var(--font-monospace);
+      line-height: var(--line-height-text);
+    }
   }
 
   fieldset {
@@ -322,9 +351,7 @@ main {
       }
     }
 
-    textarea {
-      width: 100%;
-      min-height: 20rem;
+    .grow-wrap {
       margin-bottom: var(--spacing-md);
     }
 
