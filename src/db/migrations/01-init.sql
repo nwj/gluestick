@@ -25,6 +25,10 @@ CREATE TABLE api_sessions (
   FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
 ) STRICT;
 
+CREATE TABLE invite_codes (
+  code TEXT PRIMARY KEY
+) STRICT;
+
 CREATE TABLE pastes (
   -- id is a UUIDv7
   id BLOB PRIMARY KEY CHECK(length(id) = 16),

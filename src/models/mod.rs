@@ -1,4 +1,5 @@
 pub mod api_session;
+pub mod invite_code;
 pub mod paste;
 pub mod session;
 pub mod user;

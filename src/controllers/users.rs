@@ -2,6 +2,7 @@ use crate::{
     controllers,
     db::Database,
     models::{
+        invite_code::InviteCode,
         session::{Session, SessionToken},
         user::{Password, User},
     },
@@ -25,12 +26,18 @@ pub struct CreateUser {
     pub username: String,
     pub email: String,
     pub password: Password,
+    pub invite_code: String,
 }
 
 pub async fn create(
     State(db): State<Database>,
     Form(input): Form<CreateUser>,
 ) -> controllers::Result<impl IntoResponse> {
+    let invite_code = InviteCode::find(&db, input.invite_code).await?;
+    if invite_code.is_none() {
+        return Err(controllers::Error::Unauthorized);
+    }
+
     let user = User::new(input.username, input.email, input.password)?;
     user.clone().insert(&db).await?;
 
@@ -49,6 +56,7 @@ pub async fn create(
         .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?;
 
     Session::new(token, user).insert(&db).await?;
+    invite_code.unwrap().delete(&db).await?;
 
     Ok(response)
 }
