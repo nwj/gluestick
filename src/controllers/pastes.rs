@@ -66,14 +66,16 @@ pub async fn show(
     Path(id): Path<Uuid>,
 ) -> controllers::Result<impl IntoResponse> {
     match Paste::find_with_username(&db, id).await? {
-        Some((paste, username)) => Ok((
-            StatusCode::OK,
-            ShowPastesTemplate {
-                session,
-                paste,
-                username,
-            },
-        )),
+        Some((paste, username)) => {
+            Ok((
+                StatusCode::OK,
+                ShowPastesTemplate {
+                    session,
+                    paste,
+                    username,
+                },
+            ))
+        }
         None => Err(controllers::Error::NotFound),
     }
 }

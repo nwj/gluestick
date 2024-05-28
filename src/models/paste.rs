@@ -10,6 +10,7 @@ use rusqlite::{
     Row,
 };
 use serde::{Deserialize, Serialize};
+use syntect::{highlighting::ThemeSet, html::highlighted_html_for_string, parsing::SyntaxSet};
 use uuid::Uuid;
 use validator::Validate;
 
@@ -60,6 +61,15 @@ impl Paste {
             updated_at: DateTime::from_timestamp(row.get(7)?, 0)
                 .ok_or(models::Error::ParseDateTime)?,
         })
+    }
+
+    pub fn to_syntax_highlighted_html(&self) -> Option<String> {
+        let extension = self.filename.extension()?;
+        let syntax_set = SyntaxSet::load_defaults_newlines();
+        let syntax = syntax_set.find_syntax_by_extension(extension)?;
+        let theme_set = ThemeSet::load_from_folder("src/highlight_themes").ok()?;
+        let theme = &theme_set.themes["CatppuccinFrappe"];
+        highlighted_html_for_string(self.body.as_ref(), &syntax_set, syntax, theme).ok()
     }
 
     pub async fn all(db: &Database) -> models::Result<Vec<Paste>> {
@@ -256,9 +266,15 @@ impl Filename {
         Ok(filename)
     }
 
-    pub fn validate_no_illegal_characters(
-        filename: &str,
-    ) -> Result<(), validator::ValidationError> {
+    pub fn extension(&self) -> Option<&str> {
+        if let Some((_, suffix)) = self.inner.rsplit_once('.') {
+            Some(suffix)
+        } else {
+            None
+        }
+    }
+
+    fn validate_no_illegal_characters(filename: &str) -> Result<(), validator::ValidationError> {
         if filename.contains(&['<', '>', ':', '"', '/', '\\', '|', '?', '*'][..]) {
             Err(validator::ValidationError::new(
                 "filenames may not include the following characters: '<', '>', ':', '\"', '/', '\\', '|', '?', or '*'",

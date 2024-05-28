@@ -67,12 +67,10 @@ svg.icon {
 
   --color-feather-yellow: #fffae6;
   --color-midnight-blue: #242836;
+  --color-space-cadet-blue: #303446;
   --color-jigglypuff-pink: #ffa7ee;
-  --color-caramel-orange: #ffce91;
   --color-fusion-red: #ff565b;
   --color-celery-green: #bffea4;
-  --color-air-blue: #98eefa;
-  --color-magic-purple: #4e3b4a;
 
   --font-size-xs: 0.75rem;
   --font-size-sm: 0.875rem;
@@ -149,6 +147,8 @@ header {
 }
 
 main {
+  --color-input-background: var(--color-space-cadet-blue);
+
   max-width: 100%;
   margin: 0 auto;
   width: var(--content-width);
@@ -172,7 +172,7 @@ main {
 
   pre {
     margin: unset;
-    background-color: var(--color-grey-800);
+    background-color: var(--color-input-background);
     border: 1px solid var(--color-grey-500);
     padding: var(--spacing-sm);
     box-shadow: 10px 10px 0 0 var(--color-black);
@@ -183,7 +183,7 @@ main {
   input[type="email"],
   input[type="password"] {
     color: var(--color-white);
-    background-color: var(--color-grey-800);
+    background-color: var(--color-input-background);
     border: 1px solid var(--color-grey-500);
     line-height: var(--line-height-heading);
     padding: var(--spacing-2xs) var(--spacing-xs);
@@ -192,7 +192,7 @@ main {
 
   textarea {
     color: var(--color-white);
-    background-color: var(--color-grey-800);
+    background-color: var(--color-input-background);
     border: 1px solid var(--color-grey-500);
     padding: var(--spacing-sm);
     box-shadow: 10px 10px 0 0 var(--color-black);
@@ -202,7 +202,7 @@ main {
   }
 
   fieldset {
-    background-color: var(--color-grey-800);
+    background-color: var(--color-input-background);
     border: 1px solid var(--color-grey-500);
     box-shadow: 10px 10px 0 0 var(--color-black);
   }
@@ -299,6 +299,10 @@ main {
           }
         }
       }
+    }
+
+    #body.hidden {
+      visibility: hidden;
     }
   }
 

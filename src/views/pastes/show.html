@@ -18,7 +18,7 @@
                     </svg>
                     Raw
                 </a>
-                <button hx-on:click="navigator.clipboard.writeText(document.getElementById('paste-body').innerHTML)">
+                <button hx-on:click="navigator.clipboard.writeText(document.getElementById('body').innerHTML)">
                     <svg class="icon">
                         <use href="/assets/images/vendor/feather-sprite.v4.29.0.svg#copy" />
                     </svg>
@@ -50,6 +50,11 @@
             </div>
         </div>
     </div>
-    <pre><code id="paste-body">{{ paste.body }}</code></pre>
+    {% if let Some(highlighted_body) = paste.to_syntax_highlighted_html() %}
+        {{ highlighted_body|safe }}
+        <pre id="body" class="hidden">{{ paste.body }}</pre>
+    {% else %}
+        <pre id="body">{{ paste.body }}</pre>
+    {% endif %}
 </section>
 {% endblock %}

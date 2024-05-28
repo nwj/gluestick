@@ -32,18 +32,36 @@ pub struct EditPastesTemplate {
 mod filters {
     use chrono::{DateTime, Duration, TimeZone, Utc};
 
-    pub fn linewise_truncate<T: std::fmt::Display>(s: T, n: usize) -> askama::Result<String> {
-        let n = n - 1;
+    fn linewise_truncate_raw<T: std::fmt::Display>(s: T, n: usize, suffix: &str) -> String {
         let s = s.to_string();
+        let mut lines = s.lines();
+        let mut result = String::new();
 
-        let lines: Vec<&str> = s.lines().collect();
-        if lines.len() <= n {
-            Ok(s)
-        } else {
-            let truncated_lines: Vec<&str> = lines.iter().take(n).copied().collect();
-            let last_line = lines[n].trim_end();
-            Ok(format!("{}\n{}...", truncated_lines.join("\n"), last_line))
+        for _ in 0..n - 1 {
+            if let Some(line) = lines.next() {
+                result.push_str(line);
+                result.push('\n');
+            } else {
+                return result;
+            }
         }
+
+        if let Some(last_line) = lines.next() {
+            result.push_str(last_line.trim_end());
+            result.push_str(suffix);
+        }
+
+        result
+    }
+
+    pub fn linewise_truncate<T: std::fmt::Display>(s: T, n: usize) -> askama::Result<String> {
+        Ok(linewise_truncate_raw(s, n, "..."))
+    }
+
+    pub fn linewise_truncate_syntax_highlight<T: std::fmt::Display>(
+        s: T,
+    ) -> askama::Result<String> {
+        Ok(linewise_truncate_raw(s, 11, "...</span></pre>"))
     }
 
     pub fn format_byte_size<T: std::fmt::Display>(s: T) -> askama::Result<String> {
