@@ -33,7 +33,7 @@ syntect = "5.2.0"
 thiserror = "1.0.60"
 tokio = { version = "1.37.0", features = ["macros", "rt-multi-thread", "signal"] }
 tokio-rusqlite = "0.5.1"
-tower-http = { version = "0.5.2", features = ["trace"] }
+tower-http = { version = "0.5.2", features = ["trace", "compression-full"] }
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 uuid = { version = "1.8.0", features = ["v7", "fast-rng", "serde"] }
