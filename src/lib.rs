@@ -5,7 +5,8 @@ use axum::{
     Router,
 };
 use memory_serve::{load_assets, MemoryServe};
-use tower_http::{compression::CompressionLayer, trace::TraceLayer};
+use std::time::Duration;
+use tower_http::{compression::CompressionLayer, timeout::TimeoutLayer, trace::TraceLayer};
 
 pub mod config;
 pub mod controllers;
@@ -65,6 +66,7 @@ pub fn router(db: Database) -> Router {
                 // disable failure tracing here since we'll log errors via controllers::Error
                 .on_failure(()),
         )
+        .layer(TimeoutLayer::new(Duration::from_secs(10)))
         .layer(CompressionLayer::new())
         .with_state(db)
 }
