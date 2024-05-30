@@ -38,13 +38,13 @@ layer(normalize);
   }
 }
 
-/* This font is subset for only Latin characters */
+/* This font is subset for only the logo characters: "Gluestick" */
 @font-face {
   font-display: swap;
   font-family: "Madimi One";
   font-style: normal;
   font-weight: 400;
-  src: url("/assets/fonts/MadimiOne-v1-Latin-Regular.woff2") format("woff2");
+  src: url("/assets/fonts/MadimiOne-v1-GluestickSubset.woff2") format("woff2");
 }
 
 /* For feather icons */

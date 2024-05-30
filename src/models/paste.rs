@@ -94,11 +94,9 @@ impl Paste {
         if let Some(html) = optional_html.clone() {
             db.conn
                 .call(move |conn| {
-                    let mut statement = conn.prepare(
-                        "INSERT INTO syntax_highlight_cache VALUES (:paste_id, :html);",
-                    )?;
-                    statement
-                        .execute(named_params! {":paste_id": self.id, ":html": html})?;
+                    let mut statement = conn
+                        .prepare("INSERT INTO syntax_highlight_cache VALUES (:paste_id, :html);")?;
+                    statement.execute(named_params! {":paste_id": self.id, ":html": html})?;
                     Ok(())
                 })
                 .await?;
