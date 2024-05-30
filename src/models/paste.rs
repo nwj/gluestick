@@ -7,14 +7,14 @@ use derive_more::{AsRef, Display, Into};
 use rusqlite::{
     named_params,
     types::{FromSql, FromSqlError, FromSqlResult, ToSql, ToSqlOutput, ValueRef},
-    Row,
+    Row, TransactionBehavior,
 };
 use serde::{Deserialize, Serialize};
 use syntect::{highlighting::ThemeSet, html::highlighted_html_for_string, parsing::SyntaxSet};
 use uuid::Uuid;
 use validator::Validate;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Paste {
     pub id: Uuid,
     pub user_id: Uuid,
@@ -64,12 +64,47 @@ impl Paste {
     }
 
     pub fn to_syntax_highlighted_html(&self) -> Option<String> {
-        let extension = self.filename.extension()?;
-        let syntax_set = SyntaxSet::load_defaults_newlines();
-        let syntax = syntax_set.find_syntax_by_extension(extension)?;
-        let theme_set = ThemeSet::load_from_folder("src/highlight_themes").ok()?;
-        let theme = &theme_set.themes["CatppuccinFrappe"];
-        highlighted_html_for_string(self.body.as_ref(), &syntax_set, syntax, theme).ok()
+        self.filename
+            .extension()
+            .and_then(|extension| self.body.to_syntax_highlighted_html(extension))
+    }
+
+    pub async fn to_syntax_highlighted_html_with_cache_attempt(
+        self,
+        db: &Database,
+    ) -> models::Result<Option<String>> {
+        if let Some(html) = db
+            .conn
+            .call(move |conn| {
+                let mut statement = conn.prepare(
+                    "SELECT html FROM syntax_highlight_cache WHERE paste_id = :paste_id;",
+                )?;
+                let mut rows = statement.query(named_params! {":paste_id": self.id})?;
+                match rows.next()? {
+                    Some(row) => Ok(Some(row.get::<usize, String>(0)?)),
+                    None => Ok(None),
+                }
+            })
+            .await?
+        {
+            return Ok(Some(html));
+        };
+
+        let optional_html = self.to_syntax_highlighted_html();
+        if let Some(html) = optional_html.clone() {
+            db.conn
+                .call(move |conn| {
+                    let mut statement = conn.prepare(
+                        "INSERT INTO syntax_highlight_cache VALUES (:paste_id, :html);",
+                    )?;
+                    statement
+                        .execute(named_params! {":paste_id": self.id, ":html": html})?;
+                    Ok(())
+                })
+                .await?;
+        }
+
+        Ok(optional_html)
     }
 
     pub async fn all(db: &Database) -> models::Result<Vec<Paste>> {
@@ -88,8 +123,10 @@ impl Paste {
         paste_results.into_iter().collect::<Result<Vec<_>, _>>()
     }
 
-    pub async fn all_with_usernames(db: &Database) -> models::Result<Vec<(Paste, Username)>> {
-        let paste_results: Vec<_> = db
+    pub async fn all_with_usernames_and_syntax_highlighted_html(
+        db: &Database,
+    ) -> models::Result<Vec<(Paste, Username, Option<String>)>> {
+        let results: Vec<_> = db
             .conn
             .call(|conn| {
                 let mut statement = conn.prepare(
@@ -116,36 +153,55 @@ impl Paste {
             })
             .await?;
 
-        paste_results
-            .into_iter()
-            .map(|(paste_result, username)| paste_result.map(|paste| (paste, username)))
-            .collect()
+        let mut triples = Vec::new();
+        for (paste_result, username) in results {
+            let paste = paste_result?;
+            // Yes this an n+1 query, but that should be fine as long as our cache is SQLite.
+            let optional_html = paste
+                .clone()
+                .to_syntax_highlighted_html_with_cache_attempt(db)
+                .await?;
+            triples.push((paste, username, optional_html));
+        }
+        Ok(triples)
     }
 
-    pub async fn insert(self, db: &Database) -> models::Result<usize> {
-        let result = db
-            .conn
+    pub async fn insert(self, db: &Database) -> models::Result<()> {
+        let optional_html = self.to_syntax_highlighted_html();
+        db.conn
             .call(move |conn| {
-                let mut statement = conn.prepare(
-                    "INSERT INTO pastes VALUES (:id, :user_id, :filename, :description, :body, :visibility, :created_at, :updated_at);"
-                )?;
-                let result = statement.execute(
-                    named_params! {
-                        ":id": self.id,
-                        ":user_id": self.user_id,
-                        ":filename": self.filename,
-                        ":description": self.description,
-                        ":body": self.body,
-                        ":visibility": self.visibility,
-                        ":created_at": self.created_at.timestamp(),
-                        ":updated_at": self.updated_at.timestamp(),
+                let tx = conn.transaction_with_behavior(TransactionBehavior::Immediate)?;
+                {
+                    let mut pastes_statement = tx.prepare(
+                        "INSERT INTO pastes VALUES (:id, :user_id, :filename, :description, :body, :visibility, :created_at, :updated_at);"
+                    )?;
+                    pastes_statement.execute(
+                        named_params! {
+                            ":id": self.id,
+                            ":user_id": self.user_id,
+                            ":filename": self.filename,
+                            ":description": self.description,
+                            ":body": self.body,
+                            ":visibility": self.visibility,
+                            ":created_at": self.created_at.timestamp(),
+                            ":updated_at": self.updated_at.timestamp(),
+                        }
+                    )?;
+
+                    if let Some(html) = optional_html {
+                        let mut cache_statement = tx.prepare(
+                            "INSERT INTO syntax_highlight_cache VALUES (:paste_id, :html);"
+                        )?;
+                        cache_statement.execute(named_params! {":paste_id": self.id, ":html": html})?;
                     }
-                )?;
-                Ok(result)
+                }
+                tx.commit()?;
+
+                Ok(())
             })
             .await?;
 
-        Ok(result)
+        Ok(())
     }
 
     pub async fn find(db: &Database, id: Uuid) -> models::Result<Option<Paste>> {
@@ -168,10 +224,10 @@ impl Paste {
         Ok(optional_paste)
     }
 
-    pub async fn find_with_username(
+    pub async fn find_with_username_and_syntax_highlighted_html(
         db: &Database,
         id: Uuid,
-    ) -> models::Result<Option<(Paste, Username)>> {
+    ) -> models::Result<Option<(Paste, Username, Option<String>)>> {
         let optional_result = db
             .conn
             .call(move |conn| {
@@ -200,9 +256,17 @@ impl Paste {
             })
             .await?;
 
-        optional_result
-            .map(|(paste_result, username)| paste_result.map(|paste| (paste, username)))
-            .transpose()
+        match optional_result {
+            None => Ok(None),
+            Some((paste_result, username)) => {
+                let paste = paste_result?;
+                let optional_html = paste
+                    .clone()
+                    .to_syntax_highlighted_html_with_cache_attempt(db)
+                    .await?;
+                Ok(Some((paste, username, optional_html)))
+            }
+        }
     }
 
     pub async fn update(
@@ -211,7 +275,10 @@ impl Paste {
         filename: Option<String>,
         description: Option<String>,
         body: Option<String>,
-    ) -> models::Result<usize> {
+    ) -> models::Result<()> {
+        let original_filename = self.filename.clone();
+        let original_body = self.body.clone();
+
         if let Some(filename) = filename {
             self.filename = Filename::try_from(filename)?;
         }
@@ -222,16 +289,39 @@ impl Paste {
             self.body = Body::try_from(body)?;
         }
 
-        let result = db.conn.call(move |conn| {
-            let mut statement = conn.prepare(
-                r"UPDATE pastes
-                SET filename = :filename, description = :desc, body = :body, updated_at = unixepoch()
-                WHERE id = :id;"
-            )?;
-            let result = statement.execute(named_params! {":filename": self.filename, ":desc": self.description, ":body": self.body, ":id": self.id})?;
-            Ok(result)
+        let mut optional_html: Option<String> = None;
+        let body_changed = original_body != self.body;
+        let extension_changed = original_filename.extension() != self.filename.extension();
+        if body_changed || extension_changed {
+            optional_html = self.to_syntax_highlighted_html();
+        }
+
+        db.conn.call(move |conn| {
+            let tx = conn.transaction_with_behavior(TransactionBehavior::Immediate)?;
+            {
+                let mut pastes_statement = tx.prepare(
+                    r"UPDATE pastes
+                    SET filename = :filename, description = :desc, body = :body, updated_at = unixepoch()
+                    WHERE id = :id;"
+                )?;
+                pastes_statement.execute(named_params! {":filename": self.filename, ":desc": self.description, ":body": self.body, ":id": self.id})?;
+
+                if body_changed || extension_changed {
+                    if let Some(html) = optional_html {
+                        let mut cache_statement = tx.prepare(
+                            "INSERT INTO syntax_highlight_cache VALUES (:paste_id, :html) ON CONFLICT DO UPDATE SET html = :html;"
+                        )?;
+                        cache_statement.execute(named_params! {":paste_id": self.id, ":html": html})?;
+                    } else {
+                        let mut cache_statement = tx.prepare("DELETE FROM syntax_highlight_cache WHERE paste_id = :paste_id;")?;
+                        cache_statement.execute(named_params! {":paste_id": self.id})?;
+                    }
+                }
+            }
+            tx.commit()?;
+            Ok(())
         }).await?;
-        Ok(result)
+        Ok(())
     }
 
     pub async fn delete(self, db: &Database) -> models::Result<usize> {
@@ -372,7 +462,7 @@ impl FromSql for Description {
     }
 }
 
-#[derive(Debug, Display, Clone, AsRef, Into, Validate, Serialize, Deserialize)]
+#[derive(Debug, Display, Clone, AsRef, Into, PartialEq, Validate, Serialize, Deserialize)]
 #[serde(try_from = "String", into = "String")]
 pub struct Body {
     #[validate(length(min = 1))]
@@ -386,6 +476,15 @@ impl Body {
         };
         body.validate()?;
         Ok(body)
+    }
+
+    pub fn to_syntax_highlighted_html(&self, extension: &str) -> Option<String> {
+        let syntax_set = SyntaxSet::load_defaults_newlines();
+        let syntax = syntax_set.find_syntax_by_extension(extension)?;
+        let theme = ThemeSet::get_theme("src/highlight_themes/CatppuccinFrappe.tmTheme")
+            .map_err(|err| tracing::error!("failed to get syntax highlighting theme: {}", err))
+            .ok()?;
+        highlighted_html_for_string(self.as_ref(), &syntax_set, syntax, &theme).ok()
     }
 }
 
@@ -418,7 +517,7 @@ impl FromSql for Body {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Copy, Deserialize, Serialize)]
 pub enum Visibility {
     #[serde(rename = "public")]
     Public,

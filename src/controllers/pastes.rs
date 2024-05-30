@@ -22,10 +22,10 @@ pub async fn index(
     session: Option<Session>,
     State(db): State<Database>,
 ) -> controllers::Result<impl IntoResponse> {
-    let paste_username_pairs = Paste::all_with_usernames(&db).await?;
+    let triples = Paste::all_with_usernames_and_syntax_highlighted_html(&db).await?;
     Ok(IndexPastesTemplate {
         session,
-        paste_username_pairs,
+        paste_username_html_triples: triples,
     })
 }
 
@@ -65,13 +65,14 @@ pub async fn show(
     State(db): State<Database>,
     Path(id): Path<Uuid>,
 ) -> controllers::Result<impl IntoResponse> {
-    match Paste::find_with_username(&db, id).await? {
-        Some((paste, username)) => Ok((
+    match Paste::find_with_username_and_syntax_highlighted_html(&db, id).await? {
+        Some((paste, username, syntax_highlighted_html)) => Ok((
             StatusCode::OK,
             ShowPastesTemplate {
                 session,
                 paste,
                 username,
+                syntax_highlighted_html,
             },
         )),
         None => Err(controllers::Error::NotFound),

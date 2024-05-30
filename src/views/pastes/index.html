@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 {% block title %}Recent Pastes{% endblock %}
 {% block content %}
-    {% if paste_username_pairs.len() > 0 %}
+    {% if paste_username_html_triples.len() > 0 %}
         <h1>Recent Pastes</h1>
         <section class="pastes-index">
             <ul>
-                {% for (paste, username) in paste_username_pairs %}
+                {% for (paste, username, syntax_highlighted_html) in paste_username_html_triples %}
                     <li class="paste">
                         <div class="filename-bar">
                             {{ username }} / <a href="pastes/{{ paste.id }}">{{ paste.filename }}</a>
@@ -15,8 +15,8 @@
                             <span title="{{ paste.updated_at }}">Updated {{ paste.updated_at|format_relative_time }}</span>,
                             {{ paste.body|format_byte_size }}
                         </div>
-                        {% if let Some(highlighted_body) = paste.to_syntax_highlighted_html() %}
-                            {{ highlighted_body|linewise_truncate_syntax_highlight|safe }}
+                        {% if let Some(syntax_highlighted_html) = syntax_highlighted_html %}
+                            {{ syntax_highlighted_html|linewise_truncate_syntax_highlight|safe }}
                         {% else %}
                             <pre>{{ paste.body|linewise_truncate(10) }}</pre>
                         {% endif %}

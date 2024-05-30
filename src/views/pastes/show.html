@@ -50,8 +50,8 @@
             </div>
         </div>
     </div>
-    {% if let Some(highlighted_body) = paste.to_syntax_highlighted_html() %}
-        {{ highlighted_body|safe }}
+    {% if let Some(syntax_highlighted_html) = syntax_highlighted_html %}
+        {{ syntax_highlighted_html|safe }}
         <pre id="body" class="hidden">{{ paste.body }}</pre>
     {% else %}
         <pre id="body">{{ paste.body }}</pre>
