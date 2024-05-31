@@ -100,9 +100,16 @@ svg.icon {
   --content-width: 960px;
 }
 
+html {
+  height: 100%;
+}
+
 body {
   background-color: var(--color-midnight-blue);
   color: var(--color-white);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 header {
@@ -112,6 +119,7 @@ header {
   color: var(--color-black);
   position: relative;
   padding-bottom: var(--svg-border-height);
+  flex: 0;
 
   nav {
     display: flex;
@@ -155,7 +163,10 @@ main {
   max-width: 100%;
   margin: 0 auto;
   width: var(--content-width);
-  padding: var(--spacing-md);
+  padding: var(--spacing-md) var(--spacing-md) var(--spacing-2xl);
+  display: flex;
+  flex-direction: column;
+  flex: 1;
 
   h1 {
     margin-bottom: var(--spacing-lg);
@@ -205,31 +216,6 @@ main {
     font-family: var(--font-monospace);
   }
 
-  .grow-wrap {
-    display: grid;
-
-    &::after {
-      content: attr(data-replicated-value) " ";
-      visibility: hidden;
-    }
-
-    textarea {
-      resize: none;
-      overflow: hidden;
-    }
-
-    &::after,
-    textarea {
-      grid-area: 1 / 1 / 2 / 2;
-      white-space: pre-wrap;
-      padding: var(--spacing-sm);
-      border: 1px solid var(--color-grey-500);
-      border-radius: unset;
-      font-family: var(--font-monospace);
-      line-height: var(--line-height-text);
-    }
-  }
-
   fieldset {
     background-color: var(--color-input-background);
     border: 1px solid var(--color-grey-500);
@@ -274,6 +260,7 @@ main {
       }
 
       .metadata-bar {
+        flex-wrap: wrap;
         margin-bottom: var(--spacing-xs);
         font-size: var(--font-size-xs);
       }
@@ -332,34 +319,60 @@ main {
 
     #body.hidden {
       visibility: hidden;
+      height: 0;
+      width: 0;
     }
   }
 
   .pastes-new,
   .pastes-edit {
-    .filename-bar {
-      font-size: var(--font-size-3xl);
-      margin-bottom: var(--spacing-md);
-    }
+    display: flex;
+    flex: 1;
 
-    .description-bar {
-      font-size: var(--font-size-xl);
-      margin-bottom: var(--spacing-md);
+    form {
+      display: flex;
+      flex: 1;
+      flex-direction: column;
+      min-width: 0;
 
-      input {
-        width: 100%;
+      .filename-bar {
+        display: flex;
+        font-size: var(--font-size-3xl);
+        margin-bottom: var(--spacing-md);
+
+        span {
+          margin-right: var(--spacing-xs);
+        }
+
+        input {
+          min-width: 0;
+        }
       }
-    }
 
-    .grow-wrap {
-      margin-bottom: var(--spacing-md);
-    }
+      .description-bar {
+        font-size: var(--font-size-xl);
+        margin-bottom: var(--spacing-md);
 
-    .visibility {
-      margin-bottom: var(--spacing-md);
+        input {
+          width: 100%;
+        }
+      }
 
-      label {
-        display: block;
+      .body {
+        margin-bottom: var(--spacing-md);
+        flex: 1;
+      }
+
+      .visibility {
+        margin-bottom: var(--spacing-md);
+
+        label {
+          display: block;
+        }
+      }
+
+      button.primary {
+        align-self: flex-start;
       }
     }
   }

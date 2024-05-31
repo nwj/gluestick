@@ -4,22 +4,15 @@
     <section class="pastes-new">
         <form action="/pastes" method="post">
             <div class="filename-bar">
-                {% if let Some(session) = session %}{{ session.user.username }} /{% endif %}
-                <input type="text"
-                       name="filename"
-                       placeholder="Filename including extension..." />
+                {% if let Some(session) = session %}<span>{{ session.user.username }}</span><span>/</span>{% endif %}
+                <input type="text" name="filename" placeholder="Filename with extension..." />
             </div>
             <div class="description-bar">
                 <input type="text"
                        name="description"
                        placeholder="(Optional) Paste description..." />
             </div>
-            <div class="grow-wrap">
-                <textarea name="body"
-                          rows="10"
-                          placeholder="Paste body..."
-                          onInput="this.parentNode.dataset.replicatedValue = this.value"></textarea>
-            </div>
+            <textarea class="body" name="body" placeholder="Paste body..."></textarea>
             <fieldset class="visibility">
                 <legend>Visibility:</legend>
                 <label for="visibility-secret">
@@ -37,6 +30,5 @@
             </fieldset>
             <button class="primary" type="submit">Create Paste</button>
         </form>
-        <script>document.querySelectorAll('.grow-wrap > textarea').forEach(el => { el.dispatchEvent(new Event('input', { bubbles: true, cancelable: true })); });</script>
     </section>
 {% endblock %}

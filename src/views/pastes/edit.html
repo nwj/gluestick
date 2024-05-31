@@ -4,10 +4,10 @@
     <section class="pastes-edit">
         <form hx-put="/pastes/{{ paste.id }}">
             <div class="filename-bar">
-                {% if let Some(session) = session %}{{ session.user.username }} /{% endif %}
+                {% if let Some(session) = session %}<span>{{ session.user.username }}</span><span>/</span>{% endif %}
                 <input type="text"
                        name="filename"
-                       placeholder="Filename including extension..."
+                       placeholder="Filename with extension..."
                        value="{{ paste.filename }}" />
             </div>
             <div class="description-bar">
@@ -16,14 +16,8 @@
                        placeholder="(Optional) Paste description..."
                        value="{{ paste.description }}" />
             </div>
-            <div class="grow-wrap">
-                <textarea name="body"
-                          rows="10"
-                          placeholder="Paste body..."
-                          onInput="this.parentNode.dataset.replicatedValue = this.value">{{ paste.body }}</textarea>
-            </div>
+            <textarea class="body" name="body" placeholder="Paste body...">{{ paste.body }}</textarea>
             <button class="primary" type="submit">Save</button>
         </form>
-        <script>document.querySelectorAll('.grow-wrap > textarea').forEach(el => { el.dispatchEvent(new Event('input', { bubbles: true, cancelable: true })); });</script>
     </section>
 {% endblock %}
