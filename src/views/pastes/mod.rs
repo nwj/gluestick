@@ -32,37 +32,84 @@ pub struct EditPastesTemplate {
 
 mod filters {
     use chrono::{DateTime, Duration, TimeZone, Utc};
+    use std::fmt::Write;
 
-    fn linewise_truncate_raw<T: std::fmt::Display>(s: T, n: usize, suffix: &str) -> String {
+    pub fn linewise_truncate<T: std::fmt::Display>(s: T, n: usize) -> askama::Result<String> {
         let s = s.to_string();
         let mut lines = s.lines();
-        let mut result = String::new();
+        let mut truncated = lines.by_ref().take(n - 1).collect::<Vec<_>>().join("\n");
 
-        for _ in 0..n - 1 {
-            if let Some(line) = lines.next() {
-                result.push_str(line);
-                result.push('\n');
+        if let Some(last_line) = lines.next() {
+            if lines.next().is_some() {
+                write!(truncated, "\n{}...", last_line.trim_end()).ok();
             } else {
-                return result;
+                write!(truncated, "\n{}", last_line).ok();
+            }
+        }
+
+        Ok(truncated)
+    }
+
+    // This has many limitations, including:
+    // - assumes that the input is properly formatted html
+    // - does not perfectly account for "void" elements (like <br>, <img>, etc.)
+    // - likely has some unhandled issues with escaped characters
+    //
+    // Basically, this is good enough for our limited use case, but shouldn't be treated like it's
+    // a robust html parser.
+    pub fn linewise_truncate_html<T: std::fmt::Display>(s: T, n: usize) -> askama::Result<String> {
+        let s = s.to_string();
+
+        if s.lines().count() <= n + 1 {
+            return Ok(s);
+        }
+
+        let mut lines = s.lines();
+        let mut truncated = String::new();
+        let mut open_tags = Vec::new();
+
+        for _ in 0..n {
+            if let Some(line) = lines.next() {
+                writeln!(truncated, "{}", line).ok();
+
+                let mut tag_start = None;
+                for (i, c) in line.char_indices() {
+                    match c {
+                        '<' => tag_start = Some(i),
+                        '>' => {
+                            if let Some(start) = tag_start {
+                                let tag = &line[start + 1..i];
+                                if tag.starts_with('/') {
+                                    open_tags.pop();
+                                } else if !tag.ends_with("/>") {
+                                    let tag_name = tag.split_whitespace().next().unwrap_or(tag);
+                                    open_tags.push(tag_name.to_lowercase());
+                                }
+                            }
+                            tag_start = None;
+                        }
+                        _ => {}
+                    }
+                }
+            } else {
+                break;
             }
         }
 
         if let Some(last_line) = lines.next() {
-            result.push_str(last_line.trim_end());
-            result.push_str(suffix);
+            write!(truncated, "{}...", last_line.trim_end()).ok();
+            while let Some(tag) = open_tags.pop() {
+                write!(truncated, "</{}>", tag).ok();
+            }
         }
 
-        result
+        Ok(truncated)
     }
 
-    pub fn linewise_truncate<T: std::fmt::Display>(s: T, n: usize) -> askama::Result<String> {
-        Ok(linewise_truncate_raw(s, n, "..."))
-    }
-
-    pub fn linewise_truncate_syntax_highlight<T: std::fmt::Display>(
-        s: T,
-    ) -> askama::Result<String> {
-        Ok(linewise_truncate_raw(s, 11, "...</span></pre>"))
+    // This wrapper function is a workaround for the fact that our code formatter for jinja html
+    // breaks askama when it formats things like `{{ foo|filter(10)|safe }}`
+    pub fn linewise_truncate_html_10<T: std::fmt::Display>(s: T) -> askama::Result<String> {
+        linewise_truncate_html(s, 10)
     }
 
     pub fn format_byte_size<T: std::fmt::Display>(s: T) -> askama::Result<String> {

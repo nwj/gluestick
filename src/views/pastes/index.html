@@ -16,7 +16,7 @@
                             {{ paste.body|format_byte_size }}
                         </div>
                         {% if let Some(syntax_highlighted_html) = syntax_highlighted_html %}
-                            {{ syntax_highlighted_html|linewise_truncate_syntax_highlight|safe }}
+                            {{ syntax_highlighted_html|linewise_truncate_html_10|safe }}
                         {% else %}
                             <pre>{{ paste.body|linewise_truncate(10) }}</pre>
                         {% endif %}
