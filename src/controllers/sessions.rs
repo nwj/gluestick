@@ -46,7 +46,7 @@ pub async fn create(
         .header(
             "Set-Cookie",
             format!(
-                "session_token={}; Max-Age=999999; Secure; HttpOnly",
+                "session_token={}; Max-Age=999999; Secure; HttpOnly; SameSite=Lax",
                 &token.expose_secret()
             ),
         )
