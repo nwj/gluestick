@@ -26,5 +26,17 @@
         {% else %}
             <p>No recent pastes</p>
         {% endif %}
+        <div class="pagination">
+            {% if let Some(prev_page) = pagination.prev_page %}
+                <a href="/pastes?page={{ prev_page }}">Newer</a>
+            {% else %}
+                <span>Newer</span>
+            {% endif %}
+            {% if let Some(next_page) = pagination.next_page %}
+                <a href="/pastes?page={{ next_page }}">Older</a>
+            {% else %}
+                <span>Older</span>
+            {% endif %}
+        </div>
     </section>
 {% endblock %}

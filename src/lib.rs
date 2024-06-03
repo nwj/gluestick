@@ -12,6 +12,7 @@ pub mod config;
 pub mod controllers;
 pub mod db;
 pub mod extractors;
+pub mod helpers;
 pub mod models;
 pub mod views;
 

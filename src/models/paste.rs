@@ -123,10 +123,12 @@ impl Paste {
 
     pub async fn all_with_usernames_and_syntax_highlighted_html(
         db: &Database,
+        limit: usize,
+        offset: usize,
     ) -> models::Result<Vec<(Paste, Username, Option<String>)>> {
         let results: Vec<_> = db
             .conn
-            .call(|conn| {
+            .call(move |conn| {
                 let mut statement = conn.prepare(
                     r"SELECT
                       pastes.id,
@@ -140,13 +142,17 @@ impl Paste {
                       users.username
                     FROM pastes JOIN users ON pastes.user_id = users.id
                     WHERE pastes.visibility = 'public'
-                    ORDER BY pastes.updated_at DESC;",
+                    ORDER BY pastes.updated_at DESC
+                    LIMIT :limit OFFSET :offset;",
                 )?;
-                let paste_iter = statement.query_map([], |row| {
-                    let paste_result = Paste::from_sql_row(row);
-                    let username: Username = row.get(8)?;
-                    Ok((paste_result, username))
-                })?;
+                let paste_iter = statement.query_map(
+                    named_params! {":limit": limit, ":offset": offset},
+                    |row| {
+                        let paste_result = Paste::from_sql_row(row);
+                        let username: Username = row.get(8)?;
+                        Ok((paste_result, username))
+                    },
+                )?;
                 Ok(paste_iter.collect::<Result<Vec<_>, _>>()?)
             })
             .await?;

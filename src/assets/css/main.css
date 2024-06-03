@@ -269,6 +269,21 @@ main {
         font-size: var(--font-size-sm);
       }
     }
+
+    .pagination {
+      display: flex;
+      justify-content: center;
+
+      span,
+      a {
+        margin-right: var(--spacing-sm);
+      }
+
+      span {
+        color: var(--color-grey-500);
+        cursor: default;
+      }
+    }
   }
 
   .pastes-show {

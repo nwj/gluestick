@@ -1,6 +1,7 @@
 use crate::{
     controllers,
     db::Database,
+    helpers::pagination::{OffsetPaginationParams, OffsetPaginationResponse},
     models::{
         paste::{Paste, Visibility},
         session::Session,
@@ -10,7 +11,7 @@ use crate::{
     },
 };
 use axum::{
-    extract::{Form, Path, State},
+    extract::{Form, Path, Query, State},
     http::{header::HeaderMap, HeaderValue, StatusCode},
     response::{IntoResponse, Redirect},
 };
@@ -20,12 +21,20 @@ use validator::Validate;
 
 pub async fn index(
     session: Option<Session>,
+    Query(pagination_params): Query<OffsetPaginationParams>,
     State(db): State<Database>,
 ) -> controllers::Result<impl IntoResponse> {
-    let triples = Paste::all_with_usernames_and_syntax_highlighted_html(&db).await?;
+    let triples = Paste::all_with_usernames_and_syntax_highlighted_html(
+        &db,
+        pagination_params.limit_with_lookahead(),
+        pagination_params.offset(),
+    )
+    .await?;
+    let pagination_response = OffsetPaginationResponse::new(&pagination_params, &triples);
     Ok(IndexPastesTemplate {
         session,
-        paste_username_html_triples: triples,
+        paste_username_html_triples: triples.into_iter().take(pagination_params.limit).collect(),
+        pagination: pagination_response,
     })
 }
 
