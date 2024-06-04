@@ -1,5 +1,5 @@
 use crate::{
-    helpers::pagination::OffsetPaginationResponse,
+    helpers::pagination::CursorPaginationResponse,
     models::{paste::Paste, session::Session, user::Username},
 };
 use askama_axum::Template;
@@ -15,7 +15,7 @@ pub struct NewPastesTemplate {
 pub struct IndexPastesTemplate {
     pub session: Option<Session>,
     pub paste_username_html_triples: Vec<(Paste, Username, Option<String>)>,
-    pub pagination: OffsetPaginationResponse,
+    pub pagination: CursorPaginationResponse,
 }
 
 #[derive(Template)]

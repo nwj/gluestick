@@ -1,7 +1,7 @@
 use crate::{
     controllers,
     db::Database,
-    helpers::pagination::{OffsetPaginationParams, OffsetPaginationResponse},
+    helpers::pagination::{CursorPaginationParams, CursorPaginationResponse},
     models::{
         paste::{Paste, Visibility},
         session::Session,
@@ -21,19 +21,28 @@ use validator::Validate;
 
 pub async fn index(
     session: Option<Session>,
-    Query(pagination_params): Query<OffsetPaginationParams>,
+    Query(pagination_params): Query<CursorPaginationParams>,
     State(db): State<Database>,
 ) -> controllers::Result<impl IntoResponse> {
-    let triples = Paste::all_with_usernames_and_syntax_highlighted_html(
+    let mut pairs = Paste::all_with_usernames(
         &db,
         pagination_params.limit_with_lookahead(),
-        pagination_params.offset(),
+        pagination_params.dir,
+        pagination_params.cursor,
     )
     .await?;
-    let pagination_response = OffsetPaginationResponse::new(&pagination_params, &triples);
+    let pagination_response = CursorPaginationResponse::new(&pagination_params, &mut pairs);
+    let mut triples = Vec::new();
+    for (paste, username) in pairs {
+        // This is an n+1 query, but it's fine because our cache is SQLite.
+        let optional_html = paste
+            .to_syntax_highlighted_html_with_cache_attempt(&db)
+            .await?;
+        triples.push((paste, username, optional_html));
+    }
     Ok(IndexPastesTemplate {
         session,
-        paste_username_html_triples: triples.into_iter().take(pagination_params.limit).collect(),
+        paste_username_html_triples: triples,
         pagination: pagination_response,
     })
 }

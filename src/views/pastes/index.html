@@ -28,12 +28,12 @@
         {% endif %}
         <div class="pagination">
             {% if let Some(prev_page) = pagination.prev_page %}
-                <a href="/pastes?page={{ prev_page }}">Newer</a>
+                <a href="/pastes?cursor={{ prev_page }}&dir=asc">Newer</a>
             {% else %}
                 <span>Newer</span>
             {% endif %}
             {% if let Some(next_page) = pagination.next_page %}
-                <a href="/pastes?page={{ next_page }}">Older</a>
+                <a href="/pastes?cursor={{ next_page }}&dir=desc">Older</a>
             {% else %}
                 <span>Older</span>
             {% endif %}

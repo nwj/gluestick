@@ -1,4 +1,9 @@
-use crate::{db::Database, models, models::user::Username};
+use crate::{
+    db::Database,
+    helpers::pagination::{Direction, HasOrderedId},
+    models,
+    models::user::Username,
+};
 use chrono::{
     serde::ts_seconds,
     {DateTime, Utc},
@@ -70,16 +75,17 @@ impl Paste {
     }
 
     pub async fn to_syntax_highlighted_html_with_cache_attempt(
-        self,
+        &self,
         db: &Database,
     ) -> models::Result<Option<String>> {
+        let id = self.id;
         if let Some(html) = db
             .conn
             .call(move |conn| {
                 let mut statement = conn.prepare(
                     "SELECT html FROM syntax_highlight_cache WHERE paste_id = :paste_id;",
                 )?;
-                let mut rows = statement.query(named_params! {":paste_id": self.id})?;
+                let mut rows = statement.query(named_params! {":paste_id": id})?;
                 match rows.next()? {
                     Some(row) => Ok(Some(row.get::<usize, String>(0)?)),
                     None => Ok(None),
@@ -91,12 +97,13 @@ impl Paste {
         };
 
         let optional_html = self.to_syntax_highlighted_html();
+        let id = self.id;
         if let Some(html) = optional_html.clone() {
             db.conn
                 .call(move |conn| {
                     let mut statement = conn
                         .prepare("INSERT INTO syntax_highlight_cache VALUES (:paste_id, :html);")?;
-                    statement.execute(named_params! {":paste_id": self.id, ":html": html})?;
+                    statement.execute(named_params! {":paste_id": id, ":html": html})?;
                     Ok(())
                 })
                 .await?;
@@ -121,15 +128,22 @@ impl Paste {
         paste_results.into_iter().collect::<Result<Vec<_>, _>>()
     }
 
-    pub async fn all_with_usernames_and_syntax_highlighted_html(
+    pub async fn all_with_usernames(
         db: &Database,
         limit: usize,
-        offset: usize,
-    ) -> models::Result<Vec<(Paste, Username, Option<String>)>> {
+        direction: Direction,
+        cursor: Option<Uuid>,
+    ) -> models::Result<Vec<(Paste, Username)>> {
         let results: Vec<_> = db
             .conn
             .call(move |conn| {
-                let mut statement = conn.prepare(
+                let direction_sql = direction.to_raw_sql();
+                let cursor_sql = match (cursor, &direction) {
+                    (None, _) => "",
+                    (Some(_), Direction::Ascending) => "AND pastes.id > :cursor",
+                    (Some(_), Direction::Descending) => "AND pastes.id < :cursor",
+                };
+                let raw_sql = format!(
                     r"SELECT
                       pastes.id,
                       pastes.user_id,
@@ -141,33 +155,43 @@ impl Paste {
                       pastes.updated_at,
                       users.username
                     FROM pastes JOIN users ON pastes.user_id = users.id
-                    WHERE pastes.visibility = 'public'
-                    ORDER BY pastes.updated_at DESC
-                    LIMIT :limit OFFSET :offset;",
-                )?;
-                let paste_iter = statement.query_map(
-                    named_params! {":limit": limit, ":offset": offset},
-                    |row| {
-                        let paste_result = Paste::from_sql_row(row);
-                        let username: Username = row.get(8)?;
-                        Ok((paste_result, username))
-                    },
-                )?;
-                Ok(paste_iter.collect::<Result<Vec<_>, _>>()?)
+                    WHERE pastes.visibility = 'public' {}
+                    ORDER BY pastes.id {}
+                    LIMIT :limit;",
+                    cursor_sql, direction_sql
+                );
+                let mut statement = conn.prepare(&raw_sql)?;
+                match cursor {
+                    None => {
+                        let paste_iter =
+                            statement.query_map(named_params! {":limit": limit}, |row| {
+                                let paste_result = Paste::from_sql_row(row);
+                                let username: Username = row.get(8)?;
+                                Ok((paste_result, username))
+                            })?;
+                        Ok(paste_iter.collect::<Result<Vec<_>, _>>()?)
+                    }
+                    Some(cursor) => {
+                        let paste_iter = statement.query_map(
+                            named_params! {":cursor": cursor, ":limit": limit},
+                            |row| {
+                                let paste_result = Paste::from_sql_row(row);
+                                let username: Username = row.get(8)?;
+                                Ok((paste_result, username))
+                            },
+                        )?;
+                        Ok(paste_iter.collect::<Result<Vec<_>, _>>()?)
+                    }
+                }
             })
             .await?;
 
-        let mut triples = Vec::new();
+        let mut pairs = Vec::new();
         for (paste_result, username) in results {
             let paste = paste_result?;
-            // Yes this an n+1 query, but that should be fine as long as our cache is SQLite.
-            let optional_html = paste
-                .clone()
-                .to_syntax_highlighted_html_with_cache_attempt(db)
-                .await?;
-            triples.push((paste, username, optional_html));
+            pairs.push((paste, username));
         }
-        Ok(triples)
+        Ok(pairs)
     }
 
     pub async fn insert(self, db: &Database) -> models::Result<()> {
@@ -265,7 +289,6 @@ impl Paste {
             Some((paste_result, username)) => {
                 let paste = paste_result?;
                 let optional_html = paste
-                    .clone()
                     .to_syntax_highlighted_html_with_cache_attempt(db)
                     .await?;
                 Ok(Some((paste, username, optional_html)))
@@ -547,5 +570,11 @@ impl FromSql for Visibility {
                 "Unrecognized value for visibility".into(),
             )),
         })
+    }
+}
+
+impl HasOrderedId for (Paste, Username) {
+    fn ordered_id(&self) -> Uuid {
+        self.0.id
     }
 }
