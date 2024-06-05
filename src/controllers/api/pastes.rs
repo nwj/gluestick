@@ -1,6 +1,7 @@
 use crate::{
     controllers,
     db::Database,
+    helpers::pagination::{CursorPaginationParams, CursorPaginationResponse},
     models::{
         api_session::ApiSession,
         paste::{Paste, Visibility},
@@ -11,16 +12,31 @@ use axum::{
     response::IntoResponse,
     Json,
 };
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use validator::Validate;
+
+#[derive(Serialize)]
+struct IndexResponse {
+    pastes: Vec<Paste>,
+    pagination: CursorPaginationResponse,
+}
 
 pub async fn index(
     _session: ApiSession,
     State(db): State<Database>,
+    pagination_params: Option<Json<CursorPaginationParams>>,
 ) -> controllers::api::Result<impl IntoResponse> {
-    let pastes = Paste::all(&db).await?;
-    Ok(Json(pastes))
+    let pagination_params = pagination_params.unwrap_or_default();
+    let mut pastes = Paste::cursor_paginated(
+        &db,
+        pagination_params.limit(),
+        pagination_params.direction(),
+        pagination_params.cursor(),
+    )
+    .await?;
+    let pagination = CursorPaginationResponse::new(&pagination_params, &mut pastes);
+    Ok(Json(IndexResponse { pastes, pagination }))
 }
 
 #[derive(Debug, Deserialize, Validate)]

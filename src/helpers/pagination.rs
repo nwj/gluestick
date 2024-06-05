@@ -1,28 +1,28 @@
-use serde::{de::Error, Deserialize, Deserializer};
+use serde::{de::Error, Deserialize, Deserializer, Serialize};
 use uuid::Uuid;
 
-const LIMIT_DEFAULT: usize = 10;
-const LIMIT_MAX: usize = 100;
-const PAGE_MAX: usize = 100;
+const PER_PAGE_DEFAULT: usize = 10;
+const PER_PAGE_MAX: usize = 100;
+const PAGE_MAX: usize = 50;
 
 #[derive(Deserialize, Debug)]
 #[serde(default)]
 pub struct OffsetPaginationParams {
     #[serde(deserialize_with = "OffsetPaginationParams::deserialize_page")]
     pub page: usize,
-    #[serde(deserialize_with = "OffsetPaginationParams::deserialize_limit")]
-    pub limit: usize,
+    #[serde(deserialize_with = "OffsetPaginationParams::deserialize_per_page")]
+    pub per_page: usize,
 }
 
 impl OffsetPaginationParams {
     pub fn limit_with_lookahead(&self) -> usize {
         // We add 1 here, so that we can "look ahead" and see if there are results beyond the
         // current page (which can then inform things like `next_page`).
-        self.limit + 1
+        self.per_page + 1
     }
 
     pub fn offset(&self) -> usize {
-        self.page * self.limit
+        self.page * self.per_page
     }
 
     fn deserialize_page<'de, D>(deserializer: D) -> Result<usize, D::Error>
@@ -40,15 +40,15 @@ impl OffsetPaginationParams {
         }
     }
 
-    fn deserialize_limit<'de, D>(deserializer: D) -> Result<usize, D::Error>
+    fn deserialize_per_page<'de, D>(deserializer: D) -> Result<usize, D::Error>
     where
         D: Deserializer<'de>,
     {
         let value = usize::deserialize(deserializer)?;
-        if value > LIMIT_MAX {
+        if value > PER_PAGE_MAX {
             Err(D::Error::custom(format!(
                 "limit value must be less than or equal to {}, got {}",
-                LIMIT_MAX, value
+                PER_PAGE_MAX, value
             )))
         } else {
             Ok(value)
@@ -60,7 +60,7 @@ impl Default for OffsetPaginationParams {
     fn default() -> Self {
         Self {
             page: 0,
-            limit: LIMIT_DEFAULT,
+            per_page: PER_PAGE_DEFAULT,
         }
     }
 }
@@ -78,7 +78,7 @@ impl OffsetPaginationResponse {
             p => Some(p - 1),
         };
 
-        let has_lookahead_result = results.len() > params.limit;
+        let has_lookahead_result = results.len() > params.per_page;
         if has_lookahead_result {
             results.pop();
         }
@@ -99,28 +99,45 @@ impl OffsetPaginationResponse {
 #[derive(Clone, Deserialize, Debug)]
 #[serde(default)]
 pub struct CursorPaginationParams {
-    pub cursor: Option<Uuid>,
-    pub dir: Direction,
-    #[serde(deserialize_with = "CursorPaginationParams::deserialize_limit")]
-    pub limit: usize,
+    pub prev_page: Option<Uuid>,
+    pub next_page: Option<Uuid>,
+    #[serde(deserialize_with = "CursorPaginationParams::deserialize_per_page")]
+    pub per_page: usize,
 }
 
 impl CursorPaginationParams {
+    pub fn limit(&self) -> usize {
+        self.per_page
+    }
+
     pub fn limit_with_lookahead(&self) -> usize {
         // We add 1 here, so that we can "look ahead" and see if there are results beyond the
         // current page (which can then inform things like `prev_page` and `next_page`).
-        self.limit + 1
+        self.per_page + 1
     }
 
-    fn deserialize_limit<'de, D>(deserializer: D) -> Result<usize, D::Error>
+    pub fn cursor(&self) -> Option<Uuid> {
+        // if both next_page and prev_page are (incorrectly) in the params, then this is next_page
+        self.next_page.or(self.prev_page)
+    }
+
+    pub fn direction(&self) -> Direction {
+        match (self.prev_page, self.next_page) {
+            (Some(_), None) => Direction::Ascending,
+            // if both next_page and prev_page are (incorrectly) in the params, then this is Descending
+            _ => Direction::Descending,
+        }
+    }
+
+    fn deserialize_per_page<'de, D>(deserializer: D) -> Result<usize, D::Error>
     where
         D: Deserializer<'de>,
     {
         let value = usize::deserialize(deserializer)?;
-        if value > LIMIT_MAX {
+        if value > PER_PAGE_MAX {
             Err(D::Error::custom(format!(
                 "limit value must be less than or equal to {}, got {}",
-                LIMIT_MAX, value
+                PER_PAGE_MAX, value
             )))
         } else {
             Ok(value)
@@ -131,34 +148,53 @@ impl CursorPaginationParams {
 impl Default for CursorPaginationParams {
     fn default() -> Self {
         Self {
-            cursor: None,
-            dir: Direction::Descending,
-            limit: LIMIT_DEFAULT,
+            prev_page: None,
+            next_page: None,
+            per_page: PER_PAGE_DEFAULT,
         }
     }
 }
 
+#[derive(Serialize)]
 pub struct CursorPaginationResponse {
     pub prev_page: Option<Uuid>,
     pub next_page: Option<Uuid>,
 }
 
 impl CursorPaginationResponse {
-    // This assumes that results were produced using limit_with_lookahead. And it will mutate
-    // the results so that elements are reversed if the params direction was Ascending and so that
-    // the lookahead element is removed
-    pub fn new(params: &CursorPaginationParams, results: &mut Vec<impl HasOrderedId>) -> Self {
-        let (mut prev_page, mut next_page) = match params.cursor {
+    pub fn new(params: &CursorPaginationParams, results: &mut [impl HasOrderedId]) -> Self {
+        let (mut prev_page, mut next_page) = (
+            results.first().map(|el| el.ordered_id()),
+            results.last().map(|el| el.ordered_id()),
+        );
+
+        if params.direction() == Direction::Ascending {
+            results.reverse();
+            std::mem::swap(&mut next_page, &mut prev_page);
+        }
+
+        Self {
+            prev_page,
+            next_page,
+        }
+    }
+
+    // This assumes that results were produced using limit_with_lookahead.
+    pub fn new_with_lookahead(
+        params: &CursorPaginationParams,
+        results: &mut Vec<impl HasOrderedId>,
+    ) -> Self {
+        let (mut prev_page, mut next_page) = match params.cursor() {
             Some(_) => (results.first().map(|el| el.ordered_id()), None),
             None => (None, None),
         };
 
-        if results.len() > params.limit {
+        if results.len() > params.per_page {
             results.pop();
             next_page = results.last().map(|el| el.ordered_id());
         }
 
-        if params.dir == Direction::Ascending {
+        if params.direction() == Direction::Ascending {
             results.reverse();
             std::mem::swap(&mut next_page, &mut prev_page);
         }
@@ -170,11 +206,9 @@ impl CursorPaginationResponse {
     }
 }
 
-#[derive(Clone, Copy, Deserialize, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Direction {
-    #[serde(rename = "asc")]
     Ascending,
-    #[serde(rename = "desc")]
     Descending,
 }
 

@@ -24,14 +24,15 @@ pub async fn index(
     Query(pagination_params): Query<CursorPaginationParams>,
     State(db): State<Database>,
 ) -> controllers::Result<impl IntoResponse> {
-    let mut pairs = Paste::all_with_usernames(
+    let mut pairs = Paste::cursor_paginated_with_username(
         &db,
         pagination_params.limit_with_lookahead(),
-        pagination_params.dir,
-        pagination_params.cursor,
+        pagination_params.direction(),
+        pagination_params.cursor(),
     )
     .await?;
-    let pagination_response = CursorPaginationResponse::new(&pagination_params, &mut pairs);
+    let pagination_response =
+        CursorPaginationResponse::new_with_lookahead(&pagination_params, &mut pairs);
     let mut triples = Vec::new();
     for (paste, username) in pairs {
         // This is an n+1 query, but it's fine because our cache is SQLite.

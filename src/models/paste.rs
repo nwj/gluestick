@@ -112,23 +112,43 @@ impl Paste {
         Ok(optional_html)
     }
 
-    pub async fn all(db: &Database) -> models::Result<Vec<Paste>> {
+    pub async fn cursor_paginated(
+        db: &Database,
+        limit: usize,
+        direction: Direction,
+        cursor: Option<Uuid>,
+    ) -> models::Result<Vec<Paste>> {
         let paste_results: Vec<_> = db
             .conn
-            .call(|conn| {
-                let mut statement = conn.prepare(
-                    r"SELECT id, user_id, filename, description, body, visibility, created_at, updated_at FROM pastes
-                    WHERE visibility = 'public'
-                    ORDER BY updated_at DESC;",
-                )?;
-                let paste_iter = statement.query_map([], |row| {Ok(Paste::from_sql_row(row))})?;
-                Ok(paste_iter.collect::<Result<Vec<_>, _>>()?)
-        })
-        .await?;
+            .call(move |conn| {
+                let direction_sql = direction.to_raw_sql();
+                let cursor_sql = match (cursor, &direction) {
+                    (None, _) => "",
+                    (Some(_), Direction::Ascending) => "AND pastes.id > :cursor",
+                    (Some(_), Direction::Descending) => "AND pastes.id < :cursor",
+                };
+                let raw_sql = format!(
+                    r"SELECT id, user_id, filename, description, body, visibility, created_at, updated_at
+                    FROM pastes WHERE visibility = 'public' {} ORDER BY pastes.id {} LIMIT :limit;",
+                    cursor_sql, direction_sql
+                );
+                let mut statement = conn.prepare(&raw_sql)?;
+                match cursor {
+                    None => {
+                        let paste_iter = statement.query_map(named_params! {":limit": limit}, |row| {Ok(Paste::from_sql_row(row))})?;
+                        Ok(paste_iter.collect::<Result<Vec<_>, _>>()?)
+                    }
+                    Some(cursor) => {
+                        let paste_iter = statement.query_map(named_params! {":limit": limit, ":cursor": cursor}, |row| {Ok(Paste::from_sql_row(row))})?;
+                        Ok(paste_iter.collect::<Result<Vec<_>, _>>()?)
+                    }
+                }
+            })
+            .await?;
         paste_results.into_iter().collect::<Result<Vec<_>, _>>()
     }
 
-    pub async fn all_with_usernames(
+    pub async fn cursor_paginated_with_username(
         db: &Database,
         limit: usize,
         direction: Direction,
@@ -361,6 +381,12 @@ impl Paste {
             })
             .await?;
         Ok(result)
+    }
+}
+
+impl HasOrderedId for Paste {
+    fn ordered_id(&self) -> Uuid {
+        self.id
     }
 }
 

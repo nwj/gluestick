@@ -1,4 +1,5 @@
 use crate::common::{spawn_app, test_paste::TestPaste};
+use serde::Deserialize;
 use std::collections::HashSet;
 use uuid::Uuid;
 
@@ -15,6 +16,11 @@ async fn pastes_index_responds_with_200() {
         .expect("Failed to send test request.");
 
     assert_eq!(response.status(), 200);
+}
+
+#[derive(Debug, Deserialize)]
+struct IndexResponse {
+    pastes: Vec<TestPaste>,
 }
 
 #[tokio::test]
@@ -37,13 +43,17 @@ async fn pastes_index_responds_with_all_pastes() {
     let response = client
         .get(format!("http://{}/api/pastes", app.address))
         .header("X-GLUESTICK-API-KEY", &app.user.api_key)
+        .header("Content-Type", "application/json")
         .send()
         .await
         .expect("Failed to send test request.");
-    let response_pastes: HashSet<TestPaste> = response
+
+    let response_data: IndexResponse = response
         .json()
         .await
         .expect("Failed to parse test response.");
+
+    let response_pastes: HashSet<TestPaste> = response_data.pastes.into_iter().collect();
 
     assert_eq!(
         pastes,
