@@ -35,9 +35,8 @@ pub async fn index(
         CursorPaginationResponse::new_with_lookahead(&pagination_params, &mut pairs);
     let mut triples = Vec::new();
     for (paste, username) in pairs {
-        // This is an n+1 query, but it's fine because our cache is SQLite.
         let optional_html = paste
-            .to_syntax_highlighted_html_with_cache_attempt(&db)
+            .syntax_highlight(&db) // This is an n+1 query, but it's fine because our cache is SQLite.
             .await?;
         triples.push((paste, username, optional_html));
     }
@@ -84,16 +83,19 @@ pub async fn show(
     State(db): State<Database>,
     Path(id): Path<Uuid>,
 ) -> controllers::Result<impl IntoResponse> {
-    match Paste::find_with_username_and_syntax_highlighted_html(&db, id).await? {
-        Some((paste, username, syntax_highlighted_html)) => Ok((
-            StatusCode::OK,
-            ShowPastesTemplate {
-                session,
-                paste,
-                username,
-                syntax_highlighted_html,
-            },
-        )),
+    match Paste::find_with_username(&db, id).await? {
+        Some((paste, username)) => {
+            let syntax_highlighted_html = paste.syntax_highlight(&db).await?;
+            Ok((
+                StatusCode::OK,
+                ShowPastesTemplate {
+                    session,
+                    paste,
+                    username,
+                    syntax_highlighted_html,
+                },
+            ))
+        }
         None => Err(controllers::Error::NotFound),
     }
 }

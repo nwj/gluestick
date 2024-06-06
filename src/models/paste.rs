@@ -1,6 +1,9 @@
 use crate::{
     db::Database,
-    helpers::pagination::{Direction, HasOrderedId},
+    helpers::{
+        pagination::{Direction, HasOrderedId},
+        syntax_highlight,
+    },
     models,
     models::user::Username,
 };
@@ -11,11 +14,10 @@ use chrono::{
 use derive_more::{AsRef, Display, Into};
 use rusqlite::{
     named_params,
-    types::{FromSql, FromSqlError, FromSqlResult, ToSql, ToSqlOutput, ValueRef},
-    Row, TransactionBehavior,
+    types::{FromSql, FromSqlError, FromSqlResult, ToSql, ToSqlOutput, Type, ValueRef},
+    Row, Transaction, TransactionBehavior,
 };
 use serde::{Deserialize, Serialize};
-use syntect::{highlighting::ThemeSet, html::highlighted_html_for_string, parsing::SyntaxSet};
 use uuid::Uuid;
 use validator::Validate;
 
@@ -53,7 +55,7 @@ impl Paste {
         })
     }
 
-    pub fn from_sql_row(row: &Row) -> models::Result<Self> {
+    pub fn from_sql_row(row: &Row) -> rusqlite::Result<Self> {
         Ok(Self {
             id: row.get(0)?,
             user_id: row.get(1)?,
@@ -61,55 +63,31 @@ impl Paste {
             description: row.get(3)?,
             body: row.get(4)?,
             visibility: row.get(5)?,
-            created_at: DateTime::from_timestamp(row.get(6)?, 0)
-                .ok_or(models::Error::ParseDateTime)?,
-            updated_at: DateTime::from_timestamp(row.get(7)?, 0)
-                .ok_or(models::Error::ParseDateTime)?,
+            created_at: DateTime::from_timestamp(row.get(6)?, 0).ok_or(
+                rusqlite::Error::FromSqlConversionFailure(
+                    6,
+                    Type::Integer,
+                    Box::new(models::Error::ParseDateTime),
+                ),
+            )?,
+            updated_at: DateTime::from_timestamp(row.get(7)?, 0).ok_or(
+                rusqlite::Error::FromSqlConversionFailure(
+                    7,
+                    Type::Integer,
+                    Box::new(models::Error::ParseDateTime),
+                ),
+            )?,
         })
     }
 
-    pub fn to_syntax_highlighted_html(&self) -> Option<String> {
-        self.filename
-            .extension()
-            .and_then(|extension| self.body.to_syntax_highlighted_html(extension))
-    }
-
-    pub async fn to_syntax_highlighted_html_with_cache_attempt(
-        &self,
-        db: &Database,
-    ) -> models::Result<Option<String>> {
-        let id = self.id;
-        if let Some(html) = db
-            .conn
-            .call(move |conn| {
-                let mut statement = conn.prepare(
-                    "SELECT html FROM syntax_highlight_cache WHERE paste_id = :paste_id;",
-                )?;
-                let mut rows = statement.query(named_params! {":paste_id": id})?;
-                match rows.next()? {
-                    Some(row) => Ok(Some(row.get::<usize, String>(0)?)),
-                    None => Ok(None),
-                }
-            })
-            .await?
-        {
-            return Ok(Some(html));
-        };
-
-        let optional_html = self.to_syntax_highlighted_html();
-        let id = self.id;
-        if let Some(html) = optional_html.clone() {
-            db.conn
-                .call(move |conn| {
-                    let mut statement = conn
-                        .prepare("INSERT INTO syntax_highlight_cache VALUES (:paste_id, :html);")?;
-                    statement.execute(named_params! {":paste_id": id, ":html": html})?;
-                    Ok(())
-                })
-                .await?;
-        }
-
-        Ok(optional_html)
+    pub async fn syntax_highlight(&self, db: &Database) -> models::Result<Option<String>> {
+        Ok(syntax_highlight::generate_with_cache_attempt(
+            db,
+            &self.id,
+            self.body.as_ref(),
+            self.filename.extension(),
+        )
+        .await?)
     }
 
     pub async fn cursor_paginated(
@@ -118,7 +96,7 @@ impl Paste {
         direction: Direction,
         cursor: Option<Uuid>,
     ) -> models::Result<Vec<Paste>> {
-        let paste_results: Vec<_> = db
+        let pastes: Vec<_> = db
             .conn
             .call(move |conn| {
                 let direction_sql = direction.to_raw_sql();
@@ -132,20 +110,20 @@ impl Paste {
                     FROM pastes WHERE visibility = 'public' {} ORDER BY pastes.id {} LIMIT :limit;",
                     cursor_sql, direction_sql
                 );
-                let mut statement = conn.prepare(&raw_sql)?;
+                let mut stmt = conn.prepare(&raw_sql)?;
                 match cursor {
                     None => {
-                        let paste_iter = statement.query_map(named_params! {":limit": limit}, |row| {Ok(Paste::from_sql_row(row))})?;
+                        let paste_iter = stmt.query_map(named_params! {":limit": limit}, Paste::from_sql_row)?;
                         Ok(paste_iter.collect::<Result<Vec<_>, _>>()?)
                     }
                     Some(cursor) => {
-                        let paste_iter = statement.query_map(named_params! {":limit": limit, ":cursor": cursor}, |row| {Ok(Paste::from_sql_row(row))})?;
+                        let paste_iter = stmt.query_map(named_params! {":limit": limit, ":cursor": cursor}, Paste::from_sql_row)?;
                         Ok(paste_iter.collect::<Result<Vec<_>, _>>()?)
                     }
                 }
             })
             .await?;
-        paste_results.into_iter().collect::<Result<Vec<_>, _>>()
+        Ok(pastes)
     }
 
     pub async fn cursor_paginated_with_username(
@@ -154,7 +132,7 @@ impl Paste {
         direction: Direction,
         cursor: Option<Uuid>,
     ) -> models::Result<Vec<(Paste, Username)>> {
-        let results: Vec<_> = db
+        let pairs: Vec<_> = db
             .conn
             .call(move |conn| {
                 let direction_sql = direction.to_raw_sql();
@@ -180,22 +158,22 @@ impl Paste {
                     LIMIT :limit;",
                     cursor_sql, direction_sql
                 );
-                let mut statement = conn.prepare(&raw_sql)?;
+                let mut stmt = conn.prepare(&raw_sql)?;
                 match cursor {
                     None => {
                         let paste_iter =
-                            statement.query_map(named_params! {":limit": limit}, |row| {
-                                let paste_result = Paste::from_sql_row(row);
+                            stmt.query_map(named_params! {":limit": limit}, |row| {
+                                let paste_result = Paste::from_sql_row(row)?;
                                 let username: Username = row.get(8)?;
                                 Ok((paste_result, username))
                             })?;
                         Ok(paste_iter.collect::<Result<Vec<_>, _>>()?)
                     }
                     Some(cursor) => {
-                        let paste_iter = statement.query_map(
+                        let paste_iter = stmt.query_map(
                             named_params! {":cursor": cursor, ":limit": limit},
                             |row| {
-                                let paste_result = Paste::from_sql_row(row);
+                                let paste_result = Paste::from_sql_row(row)?;
                                 let username: Username = row.get(8)?;
                                 Ok((paste_result, username))
                             },
@@ -206,24 +184,21 @@ impl Paste {
             })
             .await?;
 
-        let mut pairs = Vec::new();
-        for (paste_result, username) in results {
-            let paste = paste_result?;
-            pairs.push((paste, username));
-        }
         Ok(pairs)
     }
 
     pub async fn insert(self, db: &Database) -> models::Result<()> {
-        let optional_html = self.to_syntax_highlighted_html();
+        let optional_html =
+            syntax_highlight::generate(self.body.as_ref(), self.filename.extension());
+
         db.conn
             .call(move |conn| {
                 let tx = conn.transaction_with_behavior(TransactionBehavior::Immediate)?;
                 {
-                    let mut pastes_statement = tx.prepare(
+                    let mut stmt = tx.prepare(
                         "INSERT INTO pastes VALUES (:id, :user_id, :filename, :description, :body, :visibility, :created_at, :updated_at);"
                     )?;
-                    pastes_statement.execute(
+                    stmt.execute(
                         named_params! {
                             ":id": self.id,
                             ":user_id": self.user_id,
@@ -237,10 +212,7 @@ impl Paste {
                     )?;
 
                     if let Some(html) = optional_html {
-                        let mut cache_statement = tx.prepare(
-                            "INSERT INTO syntax_highlight_cache VALUES (:paste_id, :html);"
-                        )?;
-                        cache_statement.execute(named_params! {":paste_id": self.id, ":html": html})?;
+                        syntax_highlight::tx_cache_set(&tx, &self.id, html)?;
                     }
                 }
                 tx.commit()?;
@@ -253,33 +225,41 @@ impl Paste {
     }
 
     pub async fn find(db: &Database, id: Uuid) -> models::Result<Option<Paste>> {
-        let optional_result = db
+        let optional_paste = db
             .conn
             .call(move |conn| {
-                let mut statement = conn
+                let mut stmt = conn
                     .prepare("SELECT id, user_id, filename, description, body, visibility, created_at, updated_at FROM pastes WHERE id = :id;")?;
-                let mut rows = statement.query(named_params! {":id": id})?;
+                let mut rows = stmt.query(named_params! {":id": id})?;
                 match rows.next()? {
                     Some(row) => Ok(Some(
-                        Paste::from_sql_row(row)
+                        Paste::from_sql_row(row)?
                     )),
                     None => Ok(None),
                 }
             })
             .await?;
 
-        let optional_paste = optional_result.transpose()?;
         Ok(optional_paste)
     }
 
-    pub async fn find_with_username_and_syntax_highlighted_html(
+    pub fn tx_find(tx: &Transaction, id: &Uuid) -> tokio_rusqlite::Result<Option<Paste>> {
+        let mut stmt = tx.prepare("SELECT id, user_id, filename, description, body, visibility, created_at, updated_at FROM pastes WHERE id = :id;")?;
+        let mut rows = stmt.query(named_params! {":id": id})?;
+        match rows.next()? {
+            Some(row) => Ok(Some(Paste::from_sql_row(row)?)),
+            None => Ok(None),
+        }
+    }
+
+    pub async fn find_with_username(
         db: &Database,
         id: Uuid,
-    ) -> models::Result<Option<(Paste, Username, Option<String>)>> {
-        let optional_result = db
+    ) -> models::Result<Option<(Paste, Username)>> {
+        let optional_pair = db
             .conn
             .call(move |conn| {
-                let mut statement = conn.prepare(
+                let mut stmt = conn.prepare(
                     r"SELECT
                           pastes.id,
                           pastes.user_id,
@@ -293,10 +273,10 @@ impl Paste {
                         FROM pastes JOIN users ON pastes.user_id = users.id
                         WHERE pastes.id = :id;",
                 )?;
-                let mut rows = statement.query(named_params! {":id": id})?;
+                let mut rows = stmt.query(named_params! {":id": id})?;
                 match rows.next()? {
                     Some(row) => Ok(Some((
-                        Paste::from_sql_row(row),
+                        Paste::from_sql_row(row)?,
                         row.get::<usize, Username>(8)?,
                     ))),
                     None => Ok(None),
@@ -304,16 +284,7 @@ impl Paste {
             })
             .await?;
 
-        match optional_result {
-            None => Ok(None),
-            Some((paste_result, username)) => {
-                let paste = paste_result?;
-                let optional_html = paste
-                    .to_syntax_highlighted_html_with_cache_attempt(db)
-                    .await?;
-                Ok(Some((paste, username, optional_html)))
-            }
-        }
+        Ok(optional_pair)
     }
 
     pub async fn update(
@@ -340,28 +311,25 @@ impl Paste {
         let body_changed = original_body != self.body;
         let extension_changed = original_filename.extension() != self.filename.extension();
         if body_changed || extension_changed {
-            optional_html = self.to_syntax_highlighted_html();
+            optional_html =
+                syntax_highlight::generate(self.body.as_ref(), self.filename.extension());
         }
 
         db.conn.call(move |conn| {
             let tx = conn.transaction_with_behavior(TransactionBehavior::Immediate)?;
             {
-                let mut pastes_statement = tx.prepare(
+                let mut pastes_stmt = tx.prepare(
                     r"UPDATE pastes
                     SET filename = :filename, description = :desc, body = :body, updated_at = unixepoch()
                     WHERE id = :id;"
                 )?;
-                pastes_statement.execute(named_params! {":filename": self.filename, ":desc": self.description, ":body": self.body, ":id": self.id})?;
+                pastes_stmt.execute(named_params! {":filename": self.filename, ":desc": self.description, ":body": self.body, ":id": self.id})?;
 
                 if body_changed || extension_changed {
                     if let Some(html) = optional_html {
-                        let mut cache_statement = tx.prepare(
-                            "INSERT INTO syntax_highlight_cache VALUES (:paste_id, :html) ON CONFLICT DO UPDATE SET html = :html;"
-                        )?;
-                        cache_statement.execute(named_params! {":paste_id": self.id, ":html": html})?;
+                        syntax_highlight::tx_cache_set(&tx, &self.id, html)?;
                     } else {
-                        let mut cache_statement = tx.prepare("DELETE FROM syntax_highlight_cache WHERE paste_id = :paste_id;")?;
-                        cache_statement.execute(named_params! {":paste_id": self.id})?;
+                        syntax_highlight::tx_cache_expire(&tx, &self.id)?;
                     }
                 }
             }
@@ -375,8 +343,8 @@ impl Paste {
         let result = db
             .conn
             .call(move |conn| {
-                let mut statement = conn.prepare("DELETE FROM pastes WHERE id = :id;")?;
-                let result = statement.execute(named_params! {":id": self.id})?;
+                let mut stmt = conn.prepare("DELETE FROM pastes WHERE id = :id;")?;
+                let result = stmt.execute(named_params! {":id": self.id})?;
                 Ok(result)
             })
             .await?;
@@ -529,15 +497,6 @@ impl Body {
         };
         body.validate()?;
         Ok(body)
-    }
-
-    pub fn to_syntax_highlighted_html(&self, extension: &str) -> Option<String> {
-        let syntax_set = SyntaxSet::load_defaults_newlines();
-        let syntax = syntax_set.find_syntax_by_extension(extension)?;
-        let theme = ThemeSet::get_theme("src/highlight_themes/CatppuccinFrappe.tmTheme")
-            .map_err(|err| tracing::error!("failed to get syntax highlighting theme: {}", err))
-            .ok()?;
-        highlighted_html_for_string(self.as_ref(), &syntax_set, syntax, &theme).ok()
     }
 }
 
