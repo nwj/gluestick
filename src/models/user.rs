@@ -36,7 +36,7 @@ impl User {
         })
     }
 
-    pub fn from_sql_row(row: &Row) -> models::Result<Self> {
+    pub fn from_sql_row(row: &Row) -> rusqlite::Result<Self> {
         Ok(User {
             id: row.get(0)?,
             username: row.get(1)?,
@@ -73,7 +73,7 @@ impl User {
     }
 
     pub async fn find_by_email(db: &Database, email: String) -> models::Result<Option<User>> {
-        let optional_result = db
+        let optional_user = db
             .conn
             .call(move |conn| {
                 let mut statement = conn.prepare(
@@ -81,13 +81,12 @@ impl User {
                 )?;
                 let mut rows = statement.query(named_params! {":email": email})?;
                 match rows.next()? {
-                    Some(row) => Ok(Some(User::from_sql_row(row))),
+                    Some(row) => Ok(Some(User::from_sql_row(row)?)),
                     None => Ok(None),
                 }
             })
             .await?;
 
-        let optional_user = optional_result.transpose()?;
         Ok(optional_user)
     }
 
@@ -95,7 +94,7 @@ impl User {
         db: &Database,
         token: SessionToken,
     ) -> models::Result<Option<User>> {
-        let optional_result = db
+        let optional_user = db
             .conn
             .call(move |conn| {
                 let mut statement = conn.prepare(
@@ -106,13 +105,12 @@ impl User {
                 let mut rows =
                     statement.query(named_params! {":token": token.to_hash().expose_secret()})?;
                 match rows.next()? {
-                    Some(row) => Ok(Some(User::from_sql_row(row))),
+                    Some(row) => Ok(Some(User::from_sql_row(row)?)),
                     None => Ok(None),
                 }
             })
             .await?;
 
-        let optional_user = optional_result.transpose()?;
         Ok(optional_user)
     }
 
@@ -132,7 +130,7 @@ impl User {
     }
 
     pub async fn find_by_api_key(db: &Database, key: ApiKey) -> models::Result<Option<User>> {
-        let optional_result = db
+        let optional_user = db
             .conn
             .call(move |conn| {
                 let mut statement = conn.prepare(
@@ -143,13 +141,12 @@ impl User {
                 let mut rows =
                     statement.query(named_params! {":key": key.to_hash().expose_secret()})?;
                 match rows.next()? {
-                    Some(row) => Ok(Some(User::from_sql_row(row))),
+                    Some(row) => Ok(Some(User::from_sql_row(row)?)),
                     None => Ok(None),
                 }
             })
             .await?;
 
-        let optional_user = optional_result.transpose()?;
         Ok(optional_user)
     }
 }

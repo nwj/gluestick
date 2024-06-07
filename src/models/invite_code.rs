@@ -6,25 +6,24 @@ pub struct InviteCode {
 }
 
 impl InviteCode {
-    pub fn from_sql_row(row: &Row) -> models::Result<Self> {
+    pub fn from_sql_row(row: &Row) -> rusqlite::Result<Self> {
         Ok(Self { code: row.get(0)? })
     }
 
     pub async fn find(db: &Database, code: String) -> models::Result<Option<Self>> {
-        let optional_result = db
+        let optional_code = db
             .conn
             .call(move |conn| {
                 let mut statement =
                     conn.prepare("SELECT code FROM invite_codes WHERE code = :code;")?;
                 let mut rows = statement.query(named_params! {":code": code})?;
                 match rows.next()? {
-                    Some(row) => Ok(Some(Self::from_sql_row(row))),
+                    Some(row) => Ok(Some(Self::from_sql_row(row)?)),
                     None => Ok(None),
                 }
             })
             .await?;
 
-        let optional_code = optional_result.transpose()?;
         Ok(optional_code)
     }
 
