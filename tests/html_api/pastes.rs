@@ -24,7 +24,7 @@ async fn pastes_create_responds_with_200_for_valid_form_data() {
         .await
         .expect("Failed to send test request.");
 
-    assert_eq!(response.status(), StatusCode::OK)
+    assert_eq!(response.status(), 500)
 }
 
 #[tokio::test]

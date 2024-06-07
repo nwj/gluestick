@@ -123,7 +123,7 @@ impl Paste {
                 }
             })
             .await?;
-        Ok(Ok(pastes)?)
+        Ok(pastes)
     }
 
     pub async fn cursor_paginated_with_username(
