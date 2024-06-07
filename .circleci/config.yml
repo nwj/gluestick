@@ -1,8 +1,14 @@
 version: 2.1
+
+parameters:
+  rust-version:
+  type: string
+  default: "1.78"
+
 jobs:
   format:
     docker:
-      - image: cimg/rust:1.78
+      - image: cimg/rust:<< pipeline.parameters.rust_version >>
     steps:
       - checkout
       - run:
@@ -12,7 +18,67 @@ jobs:
           name: Formatting
           command: cargo fmt --check
 
+  build:
+    docker:
+      - image: cimg/rust:<< pipeline.parameters.rust_version >>
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - cargo-debug-cache-{{ checksum "Cargo.lock" }}
+      - run:
+          name: Version information
+          command: rustc --version; cargo --version; rustup --version
+      - run:
+          name: Build
+          command: cargo build --locked
+      - save_cache:
+          paths:
+            - ./target
+          key: cargo-debug-cache-{{ checksum "Cargo.lock" }}
+      - persist_to_workspace:
+          root: .
+          paths:
+            - ./target
+
+  lint:
+    docker:
+      - image: cimg/rust:<< pipeline.parameters.rust_version >>
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run:
+          name: Version information
+          command: rustc --version; cargo --version; rustup --version
+      - run:
+          name: Linting
+          command: cargo clippy --locked -- -D warnings
+
+  test:
+    docker:
+      - image: cimg/rust:<< pipeline.parameters.rust_version >>
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run:
+          name: Version information
+          command: rustc --version; cargo --version; rustup --version
+      - run:
+          name: Testing
+          command: cargo test --locked
+
 workflows:
   main:
     jobs:
       - format
+      - build:
+          requires:
+            - format
+      - lint:
+          requires:
+            - build
+      - test:
+          requires:
+            - build
