@@ -8,8 +8,8 @@ use crate::{
     models::user::Username,
 };
 use chrono::{
-    {DateTime, Utc},
     serde::ts_seconds,
+    {DateTime, Utc},
 };
 use derive_more::{AsRef, Display, Into};
 use rusqlite::{
@@ -123,7 +123,7 @@ impl Paste {
                 }
             })
             .await?;
-        Ok(pastes)
+        Ok(Ok(pastes)?)
     }
 
     pub async fn cursor_paginated_with_username(
