@@ -9,7 +9,7 @@ parameters:
     default: "cargo-v0-{{ arch }}-{{ checksum \"Cargo.lock\" }}"
 
 jobs:
-  main:
+  lint-and-test:
     docker:
       - image: cimg/rust:<< pipeline.parameters.rust-version >>
     steps:
@@ -37,4 +37,4 @@ jobs:
 workflows:
   main:
     jobs:
-      - main
+      - lint-and-test
