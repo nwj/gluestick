@@ -4,9 +4,12 @@ parameters:
   rust-version:
     type: string
     default: "1.78"
+  cargo-cache-key:
+    type: string
+    default: "cargo-v0-{{ arch }}-{{ checksum \"Cargo.lock\" }}"
 
 jobs:
-  format:
+  main:
     docker:
       - image: cimg/rust:<< pipeline.parameters.rust-version >>
     steps:
@@ -17,66 +20,21 @@ jobs:
       - run:
           name: Formatting
           command: cargo fmt --check
-
-  build:
-    docker:
-      - image: cimg/rust:<< pipeline.parameters.rust-version >>
-    steps:
-      - checkout
       - restore_cache:
           keys:
-            - cargo-debug-cache-{{ checksum "Cargo.lock" }}
-      - run:
-          name: Version information
-          command: rustc --version; cargo --version; rustup --version
-      - run:
-          name: Build
-          command: cargo build --locked
-      - save_cache:
-          paths:
-            - ./target
-          key: cargo-debug-cache-{{ checksum "Cargo.lock" }}
-
-  lint:
-    docker:
-      - image: cimg/rust:<< pipeline.parameters.rust-version >>
-    steps:
-      - checkout
-      - restore_cache:
-          keys:
-            - cargo-debug-cache-{{ checksum "Cargo.lock" }}
-      - run:
-          name: Version information
-          command: rustc --version; cargo --version; rustup --version
+            - << pipeline.parameters.cargo-cache-key >>
       - run:
           name: Linting
           command: cargo clippy --locked -- -D warnings
-
-  test:
-    docker:
-      - image: cimg/rust:<< pipeline.parameters.rust-version >>
-    steps:
-      - checkout
-      - restore_cache:
-          keys:
-            - cargo-debug-cache-{{ checksum "Cargo.lock" }}
-      - run:
-          name: Version information
-          command: rustc --version; cargo --version; rustup --version
       - run:
           name: Testing
           command: cargo test --locked
+      - save_cache:
+          paths:
+            - ./target
+          key: << pipeline.parameters.cargo-cache-key >>
 
 workflows:
   main:
     jobs:
-      - format
-      - build:
-          requires:
-            - format
-      - lint:
-          requires:
-            - build
-      - test:
-          requires:
-            - build
+      - main
