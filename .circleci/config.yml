@@ -1,0 +1,40 @@
+version: 2.1
+
+parameters:
+  rust-version:
+    type: string
+    default: "1.78"
+  cargo-cache-key:
+    type: string
+    default: "cargo-v0-{{ arch }}-{{ checksum \"Cargo.lock\" }}"
+
+jobs:
+  lint-and-test:
+    docker:
+      - image: cimg/rust:<< pipeline.parameters.rust-version >>
+    steps:
+      - checkout
+      - run:
+          name: Version information
+          command: rustc --version; cargo --version; rustup --version
+      - run:
+          name: Formatting
+          command: cargo fmt --check
+      - restore_cache:
+          keys:
+            - << pipeline.parameters.cargo-cache-key >>
+      - run:
+          name: Linting
+          command: cargo clippy --locked -- -D warnings
+      - run:
+          name: Testing
+          command: cargo test --locked
+      - save_cache:
+          paths:
+            - ./target
+          key: << pipeline.parameters.cargo-cache-key >>
+
+workflows:
+  main:
+    jobs:
+      - lint-and-test
