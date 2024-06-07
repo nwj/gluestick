@@ -36,24 +36,15 @@ jobs:
           paths:
             - ./target
           key: cargo-debug-cache-{{ checksum "Cargo.lock" }}
-      - persist_to_workspace:
-          root: .
-          paths:
-            - ./target
 
   lint:
     docker:
       - image: cimg/rust:<< pipeline.parameters.rust-version >>
     steps:
       - checkout
-      - attach_workspace:
-          at: .
-      - run:
-          name: Debug - List workspace contents
-          command: ls -al
-      - run:
-          name: Debug - List target directory contents
-          command: ls -al ./target
+      - restore_cache:
+          keys:
+            - cargo-debug-cache-{{ checksum "Cargo.lock" }}
       - run:
           name: Version information
           command: rustc --version; cargo --version; rustup --version
@@ -66,8 +57,9 @@ jobs:
       - image: cimg/rust:<< pipeline.parameters.rust-version >>
     steps:
       - checkout
-      - attach_workspace:
-          at: .
+      - restore_cache:
+          keys:
+            - cargo-debug-cache-{{ checksum "Cargo.lock" }}
       - run:
           name: Version information
           command: rustc --version; cargo --version; rustup --version
