@@ -1,0 +1,18 @@
+version: 2.1
+jobs:
+  format:
+    docker:
+      - image: cimg/rust:1.78
+    steps:
+      - checkout
+      - run:
+          name: Version information
+          command: rustc --version; cargo --version; rustup --version
+      - run:
+          name: Formatting
+          command: cargo fmt --check
+
+workflows:
+  main:
+    jobs:
+      - format
