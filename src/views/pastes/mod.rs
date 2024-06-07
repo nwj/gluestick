@@ -111,7 +111,8 @@ mod filters {
     }
 
     // This wrapper function is a workaround for the fact that our code formatter for jinja html
-    // breaks askama when it formats things like `{{ foo|filter(10)|safe }}`
+    // breaks askama since it formats things like `{{ foo|filter(10)|safe }}` to (incorrectly)
+    // `{{ foo|filter(10) |safe}}`
     pub fn linewise_truncate_html_10<T: std::fmt::Display>(s: T) -> askama::Result<String> {
         linewise_truncate_html(s, 10)
     }
