@@ -49,6 +49,12 @@ jobs:
       - attach_workspace:
           at: .
       - run:
+          name: Debug - List workspace contents
+          command: ls -al
+      - run:
+          name: Debug - List target directory contents
+          command: ls -al ./target
+      - run:
           name: Version information
           command: rustc --version; cargo --version; rustup --version
       - run:
