@@ -8,7 +8,7 @@ parameters:
 jobs:
   format:
     docker:
-      - image: cimg/rust:<< pipeline.parameters.rust_version >>
+      - image: cimg/rust:<< pipeline.parameters.rust-version >>
     steps:
       - checkout
       - run:
@@ -20,7 +20,7 @@ jobs:
 
   build:
     docker:
-      - image: cimg/rust:<< pipeline.parameters.rust_version >>
+      - image: cimg/rust:<< pipeline.parameters.rust-version >>
     steps:
       - checkout
       - restore_cache:
@@ -43,7 +43,7 @@ jobs:
 
   lint:
     docker:
-      - image: cimg/rust:<< pipeline.parameters.rust_version >>
+      - image: cimg/rust:<< pipeline.parameters.rust-version >>
     steps:
       - checkout
       - attach_workspace:
@@ -57,7 +57,7 @@ jobs:
 
   test:
     docker:
-      - image: cimg/rust:<< pipeline.parameters.rust_version >>
+      - image: cimg/rust:<< pipeline.parameters.rust-version >>
     steps:
       - checkout
       - attach_workspace:
