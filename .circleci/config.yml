@@ -2,8 +2,8 @@ version: 2.1
 
 parameters:
   rust-version:
-  type: string
-  default: "1.78"
+    type: string
+    default: "1.78"
 
 jobs:
   format:
