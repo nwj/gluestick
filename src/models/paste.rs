@@ -8,8 +8,8 @@ use crate::{
     models::user::Username,
 };
 use chrono::{
-    serde::ts_seconds,
     {DateTime, Utc},
+    serde::ts_seconds,
 };
 use derive_more::{AsRef, Display, Into};
 use rusqlite::{
