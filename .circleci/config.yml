@@ -12,7 +12,7 @@ parameters:
     default: "0.14.24"
   cargo-deny-cache-key:
     type: string
-    default: "cargo-deny-test1-{{ arch }}-0.14.24"
+    default: "cargo-deny-test2-{{ arch }}-0.14.24"
 
 jobs:
   lint-and-test:
@@ -48,22 +48,22 @@ jobs:
       - run:
           name: Version information
           command: rustc --version; cargo --version; rustup --version
-      - restore_cache:
-          keys:
-            - << pipeline.parameters.cargo-deny-cache-key >>
+      # - restore_cache:
+      #     keys:
+      #       - << pipeline.parameters.cargo-deny-cache-key >>
       - run:
           name: Debug
-          command: ls -la /home/circleci/.cargo/bin/cargo
+          command: ls -la $CARGO_HOME/bin/
       - run:
           name: Installing cargo deny
           command: cargo install cargo-deny@<< pipeline.parameters.cargo-deny-version >> --locked
       - run:
           name: Debug
-          command: ls -la /home/circleci/.cargo/bin/cargo
-      - save_cache:
-          paths:
-            - /home/circleci/.cargo/bin/cargo
-          key: << pipeline.parameters.cargo-deny-cache-key >>
+          command: ls -la $CARGO_HOME/bin/
+      # - save_cache:
+      #     paths:
+      #       - /home/circleci/.cargo/bin/cargo
+      #     key: << pipeline.parameters.cargo-deny-cache-key >>
       - run:
           name: Advisories auditing
           command: cargo deny check advisories
