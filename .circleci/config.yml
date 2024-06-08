@@ -12,7 +12,7 @@ parameters:
     default: "0.14.24"
   cargo-deny-cache-key:
     type: string
-    default: "cargo-deny-test5-{{ arch }}-{{ checksum \"/home/circleci/.cargo/bin/cargo-deny\" }}"
+    default: "cargo-deny-test5-{{ arch }}-<< pipeline.parameters.cargo-deny-version >>"
 
 jobs:
   lint-and-test:
