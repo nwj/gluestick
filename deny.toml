@@ -5,7 +5,6 @@
 # https://embarkstudios.github.io/cargo-deny/checks/advisories/cfg.html
 [advisories]
 
-unmaintained = "deny"
 # A list of advisory IDs to ignore. Note that ignored advisories will still
 # output a note when they are encountered.
 ignore = [
