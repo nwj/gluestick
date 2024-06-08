@@ -12,7 +12,7 @@ parameters:
     default: "0.14.24"
   cargo-deny-cache-key:
     type: string
-    default: "cargo-deny-test1-{{ arch }}-<< pipeline.parameters.cargo-deny-version >>"
+    default: "cargo-deny-test1-{{ arch }}-0.14.24"
 
 jobs:
   lint-and-test:
