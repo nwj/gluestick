@@ -50,14 +50,14 @@ jobs:
           command: rustc --version; cargo --version; rustup --version
       - restore_cache:
           keys:
-            - << cargo-deny-cache-key >>
+            - << pipeline.parameters.cargo-deny-cache-key >>
       - run:
           name: Installing cargo deny
           command: cargo install cargo-audit@<< pipeline.parameters.cargo-deny-version >>
       - save_cache:
           paths:
             - /home/circleci/.cargo/bin/cargo
-          key: << cargo-deny-cache-key >>
+          key: << pipeline.parameters.cargo-deny-cache-key >>
       - run:
           name: Advisories auditing
           command: cargo deny check advisories
