@@ -6,7 +6,7 @@ parameters:
     default: "1.78"
   target-cache-key:
     type: string
-    default: "target-{{ arch }}-{{ checksum \"Cargo.lock\" }}"
+    default: "v0-target-{{ arch }}-{{ checksum \"Cargo.lock\" }}"
   cargo-deny-version:
     # CircleCI doesn't seem to have a way to build parameters from other
     # parameters so when cargo-deny-version changes, make sure to also update
@@ -15,7 +15,7 @@ parameters:
     default: "0.14.24"
   cargo-deny-cache-key:
     type: string
-    default: "cargo-deny-test5-{{ arch }}-0.14.24"
+    default: "v0-cargo-deny-{{ arch }}-0.14.24"
 
 jobs:
   lint-and-test:
