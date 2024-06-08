@@ -12,7 +12,7 @@ parameters:
     default: "0.14.24"
   cargo-deny-cache-key:
     type: string
-    default: "cargo-deny-test2-{{ arch }}-0.14.24"
+    default: "cargo-deny-test3-{{ arch }}-0.14.24"
 
 jobs:
   lint-and-test:
@@ -54,6 +54,10 @@ jobs:
       - run:
           name: Installing cargo deny
           command: cargo install cargo-deny@<< pipeline.parameters.cargo-deny-version >> --locked
+      - run:
+          name: Cache permission
+          command: |
+            sudo chown -R $(whoami):$(id -ng) $HOME/.cargo/bin/cargo-deny
       - save_cache:
           paths:
             - $HOME/.cargo/bin/cargo-deny
