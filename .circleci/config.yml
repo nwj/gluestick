@@ -4,9 +4,15 @@ parameters:
   rust-version:
     type: string
     default: "1.78"
-  cargo-cache-key:
+  target-cache-key:
     type: string
-    default: "cargo-v0-{{ arch }}-{{ checksum \"Cargo.lock\" }}"
+    default: "target-{{ arch }}-{{ checksum \"Cargo.lock\" }}"
+  cargo-deny-version:
+    type: string
+    default: "0.14.24"
+  cargo-deny-cache-key:
+    type: string
+    default: "cargo-deny-test1-{{ arch }}-<< pipeline.parameters.cargo-deny-version >>"
 
 jobs:
   lint-and-test:
@@ -22,20 +28,42 @@ jobs:
           command: cargo fmt --check
       - restore_cache:
           keys:
-            - << pipeline.parameters.cargo-cache-key >>
+            - << pipeline.parameters.target-cache-key >>
       - run:
           name: Linting
           command: cargo clippy --locked -- -D warnings
       - run:
           name: Testing
           command: cargo test --locked
-      - run:
-          name: Security Auditing
-          command: cargo audit
       - save_cache:
           paths:
             - ./target
-          key: << pipeline.parameters.cargo-cache-key >>
+          key: << pipeline.parameters.target-cache-key >>
+
+  audit:
+    docker:
+      - image: cimg/rust:<< pipeline.parameters.rust-version >>
+    steps:
+      - checkout
+      - run:
+          name: Version information
+          command: rustc --version; cargo --version; rustup --version
+      - restore_cache:
+          keys:
+            - << cargo-deny-cache-key >>
+      - run:
+          name: Installing cargo deny
+          command: cargo install cargo-audit@<< pipeline.parameters.cargo-deny-version >>
+      - save_cache:
+          paths:
+            - /home/circleci/.cargo/bin/cargo
+          key: << cargo-deny-cache-key >>
+      - run:
+          name: Advisories auditing
+          command: cargo deny check advisories
+      - run:
+          name: Licenses auditing
+          command: cargo deny check licenses
 
 workflows:
   main:
