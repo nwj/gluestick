@@ -69,3 +69,4 @@ workflows:
   main:
     jobs:
       - lint-and-test
+      - audit
