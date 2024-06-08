@@ -29,6 +29,9 @@ jobs:
       - run:
           name: Testing
           command: cargo test --locked
+      - run:
+          name: Security Auditing
+          command: cargo audit
       - save_cache:
           paths:
             - ./target
