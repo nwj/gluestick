@@ -52,12 +52,14 @@ jobs:
           keys:
             - << pipeline.parameters.cargo-deny-cache-key >>
       - run:
-          name: Cache permission
-          command: |
-            sudo chown -R $(whoami):$(id -ng) /home/circleci/.cargo/bin/cargo
+          name: Debug
+          command: ls -la /home/circleci/.cargo/bin/cargo
       - run:
           name: Installing cargo deny
           command: cargo install cargo-deny@<< pipeline.parameters.cargo-deny-version >> --locked
+      - run:
+          name: Debug
+          command: ls -la /home/circleci/.cargo/bin/cargo
       - save_cache:
           paths:
             - /home/circleci/.cargo/bin/cargo
