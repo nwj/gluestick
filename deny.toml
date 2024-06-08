@@ -21,7 +21,7 @@ ignore = [
 allow = [
     "MIT",
     "Apache-2.0",
-    "BSD-3-Clause",
+    # "BSD-3-Clause",
 ]
 
 # Allow 1 or more licenses on a per-crate basis, so that particular licenses
