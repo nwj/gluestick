@@ -53,7 +53,7 @@ jobs:
             - << pipeline.parameters.cargo-deny-cache-key >>
       - run:
           name: Installing cargo deny
-          command: cargo install cargo-deny@<< pipeline.parameters.cargo-deny-version >>
+          command: cargo install cargo-deny@<< pipeline.parameters.cargo-deny-version >> --locked
       - save_cache:
           paths:
             - /home/circleci/.cargo/bin/cargo
