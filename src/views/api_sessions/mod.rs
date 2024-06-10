@@ -4,6 +4,6 @@ use secrecy::ExposeSecret;
 
 #[derive(Template)]
 #[template(path = "api_sessions/create.html")]
-pub struct ApiSessionsCreateTemplate {
+pub struct CreateApiSessionsTemplate {
     pub api_key: ApiKey,
 }

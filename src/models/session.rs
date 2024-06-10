@@ -11,7 +11,7 @@ pub struct Session {
 }
 
 impl Session {
-    pub fn new(token: SessionToken, user: User) -> Self {
+    pub fn new(token: &SessionToken, user: User) -> Self {
         Self {
             token: token.to_hash(),
             user,
@@ -37,6 +37,7 @@ impl Session {
 }
 
 #[derive(Clone)]
+#[allow(clippy::module_name_repetitions)]
 pub struct SessionToken(pub Secret<String>);
 
 impl SessionToken {

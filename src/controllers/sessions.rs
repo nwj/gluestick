@@ -35,7 +35,7 @@ pub async fn create(
         return Err(controllers::Error::Unauthorized);
     };
 
-    user.verify_password(input.password)
+    user.verify_password(&input.password)
         .map_err(|_| controllers::Error::Unauthorized)?;
 
     let token = SessionToken::generate();
@@ -53,7 +53,7 @@ pub async fn create(
         .body(Body::empty())
         .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?;
 
-    Session::new(token, user).insert(&db).await?;
+    Session::new(&token, user).insert(&db).await?;
 
     Ok(response)
 }

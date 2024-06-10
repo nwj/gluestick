@@ -27,7 +27,7 @@ pub struct User {
 }
 
 impl User {
-    pub fn new(username: String, email: String, password: Password) -> models::Result<Self> {
+    pub fn new(username: String, email: String, password: &Password) -> models::Result<Self> {
         Ok(User {
             id: Uuid::now_v7(),
             username: Username::try_from(username)?,
@@ -45,7 +45,7 @@ impl User {
         })
     }
 
-    pub fn verify_password(&self, password: Password) -> models::Result<()> {
+    pub fn verify_password(&self, password: &Password) -> models::Result<()> {
         Argon2::default().verify_password(
             password.expose_secret().as_bytes(),
             &PasswordHash::new(self.password.expose_secret())?,
@@ -254,11 +254,11 @@ impl FromSql for EmailAddress {
 pub struct Password(Secret<String>);
 
 impl Password {
-    pub fn to_hash(self) -> models::Result<HashedPassword> {
-        Ok(HashedPassword(Self::hash_password(self.0)?))
+    pub fn to_hash(&self) -> models::Result<HashedPassword> {
+        Ok(HashedPassword(Self::hash_password(&self.0)?))
     }
 
-    fn hash_password(password: Secret<String>) -> models::Result<Secret<String>> {
+    fn hash_password(password: &Secret<String>) -> models::Result<Secret<String>> {
         Ok(Secret::new(
             Argon2::default()
                 .hash_password(

@@ -32,8 +32,7 @@ impl OffsetPaginationParams {
         let value = usize::deserialize(deserializer)?;
         if value > PAGE_MAX {
             Err(D::Error::custom(format!(
-                "page value must be less than or equal to {}, got {}",
-                PAGE_MAX, value
+                "page value must be less than or equal to {PAGE_MAX}, got {value}"
             )))
         } else {
             Ok(value)
@@ -47,8 +46,7 @@ impl OffsetPaginationParams {
         let value = usize::deserialize(deserializer)?;
         if value > PER_PAGE_MAX {
             Err(D::Error::custom(format!(
-                "limit value must be less than or equal to {}, got {}",
-                PER_PAGE_MAX, value
+                "limit value must be less than or equal to {PER_PAGE_MAX}, got {value}"
             )))
         } else {
             Ok(value)
@@ -136,8 +134,7 @@ impl CursorPaginationParams {
         let value = usize::deserialize(deserializer)?;
         if value > PER_PAGE_MAX {
             Err(D::Error::custom(format!(
-                "limit value must be less than or equal to {}, got {}",
-                PER_PAGE_MAX, value
+                "limit value must be less than or equal to {PER_PAGE_MAX}, got {value}"
             )))
         } else {
             Ok(value)
@@ -164,8 +161,8 @@ pub struct CursorPaginationResponse {
 impl CursorPaginationResponse {
     pub fn new(params: &CursorPaginationParams, results: &mut [impl HasOrderedId]) -> Self {
         let (mut prev_page, mut next_page) = (
-            results.first().map(|el| el.ordered_id()),
-            results.last().map(|el| el.ordered_id()),
+            results.first().map(HasOrderedId::ordered_id),
+            results.last().map(HasOrderedId::ordered_id),
         );
 
         if params.direction() == Direction::Ascending {
@@ -185,13 +182,13 @@ impl CursorPaginationResponse {
         results: &mut Vec<impl HasOrderedId>,
     ) -> Self {
         let (mut prev_page, mut next_page) = match params.cursor() {
-            Some(_) => (results.first().map(|el| el.ordered_id()), None),
+            Some(_) => (results.first().map(HasOrderedId::ordered_id), None),
             None => (None, None),
         };
 
         if results.len() > params.per_page {
             results.pop();
-            next_page = results.last().map(|el| el.ordered_id());
+            next_page = results.last().map(HasOrderedId::ordered_id);
         }
 
         if params.direction() == Direction::Ascending {
