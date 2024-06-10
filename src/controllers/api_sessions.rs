@@ -15,9 +15,7 @@ pub async fn create(
 ) -> controllers::Result<impl IntoResponse> {
     let api_key = ApiKey::generate();
 
-    ApiSession::new(&api_key, session.user)
-        .insert(&db)
-        .await?;
+    ApiSession::new(&api_key, session.user).insert(&db).await?;
 
     Ok(CreateApiSessionsTemplate { api_key })
 }

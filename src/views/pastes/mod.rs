@@ -34,11 +34,12 @@ pub struct EditPastesTemplate {
     pub paste: Paste,
 }
 
+#[allow(clippy::unnecessary_wraps)]
 mod filters {
+
     use chrono::{DateTime, Duration, TimeZone, Utc};
     use std::fmt::Write;
 
-    #[allow(clippy::unnecessary_wraps)]
     pub fn linewise_truncate<T: std::fmt::Display>(s: T, n: usize) -> askama::Result<String> {
         let s = s.to_string();
         let mut lines = s.lines();
@@ -62,7 +63,6 @@ mod filters {
     //
     // Basically, this is good enough for our limited use case, but shouldn't be treated like it's
     // a robust html parser.
-    #[allow(clippy::unnecessary_wraps)]
     pub fn linewise_truncate_html<T: std::fmt::Display>(s: T, n: usize) -> askama::Result<String> {
         let s = s.to_string();
 
@@ -120,7 +120,6 @@ mod filters {
     }
 
     #[allow(
-        clippy::unnecessary_wraps,
         clippy::cast_precision_loss,
         clippy::cast_sign_loss,
         clippy::cast_possible_truncation
@@ -143,7 +142,6 @@ mod filters {
         Ok([&result, SUFFIX[base.floor() as usize]].join(" "))
     }
 
-    #[allow(clippy::unnecessary_wraps)]
     pub fn format_relative_time<Tz: TimeZone>(datetime: &DateTime<Tz>) -> askama::Result<String> {
         let now = Utc::now();
         let diff = now.signed_duration_since(datetime);
