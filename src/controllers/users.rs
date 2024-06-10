@@ -33,32 +33,31 @@ pub async fn create(
     State(db): State<Database>,
     Form(input): Form<CreateUser>,
 ) -> controllers::Result<impl IntoResponse> {
-    let invite_code = InviteCode::find(&db, input.invite_code).await?;
-    if invite_code.is_none() {
-        return Err(controllers::Error::Unauthorized);
+    if let Some(invite_code) = InviteCode::find(&db, input.invite_code).await? {
+        let user = User::new(input.username, input.email, &input.password)?;
+        user.clone().insert(&db).await?;
+
+        let token = SessionToken::generate();
+        let response = Response::builder()
+            .status(StatusCode::SEE_OTHER)
+            .header("Location", "/")
+            .header(
+                "Set-Cookie",
+                format!(
+                    "session_token={}; Max-Age=999999; Secure; HttpOnly",
+                    &token.expose_secret()
+                ),
+            )
+            .body(Body::empty())
+            .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?;
+
+        Session::new(&token, user).insert(&db).await?;
+        invite_code.delete(&db).await?;
+
+        Ok(response)
+    } else {
+        Err(controllers::Error::Unauthorized)
     }
-
-    let user = User::new(input.username, input.email, input.password)?;
-    user.clone().insert(&db).await?;
-
-    let token = SessionToken::generate();
-    let response = Response::builder()
-        .status(StatusCode::SEE_OTHER)
-        .header("Location", "/")
-        .header(
-            "Set-Cookie",
-            format!(
-                "session_token={}; Max-Age=999999; Secure; HttpOnly",
-                &token.expose_secret()
-            ),
-        )
-        .body(Body::empty())
-        .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?;
-
-    Session::new(token, user).insert(&db).await?;
-    invite_code.unwrap().delete(&db).await?;
-
-    Ok(response)
 }
 
 pub async fn show(session: Session) -> controllers::Result<impl IntoResponse> {

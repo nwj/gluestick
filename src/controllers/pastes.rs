@@ -167,7 +167,8 @@ pub async fn update(
             let mut response = HeaderMap::new();
             response.insert(
                 "HX-Redirect",
-                HeaderValue::from_str(&format!("/pastes/{}", &paste.id)).unwrap(),
+                HeaderValue::from_str(&format!("/pastes/{}", &paste.id))
+                    .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?,
             );
 
             paste
