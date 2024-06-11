@@ -107,8 +107,7 @@ impl Paste {
                 };
                 let raw_sql = format!(
                     r"SELECT id, user_id, filename, description, body, visibility, created_at, updated_at
-                    FROM pastes WHERE visibility = 'public' {} ORDER BY pastes.id {} LIMIT :limit;",
-                    cursor_sql, direction_sql
+                    FROM pastes WHERE visibility = 'public' {cursor_sql} ORDER BY pastes.id {direction_sql} LIMIT :limit;"
                 );
                 let mut stmt = conn.prepare(&raw_sql)?;
                 match cursor {
@@ -153,10 +152,9 @@ impl Paste {
                       pastes.updated_at,
                       users.username
                     FROM pastes JOIN users ON pastes.user_id = users.id
-                    WHERE pastes.visibility = 'public' {}
-                    ORDER BY pastes.id {}
-                    LIMIT :limit;",
-                    cursor_sql, direction_sql
+                    WHERE pastes.visibility = 'public' {cursor_sql}
+                    ORDER BY pastes.id {direction_sql}
+                    LIMIT :limit;"
                 );
                 let mut stmt = conn.prepare(&raw_sql)?;
                 match cursor {
@@ -212,7 +210,7 @@ impl Paste {
                     )?;
 
                     if let Some(html) = optional_html {
-                        syntax_highlight::tx_cache_set(&tx, &self.id, html)?;
+                        syntax_highlight::tx_cache_set(&tx, &self.id, &html)?;
                     }
                 }
                 tx.commit()?;
@@ -327,7 +325,7 @@ impl Paste {
 
                 if body_changed || extension_changed {
                     if let Some(html) = optional_html {
-                        syntax_highlight::tx_cache_set(&tx, &self.id, html)?;
+                        syntax_highlight::tx_cache_set(&tx, &self.id, &html)?;
                     } else {
                         syntax_highlight::tx_cache_expire(&tx, &self.id)?;
                     }
@@ -369,7 +367,7 @@ pub struct Filename {
 }
 
 impl Filename {
-    pub fn new(s: String) -> models::Result<Self> {
+    pub fn new(s: &str) -> models::Result<Self> {
         let filename = Self {
             inner: s.trim().to_string(),
         };
@@ -404,7 +402,7 @@ impl TryFrom<String> for Filename {
     type Error = models::Error;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
-        Self::new(value)
+        Self::new(&value)
     }
 }
 
@@ -437,7 +435,7 @@ pub struct Description {
 }
 
 impl Description {
-    pub fn new(s: String) -> models::Result<Self> {
+    pub fn new(s: &str) -> models::Result<Self> {
         let description = Self {
             inner: s.trim().to_string(),
         };
@@ -458,7 +456,7 @@ impl TryFrom<String> for Description {
     type Error = models::Error;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
-        Self::new(value)
+        Self::new(&value)
     }
 }
 
@@ -491,7 +489,7 @@ pub struct Body {
 }
 
 impl Body {
-    pub fn new(s: String) -> models::Result<Self> {
+    pub fn new(s: &str) -> models::Result<Self> {
         let body = Self {
             inner: s.trim().to_string(),
         };
@@ -504,7 +502,7 @@ impl TryFrom<String> for Body {
     type Error = models::Error;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
-        Self::new(value)
+        Self::new(&value)
     }
 }
 

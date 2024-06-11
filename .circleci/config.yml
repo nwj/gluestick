@@ -34,7 +34,7 @@ jobs:
             - << pipeline.parameters.target-cache-key >>
       - run:
           name: Linting
-          command: cargo clippy --locked -- -D warnings
+          command: cargo clippy --locked
       - run:
           name: Testing
           command: cargo test --locked

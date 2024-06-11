@@ -11,7 +11,7 @@ pub struct ApiSession {
 }
 
 impl ApiSession {
-    pub fn new(api_key: ApiKey, user: User) -> Self {
+    pub fn new(api_key: &ApiKey, user: User) -> Self {
         Self {
             api_key: api_key.to_hash(),
             user,

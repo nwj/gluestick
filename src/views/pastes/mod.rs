@@ -34,7 +34,9 @@ pub struct EditPastesTemplate {
     pub paste: Paste,
 }
 
+#[allow(clippy::unnecessary_wraps)]
 mod filters {
+
     use chrono::{DateTime, Duration, TimeZone, Utc};
     use std::fmt::Write;
 
@@ -47,7 +49,7 @@ mod filters {
             if lines.next().is_some() {
                 write!(truncated, "\n{}...", last_line.trim_end()).ok();
             } else {
-                write!(truncated, "\n{}", last_line).ok();
+                write!(truncated, "\n{last_line}").ok();
             }
         }
 
@@ -74,7 +76,7 @@ mod filters {
 
         for _ in 0..n {
             if let Some(line) = lines.next() {
-                writeln!(truncated, "{}", line).ok();
+                writeln!(truncated, "{line}").ok();
 
                 let mut tag_start = None;
                 for (i, c) in line.char_indices() {
@@ -103,7 +105,7 @@ mod filters {
         if let Some(last_line) = lines.next() {
             write!(truncated, "{}...", last_line.trim_end()).ok();
             while let Some(tag) = open_tags.pop() {
-                write!(truncated, "</{}>", tag).ok();
+                write!(truncated, "</{tag}>").ok();
             }
         }
 
@@ -117,25 +119,27 @@ mod filters {
         linewise_truncate_html(s, 10)
     }
 
+    #[allow(
+        clippy::cast_precision_loss,
+        clippy::cast_sign_loss,
+        clippy::cast_possible_truncation
+    )]
     pub fn format_byte_size<T: std::fmt::Display>(s: T) -> askama::Result<String> {
+        const UNIT: f64 = 1000.0;
+        const SUFFIX: [&str; 5] = ["bytes", "KB", "MB", "GB", "TB"];
+
         let s = s.to_string();
-        let bytes = s.len();
+        let size = s.len();
+        if size == 1 {
+            return Ok("1 byte".into());
+        }
 
-        const KB: usize = 1024;
-        const MB: usize = KB * 1024;
-        const GB: usize = MB * 1024;
-        const BYTE_LIMIT: usize = KB - 1;
-        const KB_LIMIT: usize = MB - 1;
-        const MB_LIMIT: usize = GB - 1;
-
-        let size = match bytes {
-            0..=BYTE_LIMIT => format!("{} bytes", bytes),
-            KB..=KB_LIMIT => format!("{:.1} kb", bytes as f64 / KB as f64),
-            MB..=MB_LIMIT => format!("{:.1} mb", bytes as f64 / MB as f64),
-            _ => format!("{:.1} gb", bytes as f64 / GB as f64),
-        };
-
-        Ok(size)
+        let size = size as f64;
+        let base = size.log10() / UNIT.log10();
+        let result = format!("{:.1}", UNIT.powf(base - base.floor()),)
+            .trim_end_matches(".0")
+            .to_owned();
+        Ok([&result, SUFFIX[base.floor() as usize]].join(" "))
     }
 
     pub fn format_relative_time<Tz: TimeZone>(datetime: &DateTime<Tz>) -> askama::Result<String> {

@@ -45,7 +45,7 @@ pub async fn generate_with_cache_attempt(
                     if tx_cache_get(&tx, &paste_id)?.is_none()
                         && Paste::tx_find(&tx, &paste_id)?.is_some()
                     {
-                        tx_cache_set(&tx, &paste_id, html)?;
+                        tx_cache_set(&tx, &paste_id, &html)?;
                     }
                 }
                 tx.commit()?;
@@ -82,7 +82,7 @@ pub fn tx_cache_get(tx: &Transaction, paste_id: &Uuid) -> rusqlite::Result<Optio
     }
 }
 
-pub fn tx_cache_set(tx: &Transaction, paste_id: &Uuid, html: String) -> rusqlite::Result<()> {
+pub fn tx_cache_set(tx: &Transaction, paste_id: &Uuid, html: &str) -> rusqlite::Result<()> {
     let mut stmt = tx.prepare("INSERT INTO syntax_highlight_cache VALUES (:paste_id, :html) ON CONFLICT DO UPDATE SET html = :html;")?;
     stmt.execute(named_params! {":paste_id": paste_id, ":html": html})?;
     Ok(())

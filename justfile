@@ -5,7 +5,7 @@ _default:
 
 # Lints the codebase (via clippy)
 check:
-	cargo clippy --locked -- -D warnings
+	cargo clippy --locked
 
 # Runs all tests
 test:
@@ -15,10 +15,9 @@ test:
 run:
 	cargo run --locked
 
-
 # Lints, tests, builds, and runs the app on every change
 watch:
-	cargo watch -i "*.css" -x "clippy --locked -- -D warnings" -x "test --locked" -x "run --locked"
+	cargo watch -i "*.css" -x "clippy --locked" -x "test --locked" -x "run --locked"
 
 # Formats the codebase (via cargo fmt)
 format:

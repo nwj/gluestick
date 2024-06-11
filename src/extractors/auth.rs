@@ -43,7 +43,7 @@ where
         let optional_user = User::find_by_session_token(&db, token.clone()).await?;
 
         match optional_user {
-            Some(user) => Ok(Session::new(token, user)),
+            Some(user) => Ok(Session::new(&token, user)),
             None => Err(controllers::Error::Unauthorized),
         }
     }
@@ -76,7 +76,7 @@ where
         let optional_user = User::find_by_api_key(&db, api_key.clone()).await?;
 
         match optional_user {
-            Some(user) => Ok(ApiSession::new(api_key, user)),
+            Some(user) => Ok(ApiSession::new(&api_key, user)),
             None => Err(controllers::api::Error::Unauthorized),
         }
     }
