@@ -3,6 +3,7 @@ use reqwest::StatusCode;
 mod common;
 mod html_api;
 mod json_api;
+mod prelude;
 
 #[tokio::test]
 async fn fallback_responds_with_404() {

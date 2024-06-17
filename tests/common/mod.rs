@@ -1,3 +1,4 @@
+use crate::prelude::*;
 use argon2::{
     password_hash::{rand_core::OsRng, PasswordHasher, SaltString},
     Argon2,
@@ -11,7 +12,9 @@ use tokio_rusqlite::{named_params, Connection};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use uuid::Uuid;
 
+pub mod rand_helper;
 pub mod test_paste;
+pub mod user_helper;
 
 static INIT_TRACING: Lazy<()> = Lazy::new(|| {
     if std::env::var("GLUESTICK_TEST_LOG").is_ok() {
@@ -29,6 +32,26 @@ pub struct TestApp {
     pub address: SocketAddr,
     pub db: Database,
     pub user: AuthenticatedTestUser,
+}
+
+impl TestApp {
+    pub async fn seed_invite_code(&self, invite_code: String) -> Result<()> {
+        self.db
+            .conn
+            .call(move |conn| {
+                let mut stmt = conn.prepare("INSERT INTO invite_codes VALUES(:invite_code);")?;
+                stmt.execute(named_params! {":invite_code": invite_code})?;
+                Ok(())
+            })
+            .await?;
+        Ok(())
+    }
+
+    pub async fn seed_random_invite_code(&self) -> Result<String> {
+        let invite_code = rand_helper::random_string(8..=8)?;
+        self.seed_invite_code(invite_code.clone()).await?;
+        Ok(invite_code)
+    }
 }
 
 pub async fn spawn_app() -> TestApp {
@@ -101,7 +124,7 @@ impl Default for AuthenticatedTestUser {
 }
 
 impl AuthenticatedTestUser {
-    async fn persist(&self, db: Database) -> Result<(), tokio_rusqlite::Error> {
+    async fn persist(&self, db: Database) -> std::result::Result<(), tokio_rusqlite::Error> {
         let id = self.id.clone();
         let username = self.username.clone();
         let email = self.email.clone();
