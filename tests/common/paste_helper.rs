@@ -68,6 +68,28 @@ impl TestPaste {
         Ok(response)
     }
 
+    pub async fn html_api_index(app: &TestApp, client: &Client) -> Result<Response> {
+        let response = client
+            .get(format!("http://{}/pastes", app.address))
+            .send()
+            .await?;
+        Ok(response)
+    }
+
+    pub async fn html_api_create(&self, app: &TestApp, client: &Client) -> Result<Response> {
+        let response = client
+            .post(format!("http://{}/pastes", app.address))
+            .form(&[
+                ("filename", &self.filename),
+                ("description", &self.description),
+                ("body", &self.body),
+                ("visibility", &self.visibility),
+            ])
+            .send()
+            .await?;
+        Ok(response)
+    }
+
     pub async fn persist(mut self, app: &TestApp, client: &Client) -> Result<Self> {
         let response = self.json_api_create(app, client).await?;
         let id: Uuid = response.json().await?;

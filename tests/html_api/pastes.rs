@@ -1,52 +1,17 @@
 use crate::common;
-use reqwest::{
-    header::{HeaderMap, HeaderValue, COOKIE},
-    Client, StatusCode,
-};
+use crate::common::paste_helper::TestPaste;
+use crate::prelude::*;
+use reqwest::StatusCode;
 
 #[tokio::test]
-async fn pastes_create_responds_with_200_for_valid_form_data() {
+async fn create_persists_when_valid_form_data() -> Result<()> {
     let app = common::spawn_app().await;
-    let cookie_str = format!("session_token={}", &app.user.session_token);
-    let mut headers = HeaderMap::new();
-    headers.insert(COOKIE, HeaderValue::from_str(&cookie_str).unwrap());
-    let client = Client::builder().default_headers(headers).build().unwrap();
+    let client = app.session_authenticated_client()?;
+    let paste = TestPaste::builder().random()?.build();
 
-    let response = client
-        .post(format!("http://{}/pastes", app.address))
-        .form(&[
-            ("filename", "Paste"),
-            ("description", "description"),
-            ("body", "body"),
-            ("visibility", "public"),
-        ])
-        .send()
-        .await
-        .expect("Failed to send test request.");
+    let response = paste.html_api_create(&app, &client).await?;
 
-    assert_eq!(response.status(), StatusCode::OK)
-}
-
-#[tokio::test]
-async fn pastes_create_persists_when_valid_form_data() {
-    let app = common::spawn_app().await;
-    let cookie_str = format!("session_token={}", &app.user.session_token);
-    let mut headers = HeaderMap::new();
-    headers.insert(COOKIE, HeaderValue::from_str(&cookie_str).unwrap());
-    let client = Client::builder().default_headers(headers).build().unwrap();
-
-    client
-        .post(format!("http://{}/pastes", app.address))
-        .form(&[
-            ("filename", "Paste"),
-            ("description", "description"),
-            ("body", "body"),
-            ("visibility", "public"),
-        ])
-        .send()
-        .await
-        .expect("Failed to send test request.");
-
+    assert_eq!(response.status(), StatusCode::OK);
     let persisted = app
         .db
         .conn
@@ -54,94 +19,53 @@ async fn pastes_create_persists_when_valid_form_data() {
             Ok(conn
                 .prepare("SELECT filename, description, body FROM pastes")?
                 .query_map([], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)))?
-                .collect::<Result<Vec<(String, String, String)>, _>>())
+                .collect::<std::result::Result<Vec<(String, String, String)>, _>>())
         })
-        .await
-        .unwrap()
-        .unwrap();
-
+        .await??;
     assert_eq!(persisted.len(), 1);
-    assert_eq!(persisted[0].0, "Paste");
-    assert_eq!(persisted[0].1, "description");
-    assert_eq!(persisted[0].2, "body");
+    assert_eq!(persisted[0].0, paste.filename);
+    assert_eq!(persisted[0].1, paste.description);
+    assert_eq!(persisted[0].2, paste.body);
+    Ok(())
 }
 
 #[tokio::test]
-async fn pastes_create_responds_with_422_when_data_missing() {
+async fn create_responds_with_400_when_data_missing() -> Result<()> {
     let app = common::spawn_app().await;
-    let cookie_str = format!("session_token={}", &app.user.session_token);
-    let mut headers = HeaderMap::new();
-    headers.insert(COOKIE, HeaderValue::from_str(&cookie_str).unwrap());
-    let client = Client::builder().default_headers(headers).build().unwrap();
-    let cases = vec![
-        [("filename", "Paste"), ("description", "A paste.")],
-        [("description", "A paste."), ("body", "A paste body.")],
-        [("filename", "Paste"), ("body", "A paste body.")],
+    let client = app.session_authenticated_client()?;
+    let bad_pastes = vec![
+        TestPaste::builder().filename("").build(),
+        TestPaste::builder().body("").build(),
     ];
 
-    for invalid_body in cases {
-        let response = client
-            .post(format!("http://{}/pastes", app.address))
-            .form(&invalid_body)
-            .send()
-            .await
-            .expect("Failed to send test request.");
-
-        assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY)
+    for bad_paste in bad_pastes {
+        let response = bad_paste.html_api_create(&app, &client).await?;
+        assert_eq!(response.status(), 400);
     }
+    Ok(())
 }
 
 #[tokio::test]
-async fn pastes_index_responds_with_200() {
+async fn index_lists_all_pastes() -> Result<()> {
     let app = common::spawn_app().await;
-    let response = reqwest::get(format!("http://{}/pastes", app.address))
-        .await
-        .expect("Failed to send test request.");
+    let client = app.api_authenticated_client()?;
+    let paste1 = TestPaste::builder()
+        .random()?
+        .build()
+        .persist(&app, &client)
+        .await?;
+    let paste2 = TestPaste::builder()
+        .random()?
+        .build()
+        .persist(&app, &client)
+        .await?;
+    let client = app.session_authenticated_client()?;
 
+    let response = TestPaste::html_api_index(&app, &client).await?;
     assert!(response.status().is_success());
-}
-
-#[tokio::test]
-async fn pastes_index_lists_all_pastes() {
-    let app = common::spawn_app().await;
-    let cookie_str = format!("session_token={}", &app.user.session_token);
-    let mut headers = HeaderMap::new();
-    headers.insert(COOKIE, HeaderValue::from_str(&cookie_str).unwrap());
-    let client = Client::builder().default_headers(headers).build().unwrap();
-    let paste1 = "Paste 1";
-    let paste2 = "Paste 2";
-
-    client
-        .post(format!("http://{}/pastes", app.address))
-        .form(&[
-            ("filename", paste1),
-            ("description", "description"),
-            ("body", "body"),
-            ("visibility", "public"),
-        ])
-        .send()
-        .await
-        .expect("Failed to send test request.");
-
-    client
-        .post(format!("http://{}/pastes", app.address))
-        .form(&[
-            ("filename", paste2),
-            ("description", "description"),
-            ("body", "body"),
-            ("visibility", "public"),
-        ])
-        .send()
-        .await
-        .expect("Failed to send test request.");
-
-    let response = client
-        .get(format!("http://{}/pastes", app.address))
-        .send()
-        .await
-        .expect("Failed to send test request.");
     let body = response.text().await.unwrap();
 
-    assert!(body.contains(paste1));
-    assert!(body.contains(paste2));
+    assert!(body.contains(&paste1.filename));
+    assert!(body.contains(&paste2.filename));
+    Ok(())
 }
