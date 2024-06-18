@@ -99,7 +99,7 @@ impl TestUserBuilder {
         Ok(self.password(rand_helper::random_string(8..=20)?))
     }
 
-    pub fn full_random(self) -> Result<Self> {
+    pub fn random(self) -> Result<Self> {
         Ok(self.random_username()?.random_email()?.random_password()?)
     }
 

@@ -6,12 +6,15 @@ use argon2::{
 use core::net::SocketAddr;
 use gluestick::{db::migrations, db::Database, router};
 use once_cell::sync::Lazy;
+use reqwest::header::{HeaderMap, HeaderValue};
+use reqwest::Client;
 use sha2::{Digest, Sha256};
 use tokio::net::TcpListener;
 use tokio_rusqlite::{named_params, Connection};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use uuid::Uuid;
 
+pub mod paste_helper;
 pub mod rand_helper;
 pub mod test_paste;
 pub mod user_helper;
@@ -35,6 +38,16 @@ pub struct TestApp {
 }
 
 impl TestApp {
+    pub fn api_authenticated_client(&self) -> Result<Client> {
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            "X-GLUESTICK-API-KEY",
+            HeaderValue::from_str(&self.user.api_key)?,
+        );
+        let client = Client::builder().default_headers(headers).build()?;
+        Ok(client)
+    }
+
     pub async fn seed_invite_code(&self, invite_code: String) -> Result<()> {
         self.db
             .conn

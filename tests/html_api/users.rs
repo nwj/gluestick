@@ -7,7 +7,7 @@ use reqwest::{Client, StatusCode};
 async fn can_signup_with_valid_invite_code() -> Result<()> {
     let app = common::spawn_app().await;
     let client = Client::builder().cookie_store(true).build()?;
-    let user = TestUser::builder().full_random()?.build();
+    let user = TestUser::builder().random()?.build();
     let invite_code = app.seed_random_invite_code().await?;
 
     let response = user.signup(&app, &client, invite_code).await?;
@@ -20,7 +20,7 @@ async fn can_signup_with_valid_invite_code() -> Result<()> {
 async fn settings_inaccessible_when_logged_out() -> Result<()> {
     let app = common::spawn_app().await;
     let client = Client::builder().cookie_store(true).build()?;
-    let user = TestUser::builder().full_random()?.build();
+    let user = TestUser::builder().random()?.build();
 
     let response = user.settings(&app, &client).await?;
 
@@ -32,7 +32,7 @@ async fn settings_inaccessible_when_logged_out() -> Result<()> {
 async fn has_session_after_signup() -> Result<()> {
     let app = common::spawn_app().await;
     let client = Client::builder().cookie_store(true).build()?;
-    let user = TestUser::builder().full_random()?.build();
+    let user = TestUser::builder().random()?.build();
     let invite_code = app.seed_random_invite_code().await?;
 
     user.signup(&app, &client, invite_code).await?;
@@ -46,7 +46,7 @@ async fn has_session_after_signup() -> Result<()> {
 async fn logout_ends_session() -> Result<()> {
     let app = common::spawn_app().await;
     let client = Client::builder().cookie_store(true).build()?;
-    let user = TestUser::builder().full_random()?.build();
+    let user = TestUser::builder().random()?.build();
     let invite_code = app.seed_random_invite_code().await?;
     user.signup(&app, &client, invite_code).await?;
 
@@ -61,7 +61,7 @@ async fn logout_ends_session() -> Result<()> {
 async fn can_login_with_valid_credentials() -> Result<()> {
     let app = common::spawn_app().await;
     let client = Client::builder().cookie_store(true).build()?;
-    let user = TestUser::builder().full_random()?.build();
+    let user = TestUser::builder().random()?.build();
     let invite_code = app.seed_random_invite_code().await?;
     user.signup(&app, &client, invite_code).await?;
     user.logout(&app, &client).await?;
@@ -75,7 +75,7 @@ async fn can_login_with_valid_credentials() -> Result<()> {
 async fn has_session_after_login() -> Result<()> {
     let app = common::spawn_app().await;
     let client = Client::builder().cookie_store(true).build()?;
-    let user = TestUser::builder().full_random()?.build();
+    let user = TestUser::builder().random()?.build();
     let invite_code = app.seed_random_invite_code().await?;
     user.signup(&app, &client, invite_code).await?;
     user.logout(&app, &client).await?;
