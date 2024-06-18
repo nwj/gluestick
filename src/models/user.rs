@@ -79,7 +79,7 @@ impl User {
                 let mut statement = conn.prepare(
                     "SELECT id, username, email, password FROM users WHERE email = :email;",
                 )?;
-                let mut rows = statement.query(named_params! {":email": email})?;
+                let mut rows = statement.query(named_params! {":email": email.to_lowercase()})?;
                 match rows.next()? {
                     Some(row) => Ok(Some(User::from_sql_row(row)?)),
                     None => Ok(None),
@@ -214,8 +214,10 @@ pub struct EmailAddress {
 }
 
 impl EmailAddress {
-    pub fn new(s: String) -> models::Result<Self> {
-        let email = Self { inner: s };
+    pub fn new(s: &str) -> models::Result<Self> {
+        let email = Self {
+            inner: s.to_lowercase(),
+        };
         email.validate()?;
         Ok(email)
     }
@@ -225,7 +227,7 @@ impl TryFrom<String> for EmailAddress {
     type Error = models::Error;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
-        Self::new(value)
+        Self::new(&value)
     }
 }
 

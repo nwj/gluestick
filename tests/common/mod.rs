@@ -1,3 +1,4 @@
+use crate::prelude::*;
 use argon2::{
     password_hash::{rand_core::OsRng, PasswordHasher, SaltString},
     Argon2,
@@ -5,13 +6,17 @@ use argon2::{
 use core::net::SocketAddr;
 use gluestick::{db::migrations, db::Database, router};
 use once_cell::sync::Lazy;
+use reqwest::header::{HeaderMap, HeaderValue, COOKIE};
+use reqwest::Client;
 use sha2::{Digest, Sha256};
 use tokio::net::TcpListener;
 use tokio_rusqlite::{named_params, Connection};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use uuid::Uuid;
 
-pub mod test_paste;
+pub mod paste_helper;
+pub mod rand_helper;
+pub mod user_helper;
 
 static INIT_TRACING: Lazy<()> = Lazy::new(|| {
     if std::env::var("GLUESTICK_TEST_LOG").is_ok() {
@@ -29,6 +34,44 @@ pub struct TestApp {
     pub address: SocketAddr,
     pub db: Database,
     pub user: AuthenticatedTestUser,
+}
+
+impl TestApp {
+    pub fn api_authenticated_client(&self) -> Result<Client> {
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            "X-GLUESTICK-API-KEY",
+            HeaderValue::from_str(&self.user.api_key)?,
+        );
+        let client = Client::builder().default_headers(headers).build()?;
+        Ok(client)
+    }
+
+    pub fn session_authenticated_client(&self) -> Result<Client> {
+        let mut headers = HeaderMap::new();
+        let cookie_str = format!("session_token={}", self.user.session_token);
+        headers.insert(COOKIE, HeaderValue::from_str(&cookie_str)?);
+        let client = Client::builder().default_headers(headers).build()?;
+        Ok(client)
+    }
+
+    pub async fn seed_invite_code(&self, invite_code: String) -> Result<()> {
+        self.db
+            .conn
+            .call(move |conn| {
+                let mut stmt = conn.prepare("INSERT INTO invite_codes VALUES(:invite_code);")?;
+                stmt.execute(named_params! {":invite_code": invite_code})?;
+                Ok(())
+            })
+            .await?;
+        Ok(())
+    }
+
+    pub async fn seed_random_invite_code(&self) -> Result<String> {
+        let invite_code = rand_helper::random_string(8..=8)?;
+        self.seed_invite_code(invite_code.clone()).await?;
+        Ok(invite_code)
+    }
 }
 
 pub async fn spawn_app() -> TestApp {
@@ -101,7 +144,7 @@ impl Default for AuthenticatedTestUser {
 }
 
 impl AuthenticatedTestUser {
-    async fn persist(&self, db: Database) -> Result<(), tokio_rusqlite::Error> {
+    async fn persist(&self, db: Database) -> std::result::Result<(), tokio_rusqlite::Error> {
         let id = self.id.clone();
         let username = self.username.clone();
         let email = self.email.clone();
