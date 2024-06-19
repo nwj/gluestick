@@ -1,4 +1,4 @@
-use common::TestApp;
+use crate::common::test_app::TestApp;
 use reqwest::StatusCode;
 
 mod common;

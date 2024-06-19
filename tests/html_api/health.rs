@@ -1,4 +1,4 @@
-use crate::common::TestApp;
+use crate::common::test_app::TestApp;
 
 #[tokio::test]
 async fn health_check_responds_with_200() {

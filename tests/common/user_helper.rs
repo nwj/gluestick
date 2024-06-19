@@ -1,5 +1,5 @@
 use crate::common::rand_helper;
-use crate::common::TestApp;
+use crate::common::test_app::TestApp;
 use crate::prelude::*;
 use reqwest::{Client, Response};
 

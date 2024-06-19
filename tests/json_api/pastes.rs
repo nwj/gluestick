@@ -1,5 +1,5 @@
 use crate::common::paste_helper::TestPaste;
-use crate::common::TestApp;
+use crate::common::test_app::TestApp;
 use crate::prelude::*;
 use serde::Deserialize;
 use std::collections::HashSet;

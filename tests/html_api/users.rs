@@ -1,5 +1,5 @@
+use crate::common::test_app::TestApp;
 use crate::common::user_helper::TestUser;
-use crate::common::TestApp;
 use crate::prelude::*;
 use reqwest::{Client, StatusCode};
 
