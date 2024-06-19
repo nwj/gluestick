@@ -6,7 +6,7 @@ use reqwest::StatusCode;
 #[tokio::test]
 async fn create_persists_when_valid_form_data() -> Result<()> {
     let app = TestApp::spawn().await;
-    let client = app.session_authenticated_client()?;
+    let client = app.session_authenticated_client().await?;
     let paste = TestPaste::builder().random()?.build();
 
     let response = paste.html_api_create(&app, &client).await?;
@@ -32,7 +32,7 @@ async fn create_persists_when_valid_form_data() -> Result<()> {
 #[tokio::test]
 async fn create_responds_with_400_when_data_missing() -> Result<()> {
     let app = TestApp::spawn().await;
-    let client = app.session_authenticated_client()?;
+    let client = app.session_authenticated_client().await?;
     let bad_pastes = vec![
         TestPaste::builder().filename("").build(),
         TestPaste::builder().body("").build(),
@@ -48,7 +48,7 @@ async fn create_responds_with_400_when_data_missing() -> Result<()> {
 #[tokio::test]
 async fn index_lists_all_pastes() -> Result<()> {
     let app = TestApp::spawn().await;
-    let client = app.api_authenticated_client()?;
+    let client = app.session_and_api_authenticated_client().await?;
     let paste1 = TestPaste::builder()
         .random()?
         .build()
@@ -59,7 +59,6 @@ async fn index_lists_all_pastes() -> Result<()> {
         .build()
         .persist(&app, &client)
         .await?;
-    let client = app.session_authenticated_client()?;
 
     let response = TestPaste::html_api_index(&app, &client).await?;
     assert!(response.status().is_success());

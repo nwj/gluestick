@@ -1,19 +1,14 @@
 use crate::common::rand_helper;
+use crate::common::user_helper::TestUser;
 use crate::prelude::*;
-use argon2::{
-    password_hash::{rand_core::OsRng, PasswordHasher, SaltString},
-    Argon2,
-};
 use core::net::SocketAddr;
 use gluestick::{db::migrations, db::Database, router};
 use once_cell::sync::Lazy;
-use reqwest::header::{HeaderMap, HeaderValue, COOKIE};
+use reqwest::header::{HeaderMap, HeaderValue};
 use reqwest::Client;
-use sha2::{Digest, Sha256};
 use tokio::net::TcpListener;
 use tokio_rusqlite::{named_params, Connection};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-use uuid::Uuid;
 
 static INIT_TRACING: Lazy<()> = Lazy::new(|| {
     if std::env::var("GLUESTICK_TEST_LOG").is_ok() {
@@ -30,7 +25,6 @@ static INIT_TRACING: Lazy<()> = Lazy::new(|| {
 pub struct TestApp {
     pub address: SocketAddr,
     pub db: Database,
-    pub user: AuthenticatedTestUser,
 }
 
 impl TestApp {
@@ -59,11 +53,6 @@ impl TestApp {
             .await
             .expect("Failed to migrate the test database.");
 
-        let user = AuthenticatedTestUser::default();
-        user.persist(db.clone())
-            .await
-            .expect("Failed to persist authenticated test user.");
-
         // Binding to port 0 will cause the OS to scan for an available port which will then be used
         // for the bind. So this effectively runs the test server on a random, open port.
         let listener = TcpListener::bind(("127.0.0.1", 0))
@@ -78,24 +67,42 @@ impl TestApp {
                 .expect("Failed to serve test server.")
         });
 
-        Self { address, db, user }
+        Self { address, db }
     }
 
-    pub fn api_authenticated_client(&self) -> Result<Client> {
+    pub async fn session_and_api_authenticated_client(&self) -> Result<Client> {
+        let client = Client::builder().cookie_store(true).build()?;
+        let invite_code = self.seed_random_invite_code().await?;
+        let user = TestUser::builder().random()?.build();
+        user.signup(self, &client, invite_code).await?;
+
+        let response = user.generate_api_key(self, &client).await?;
+        let body = response.text().await?;
+        let api_key = body
+            .find("<pre><code>")
+            .and_then(|start| {
+                body[start + 11..]
+                    .find("</code></pre>")
+                    .map(|end| (start, end))
+            })
+            .map(|(start, end)| body[start + 11..start + 11 + end].to_string())
+            .ok_or("Failed to parse api key")?;
+
         let mut headers = HeaderMap::new();
-        headers.insert(
-            "X-GLUESTICK-API-KEY",
-            HeaderValue::from_str(&self.user.api_key)?,
-        );
-        let client = Client::builder().default_headers(headers).build()?;
+        headers.insert("X-GLUESTICK-API-KEY", HeaderValue::from_str(&api_key)?);
+        let client = Client::builder()
+            .cookie_store(true)
+            .default_headers(headers)
+            .build()?;
+        user.login(self, &client).await?;
         Ok(client)
     }
 
-    pub fn session_authenticated_client(&self) -> Result<Client> {
-        let mut headers = HeaderMap::new();
-        let cookie_str = format!("session_token={}", self.user.session_token);
-        headers.insert(COOKIE, HeaderValue::from_str(&cookie_str)?);
-        let client = Client::builder().default_headers(headers).build()?;
+    pub async fn session_authenticated_client(&self) -> Result<Client> {
+        let client = Client::builder().cookie_store(true).build()?;
+        let invite_code = self.seed_random_invite_code().await?;
+        let user = TestUser::builder().random()?.build();
+        user.signup(self, &client, invite_code).await?;
         Ok(client)
     }
 
@@ -115,83 +122,5 @@ impl TestApp {
         let invite_code = rand_helper::random_string(8..=8)?;
         self.seed_invite_code(invite_code.clone()).await?;
         Ok(invite_code)
-    }
-}
-
-pub struct AuthenticatedTestUser {
-    pub id: Uuid,
-    pub username: String,
-    pub email: String,
-    pub password: String,
-    pub session_token: String,
-    pub api_key: String,
-}
-
-impl Default for AuthenticatedTestUser {
-    fn default() -> Self {
-        Self {
-            id: Uuid::now_v7(),
-            username: "jmanderley".to_string(),
-            email: "jmanderley@unatco.gov".to_string(),
-            password: "knight_killer".to_string(),
-            session_token: "498e5daeec9bbaf74031926881e25a32".to_string(),
-            api_key: "671778711fd3128b87d230296e29ae6e".to_string(),
-        }
-    }
-}
-
-impl AuthenticatedTestUser {
-    async fn persist(&self, db: Database) -> std::result::Result<(), tokio_rusqlite::Error> {
-        let id = self.id.clone();
-        let username = self.username.clone();
-        let email = self.email.clone();
-
-        let salt = SaltString::generate(&mut OsRng);
-        let argon2 = Argon2::default();
-        let hashed_password = argon2
-            .hash_password(self.password.as_bytes(), &salt)
-            .unwrap()
-            .to_string();
-        let hashed_token = Sha256::digest(&self.session_token.as_bytes()).to_vec();
-        let hashed_key = Sha256::digest(&self.api_key.as_bytes()).to_vec();
-
-        db.conn
-            .call(move |conn| {
-                let mut statement = conn
-                    .prepare("INSERT INTO users VALUES (:id, :username, :email, :password);")
-                    .expect("Failed to persist test user");
-                statement
-                    .execute(named_params! {
-                        ":id": id,
-                        ":username": username,
-                        ":email": email,
-                        ":password": hashed_password
-                    })
-                    .expect("Failed to persist test user");
-
-                statement = conn
-                    .prepare("INSERT INTO sessions VALUES (:session_token, :user_id);")
-                    .expect("Failed to persist test user session");
-                statement
-                    .execute(named_params! {
-                        ":session_token": hashed_token,
-                        ":user_id": id
-                    })
-                    .expect("Failed to persist test user session");
-
-                statement = conn
-                    .prepare("INSERT INTO api_sessions VALUES (:api_key, :user_id, unixepoch());")
-                    .expect("Failed to persist test user api session");
-                statement
-                    .execute(named_params! {
-                        ":api_key": hashed_key,
-                        ":user_id": id
-                    })
-                    .expect("Failed to persist test user api session");
-                Ok(())
-            })
-            .await
-            .expect("Failed to persist test user, session, and/or api session");
-        Ok(())
     }
 }

@@ -12,7 +12,7 @@ struct IndexResponse {
 #[tokio::test]
 async fn index_responds_with_all_pastes() -> Result<()> {
     let app = TestApp::spawn().await;
-    let client = app.api_authenticated_client()?;
+    let client = app.session_and_api_authenticated_client().await?;
     let paste1 = TestPaste::builder().build().persist(&app, &client).await?;
     let paste2 = TestPaste::builder().build().persist(&app, &client).await?;
     let pastes = HashSet::from([paste1, paste2]);
@@ -29,7 +29,7 @@ async fn index_responds_with_all_pastes() -> Result<()> {
 #[tokio::test]
 async fn create_and_show_happy_path() -> Result<()> {
     let app = TestApp::spawn().await;
-    let client = app.api_authenticated_client()?;
+    let client = app.session_and_api_authenticated_client().await?;
     let mut paste = TestPaste::builder().random()?.build();
 
     let response = paste.json_api_create(&app, &client).await?;
@@ -47,7 +47,7 @@ async fn create_and_show_happy_path() -> Result<()> {
 #[tokio::test]
 async fn create_responds_with_400_when_missing_required_fields() -> Result<()> {
     let app = TestApp::spawn().await;
-    let client = app.api_authenticated_client()?;
+    let client = app.session_and_api_authenticated_client().await?;
     let bad_pastes = vec![
         TestPaste::builder().filename("").build(),
         TestPaste::builder().body("").build(),
@@ -63,7 +63,7 @@ async fn create_responds_with_400_when_missing_required_fields() -> Result<()> {
 #[tokio::test]
 async fn show_responds_with_404_when_paste_doesnt_exist() -> Result<()> {
     let app = TestApp::spawn().await;
-    let client = app.api_authenticated_client()?;
+    let client = app.session_and_api_authenticated_client().await?;
     let paste = TestPaste::builder().random()?.random_id().build();
 
     let response = paste.json_api_show(&app, &client).await?;
@@ -75,7 +75,7 @@ async fn show_responds_with_404_when_paste_doesnt_exist() -> Result<()> {
 #[tokio::test]
 async fn show_responds_with_400_when_invalid_input() -> Result<()> {
     let app = TestApp::spawn().await;
-    let client = app.api_authenticated_client()?;
+    let client = app.session_and_api_authenticated_client().await?;
     let paste = TestPaste::builder().random()?.id("garbage").build();
 
     let response = paste.json_api_show(&app, &client).await?;
@@ -87,7 +87,7 @@ async fn show_responds_with_400_when_invalid_input() -> Result<()> {
 #[tokio::test]
 async fn destroy_happy_path() -> Result<()> {
     let app = TestApp::spawn().await;
-    let client = app.api_authenticated_client()?;
+    let client = app.session_and_api_authenticated_client().await?;
     let paste = TestPaste::builder()
         .random()?
         .build()
@@ -106,7 +106,7 @@ async fn destroy_happy_path() -> Result<()> {
 #[tokio::test]
 async fn destroy_responds_with_404_when_paste_doesnt_exist() -> Result<()> {
     let app = TestApp::spawn().await;
-    let client = app.api_authenticated_client()?;
+    let client = app.session_and_api_authenticated_client().await?;
     let paste = TestPaste::builder().random()?.random_id().build();
 
     let response = paste.json_api_delete(&app, &client).await?;
@@ -118,7 +118,7 @@ async fn destroy_responds_with_404_when_paste_doesnt_exist() -> Result<()> {
 #[tokio::test]
 async fn destroy_responds_with_400_when_invalid_input() -> Result<()> {
     let app = TestApp::spawn().await;
-    let client = app.api_authenticated_client()?;
+    let client = app.session_and_api_authenticated_client().await?;
     let paste = TestPaste::builder().random()?.id("garbage").build();
 
     let response = paste.json_api_delete(&app, &client).await?;

@@ -65,6 +65,14 @@ impl TestUser {
             .await?;
         Ok(response)
     }
+
+    pub async fn generate_api_key(&self, app: &TestApp, client: &Client) -> Result<Response> {
+        let response = client
+            .post(format!("http://{}/api_sessions", app.address))
+            .send()
+            .await?;
+        Ok(response)
+    }
 }
 
 impl TestUserBuilder {
