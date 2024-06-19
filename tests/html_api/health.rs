@@ -1,8 +1,8 @@
-use crate::common;
+use crate::common::TestApp;
 
 #[tokio::test]
 async fn health_check_responds_with_200() {
-    let app = common::spawn_app().await;
+    let app = TestApp::spawn().await;
     let response = reqwest::get(format!("http://{}/health", &app.address))
         .await
         .expect("Failed to send test request.");
@@ -12,7 +12,7 @@ async fn health_check_responds_with_200() {
 
 #[tokio::test]
 async fn health_check_responds_with_zero_content() {
-    let app = common::spawn_app().await;
+    let app = TestApp::spawn().await;
     let response = reqwest::get(format!("http://{}/health", &app.address))
         .await
         .expect("Failed to send test request.");
