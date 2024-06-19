@@ -5,7 +5,7 @@ use reqwest::StatusCode;
 
 #[tokio::test]
 async fn create_persists_when_valid_form_data() -> Result<()> {
-    let app = TestApp::spawn().await;
+    let app = TestApp::spawn().await?;
     let client = app.session_authenticated_client().await?;
     let paste = TestPaste::builder().random()?.build();
 
@@ -31,7 +31,7 @@ async fn create_persists_when_valid_form_data() -> Result<()> {
 
 #[tokio::test]
 async fn create_responds_with_400_when_data_missing() -> Result<()> {
-    let app = TestApp::spawn().await;
+    let app = TestApp::spawn().await?;
     let client = app.session_authenticated_client().await?;
     let bad_pastes = vec![
         TestPaste::builder().filename("").build(),
@@ -47,7 +47,7 @@ async fn create_responds_with_400_when_data_missing() -> Result<()> {
 
 #[tokio::test]
 async fn index_lists_all_pastes() -> Result<()> {
-    let app = TestApp::spawn().await;
+    let app = TestApp::spawn().await?;
     let client = app.session_and_api_authenticated_client().await?;
     let paste1 = TestPaste::builder()
         .random()?

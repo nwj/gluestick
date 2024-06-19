@@ -5,7 +5,7 @@ use reqwest::{Client, StatusCode};
 
 #[tokio::test]
 async fn can_signup_with_valid_invite_code() -> Result<()> {
-    let app = TestApp::spawn().await;
+    let app = TestApp::spawn().await?;
     let client = Client::builder().cookie_store(true).build()?;
     let user = TestUser::builder().random()?.build();
     let invite_code = app.seed_random_invite_code().await?;
@@ -18,7 +18,7 @@ async fn can_signup_with_valid_invite_code() -> Result<()> {
 
 #[tokio::test]
 async fn settings_inaccessible_when_logged_out() -> Result<()> {
-    let app = TestApp::spawn().await;
+    let app = TestApp::spawn().await?;
     let client = Client::builder().cookie_store(true).build()?;
     let user = TestUser::builder().random()?.build();
 
@@ -30,7 +30,7 @@ async fn settings_inaccessible_when_logged_out() -> Result<()> {
 
 #[tokio::test]
 async fn has_session_after_signup() -> Result<()> {
-    let app = TestApp::spawn().await;
+    let app = TestApp::spawn().await?;
     let client = Client::builder().cookie_store(true).build()?;
     let user = TestUser::builder().random()?.build();
     let invite_code = app.seed_random_invite_code().await?;
@@ -44,7 +44,7 @@ async fn has_session_after_signup() -> Result<()> {
 
 #[tokio::test]
 async fn logout_ends_session() -> Result<()> {
-    let app = TestApp::spawn().await;
+    let app = TestApp::spawn().await?;
     let client = Client::builder().cookie_store(true).build()?;
     let user = TestUser::builder().random()?.build();
     let invite_code = app.seed_random_invite_code().await?;
@@ -59,7 +59,7 @@ async fn logout_ends_session() -> Result<()> {
 
 #[tokio::test]
 async fn can_login_with_valid_credentials() -> Result<()> {
-    let app = TestApp::spawn().await;
+    let app = TestApp::spawn().await?;
     let client = Client::builder().cookie_store(true).build()?;
     let user = TestUser::builder().random()?.build();
     let invite_code = app.seed_random_invite_code().await?;
@@ -73,7 +73,7 @@ async fn can_login_with_valid_credentials() -> Result<()> {
 }
 #[tokio::test]
 async fn has_session_after_login() -> Result<()> {
-    let app = TestApp::spawn().await;
+    let app = TestApp::spawn().await?;
     let client = Client::builder().cookie_store(true).build()?;
     let user = TestUser::builder().random()?.build();
     let invite_code = app.seed_random_invite_code().await?;

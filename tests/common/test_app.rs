@@ -28,13 +28,11 @@ pub struct TestApp {
 }
 
 impl TestApp {
-    pub async fn spawn() -> Self {
+    pub async fn spawn() -> Result<Self> {
         Lazy::force(&INIT_TRACING);
 
         let mut db = Database {
-            conn: Connection::open_in_memory()
-                .await
-                .expect("Failed to establish connection with test database."),
+            conn: Connection::open_in_memory().await?,
         };
 
         db.conn
@@ -45,19 +43,13 @@ impl TestApp {
                 conn.pragma_update(None, "foreign_keys", "true")?;
                 Ok(())
             })
-            .await
-            .expect("Failed to set pragmas on the test database.");
+            .await?;
 
-        migrations()
-            .to_latest(&mut db.conn)
-            .await
-            .expect("Failed to migrate the test database.");
+        migrations().to_latest(&mut db.conn).await?;
 
         // Binding to port 0 will cause the OS to scan for an available port which will then be used
         // for the bind. So this effectively runs the test server on a random, open port.
-        let listener = TcpListener::bind(("127.0.0.1", 0))
-            .await
-            .expect("Failed to bind test server to address.");
+        let listener = TcpListener::bind(("127.0.0.1", 0)).await?;
         let address = listener.local_addr().unwrap();
 
         let db_clone = db.clone();
@@ -67,7 +59,7 @@ impl TestApp {
                 .expect("Failed to serve test server.")
         });
 
-        Self { address, db }
+        Ok(Self { address, db })
     }
 
     pub async fn session_and_api_authenticated_client(&self) -> Result<Client> {
