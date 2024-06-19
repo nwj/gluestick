@@ -1,3 +1,3 @@
-mod health;
+mod misc;
 mod pastes;
 mod users;
