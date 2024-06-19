@@ -1,4 +1,4 @@
-use crate::common::test_app::TestApp;
+use crate::common::app::TestApp;
 use crate::prelude::*;
 
 #[tokio::test]
