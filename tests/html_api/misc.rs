@@ -1,3 +1,4 @@
+use crate::common::client::TestClient;
 use crate::common::test_app::TestApp;
 use crate::prelude::*;
 
@@ -13,23 +14,12 @@ async fn fallback_responds_with_404() -> Result<()> {
 }
 
 #[tokio::test]
-async fn health_check_responds_with_200() -> Result<()> {
+async fn health_check_responds_with_200_and_zero_content() -> Result<()> {
     let app = TestApp::spawn().await?;
-    let response = reqwest::get(format!("http://{}/health", &app.address))
-        .await
-        .expect("Failed to send test request.");
+    let client = TestClient::new(app.address, None)?;
+    let response = client.health().get().await?;
 
     assert_eq!(response.status(), 200);
-    Ok(())
-}
-
-#[tokio::test]
-async fn health_check_responds_with_zero_content() -> Result<()> {
-    let app = TestApp::spawn().await?;
-    let response = reqwest::get(format!("http://{}/health", &app.address))
-        .await
-        .expect("Failed to send test request.");
-
     assert_eq!(Some(0), response.content_length());
     Ok(())
 }

@@ -1,3 +1,4 @@
+use crate::common::client::TestClient;
 use crate::common::rand_helper;
 use crate::common::test_app::TestApp;
 use crate::prelude::*;
@@ -20,6 +21,22 @@ pub struct TestUserBuilder {
 impl TestUser {
     pub fn builder() -> TestUserBuilder {
         TestUserBuilder::new()
+    }
+
+    pub async fn persist(self, client: &TestClient, invite_code: String) -> Result<Self> {
+        client.signup().post(invite_code, &self).await?;
+        // logout so that we don't leave a persisted session on the client
+        client.logout().delete().await?;
+        Ok(self)
+    }
+
+    pub async fn persist_with_session(
+        self,
+        client: &TestClient,
+        invite_code: String,
+    ) -> Result<Self> {
+        client.signup().post(invite_code, &self).await?;
+        Ok(self)
     }
 
     pub async fn signup(
@@ -45,22 +62,6 @@ impl TestUser {
         let response = client
             .post(format!("http://{}/login", app.address))
             .form(&[("email", &self.email), ("password", &self.password)])
-            .send()
-            .await?;
-        Ok(response)
-    }
-
-    pub async fn logout(&self, app: &TestApp, client: &Client) -> Result<Response> {
-        let response = client
-            .delete(format!("http://{}/logout", app.address))
-            .send()
-            .await?;
-        Ok(response)
-    }
-
-    pub async fn settings(&self, app: &TestApp, client: &Client) -> Result<Response> {
-        let response = client
-            .get(format!("http://{}/settings", app.address))
             .send()
             .await?;
         Ok(response)
