@@ -1,6 +1,6 @@
-use crate::common::{rand_helper, TestApp};
+use crate::common::client::TestClient;
+use crate::common::rand_helper;
 use crate::prelude::*;
-use reqwest::{Client, Response};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -27,71 +27,8 @@ impl TestPaste {
         TestPasteBuilder::new()
     }
 
-    pub async fn json_api_index(app: &TestApp, client: &Client) -> Result<Response> {
-        let response = client
-            .get(format!("http://{}/api/pastes", app.address))
-            .send()
-            .await?;
-        Ok(response)
-    }
-
-    pub async fn json_api_create(&self, app: &TestApp, client: &Client) -> Result<Response> {
-        let response = client
-            .post(format!("http://{}/api/pastes", app.address))
-            .json(self)
-            .send()
-            .await?;
-        Ok(response)
-    }
-
-    pub async fn json_api_show(&self, app: &TestApp, client: &Client) -> Result<Response> {
-        let response = client
-            .get(format!(
-                "http://{}/api/pastes/{}",
-                app.address,
-                self.id.clone().unwrap_or_default(),
-            ))
-            .send()
-            .await?;
-        Ok(response)
-    }
-
-    pub async fn json_api_delete(&self, app: &TestApp, client: &Client) -> Result<Response> {
-        let response = client
-            .delete(format!(
-                "http://{}/api/pastes/{}",
-                app.address,
-                self.id.clone().unwrap_or_default(),
-            ))
-            .send()
-            .await?;
-        Ok(response)
-    }
-
-    pub async fn html_api_index(app: &TestApp, client: &Client) -> Result<Response> {
-        let response = client
-            .get(format!("http://{}/pastes", app.address))
-            .send()
-            .await?;
-        Ok(response)
-    }
-
-    pub async fn html_api_create(&self, app: &TestApp, client: &Client) -> Result<Response> {
-        let response = client
-            .post(format!("http://{}/pastes", app.address))
-            .form(&[
-                ("filename", &self.filename),
-                ("description", &self.description),
-                ("body", &self.body),
-                ("visibility", &self.visibility),
-            ])
-            .send()
-            .await?;
-        Ok(response)
-    }
-
-    pub async fn persist(mut self, app: &TestApp, client: &Client) -> Result<Self> {
-        let response = self.json_api_create(app, client).await?;
+    pub async fn persist(mut self, client: &TestClient) -> Result<Self> {
+        let response = client.api_pastes().post(&self).await?;
         let id: Uuid = response.json().await?;
         self.id = Some(id.to_string());
         Ok(self)
@@ -123,6 +60,7 @@ impl TestPasteBuilder {
         self
     }
 
+    #[allow(dead_code)]
     pub fn visibility(mut self, visibility: impl Into<String>) -> Self {
         let _ = self.visibility.insert(visibility.into());
         self

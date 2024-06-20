@@ -1,15 +1,18 @@
-use crate::common;
+use crate::common::app::TestApp;
+use crate::common::client::TestClient;
 use crate::common::paste_helper::TestPaste;
 use crate::prelude::*;
 use reqwest::StatusCode;
 
 #[tokio::test]
 async fn create_persists_when_valid_form_data() -> Result<()> {
-    let app = common::spawn_app().await;
-    let client = app.session_authenticated_client()?;
+    let app = TestApp::spawn().await?;
+    let user = app.seed_random_user().await?;
+    let client = TestClient::new(app.address, None)?;
+    client.login().post(&user).await?;
     let paste = TestPaste::builder().random()?.build();
 
-    let response = paste.html_api_create(&app, &client).await?;
+    let response = client.pastes().post(&paste).await?;
 
     assert_eq!(response.status(), StatusCode::OK);
     let persisted = app
@@ -31,15 +34,17 @@ async fn create_persists_when_valid_form_data() -> Result<()> {
 
 #[tokio::test]
 async fn create_responds_with_400_when_data_missing() -> Result<()> {
-    let app = common::spawn_app().await;
-    let client = app.session_authenticated_client()?;
+    let app = TestApp::spawn().await?;
+    let user = app.seed_random_user().await?;
+    let client = TestClient::new(app.address, None)?;
+    client.login().post(&user).await?;
     let bad_pastes = vec![
         TestPaste::builder().filename("").build(),
         TestPaste::builder().body("").build(),
     ];
 
     for bad_paste in bad_pastes {
-        let response = bad_paste.html_api_create(&app, &client).await?;
+        let response = client.pastes().post(&bad_paste).await?;
         assert_eq!(response.status(), 400);
     }
     Ok(())
@@ -47,21 +52,21 @@ async fn create_responds_with_400_when_data_missing() -> Result<()> {
 
 #[tokio::test]
 async fn index_lists_all_pastes() -> Result<()> {
-    let app = common::spawn_app().await;
-    let client = app.api_authenticated_client()?;
+    let app = TestApp::spawn().await?;
+    let (_, api_key) = app.seed_random_user_and_api_key().await?;
+    let client = TestClient::new(app.address, Some(&api_key))?;
     let paste1 = TestPaste::builder()
         .random()?
         .build()
-        .persist(&app, &client)
+        .persist(&client)
         .await?;
     let paste2 = TestPaste::builder()
         .random()?
         .build()
-        .persist(&app, &client)
+        .persist(&client)
         .await?;
-    let client = app.session_authenticated_client()?;
 
-    let response = TestPaste::html_api_index(&app, &client).await?;
+    let response = client.pastes().get().await?;
     assert!(response.status().is_success());
     let body = response.text().await.unwrap();
 

@@ -17,7 +17,7 @@ run:
 
 # Lints, tests, builds, and runs the app on every change
 watch:
-	cargo watch -i "*.css" -x "clippy --locked" -x "test --locked" -x "run --locked"
+	cargo watch -i "*.css" -c -x "clippy --locked" -x "test --locked" -x "run --locked"
 
 # Formats the codebase (via cargo fmt)
 format:

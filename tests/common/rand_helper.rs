@@ -1,8 +1,14 @@
 use crate::prelude::*;
+use argon2::password_hash::SaltString;
+use argon2::{Argon2, PasswordHasher};
 use core::ops::RangeInclusive;
 use rand::distributions::{Alphanumeric, DistString, Standard};
+use rand::rngs::OsRng;
 use rand::seq::SliceRandom;
+use rand::SeedableRng;
 use rand::{thread_rng, Rng};
+use rand_chacha::ChaCha20Rng;
+use sha2::{Digest, Sha256};
 
 const COMMON_TLDS: [&str; 32] = [
     ".au", ".biz", ".br", ".ca", ".cn", ".co", ".com", ".cz", ".de", ".edu", ".fr", ".gov", ".gr",
@@ -85,4 +91,19 @@ pub fn random_filename(range: RangeInclusive<usize>) -> Result<String> {
     let remaining_len = len - extension.len();
     let name = random_alphanumeric_string(1..=remaining_len)?;
     Ok(format!("{name}{extension}"))
+}
+
+pub fn random_api_key() -> String {
+    let mut rng = ChaCha20Rng::from_entropy();
+    format!("{:032x}", rng.gen::<u128>())
+}
+
+pub fn hash_password(password: String) -> Result<String> {
+    Ok(Argon2::default()
+        .hash_password(password.as_bytes(), &SaltString::generate(&mut OsRng))?
+        .to_string())
+}
+
+pub fn hash_api_key(api_key: String) -> Vec<u8> {
+    Sha256::digest(api_key.as_bytes()).to_vec()
 }

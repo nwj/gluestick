@@ -1,9 +1,8 @@
+use crate::common::client::TestClient;
 use crate::common::rand_helper;
-use crate::common::TestApp;
 use crate::prelude::*;
-use reqwest::{Client, Response};
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct TestUser {
     pub username: String,
     pub email: String,
@@ -22,48 +21,20 @@ impl TestUser {
         TestUserBuilder::new()
     }
 
-    pub async fn signup(
-        &self,
-        app: &TestApp,
-        client: &Client,
+    pub async fn persist(self, client: &TestClient, invite_code: String) -> Result<Self> {
+        client.signup().post(invite_code, &self).await?;
+        // logout so that we don't leave a persisted session on the client
+        client.logout().delete().await?;
+        Ok(self)
+    }
+
+    pub async fn persist_with_session(
+        self,
+        client: &TestClient,
         invite_code: String,
-    ) -> Result<Response> {
-        let response = client
-            .post(format!("http://{}/signup", app.address))
-            .form(&[
-                ("username", &self.username),
-                ("email", &self.email),
-                ("password", &self.password),
-                ("invite_code", &invite_code),
-            ])
-            .send()
-            .await?;
-        Ok(response)
-    }
-
-    pub async fn login(&self, app: &TestApp, client: &Client) -> Result<Response> {
-        let response = client
-            .post(format!("http://{}/login", app.address))
-            .form(&[("email", &self.email), ("password", &self.password)])
-            .send()
-            .await?;
-        Ok(response)
-    }
-
-    pub async fn logout(&self, app: &TestApp, client: &Client) -> Result<Response> {
-        let response = client
-            .delete(format!("http://{}/logout", app.address))
-            .send()
-            .await?;
-        Ok(response)
-    }
-
-    pub async fn settings(&self, app: &TestApp, client: &Client) -> Result<Response> {
-        let response = client
-            .get(format!("http://{}/settings", app.address))
-            .send()
-            .await?;
-        Ok(response)
+    ) -> Result<Self> {
+        client.signup().post(invite_code, &self).await?;
+        Ok(self)
     }
 }
 
