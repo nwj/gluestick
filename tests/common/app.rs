@@ -4,11 +4,10 @@ use crate::prelude::*;
 use core::net::SocketAddr;
 use gluestick::{db::migrations, db::Database, router};
 use once_cell::sync::Lazy;
-use reqwest::header::{HeaderMap, HeaderValue};
-use reqwest::Client;
 use tokio::net::TcpListener;
 use tokio_rusqlite::{named_params, Connection};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+use uuid::Uuid;
 
 static INIT_TRACING: Lazy<()> = Lazy::new(|| {
     if std::env::var("GLUESTICK_TEST_LOG").is_ok() {
@@ -62,42 +61,6 @@ impl TestApp {
         Ok(Self { address, db })
     }
 
-    pub async fn session_and_api_authenticated_client(&self) -> Result<Client> {
-        let client = Client::builder().cookie_store(true).build()?;
-        let invite_code = self.seed_random_invite_code().await?;
-        let user = TestUser::builder().random()?.build();
-        user.signup(self, &client, invite_code).await?;
-
-        let response = user.generate_api_key(self, &client).await?;
-        let body = response.text().await?;
-        let api_key = body
-            .find("<pre><code>")
-            .and_then(|start| {
-                body[start + 11..]
-                    .find("</code></pre>")
-                    .map(|end| (start, end))
-            })
-            .map(|(start, end)| body[start + 11..start + 11 + end].to_string())
-            .ok_or("Failed to parse api key")?;
-
-        let mut headers = HeaderMap::new();
-        headers.insert("X-GLUESTICK-API-KEY", HeaderValue::from_str(&api_key)?);
-        let client = Client::builder()
-            .cookie_store(true)
-            .default_headers(headers)
-            .build()?;
-        user.login(self, &client).await?;
-        Ok(client)
-    }
-
-    pub async fn session_authenticated_client(&self) -> Result<Client> {
-        let client = Client::builder().cookie_store(true).build()?;
-        let invite_code = self.seed_random_invite_code().await?;
-        let user = TestUser::builder().random()?.build();
-        user.signup(self, &client, invite_code).await?;
-        Ok(client)
-    }
-
     pub async fn seed_invite_code(&self, invite_code: String) -> Result<()> {
         self.db
             .conn
@@ -114,5 +77,45 @@ impl TestApp {
         let invite_code = rand_helper::random_string(8..=8)?;
         self.seed_invite_code(invite_code.clone()).await?;
         Ok(invite_code)
+    }
+
+    pub async fn seed_user(&self, user_id: Uuid, user: TestUser) -> Result<()> {
+        let hashed_password = rand_helper::hash_password(user.password)?;
+        self.db.conn.call(move |conn| {
+                let mut stmt = conn.prepare("INSERT INTO users VALUES(:id, :username, :email, :password);")?;
+                stmt.execute(named_params! {":id": user_id, ":username": user.username, ":email": user.email.to_lowercase(), ":password": hashed_password})?;
+                Ok(())
+        }).await?;
+        Ok(())
+    }
+
+    pub async fn seed_random_user(&self) -> Result<TestUser> {
+        let user_id = Uuid::now_v7();
+        let user = TestUser::builder().random()?.build();
+        self.seed_user(user_id, user.clone()).await?;
+        Ok(user)
+    }
+
+    pub async fn seed_api_key(&self, api_key: String, user_id: Uuid) -> Result<()> {
+        let hashed_api_key = rand_helper::hash_api_key(api_key);
+        self.db
+            .conn
+            .call(move |conn| {
+                let mut stmt = conn
+                    .prepare("INSERT INTO api_sessions VALUES(:api_key, :user_id, unixepoch());")?;
+                stmt.execute(named_params! {":api_key": hashed_api_key, ":user_id": user_id})?;
+                Ok(())
+            })
+            .await?;
+        Ok(())
+    }
+
+    pub async fn seed_random_user_and_api_key(&self) -> Result<(TestUser, String)> {
+        let user_id = Uuid::now_v7();
+        let user = TestUser::builder().random()?.build();
+        let api_key = rand_helper::random_api_key();
+        self.seed_user(user_id, user.clone()).await?;
+        self.seed_api_key(api_key.clone(), user_id).await?;
+        Ok((user, api_key))
     }
 }

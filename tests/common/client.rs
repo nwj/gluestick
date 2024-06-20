@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+use crate::common::paste_helper::TestPaste;
 use crate::common::user_helper::TestUser;
 use crate::prelude::*;
 use core::net::SocketAddr;
@@ -28,6 +29,14 @@ impl TestClient {
         Ok(Self { base_url, client })
     }
 
+    pub fn api_pastes(&self) -> ApiPastesEndpoint {
+        ApiPastesEndpoint(self)
+    }
+
+    pub fn api_sessions(&self) -> ApiSessionsEndpoint {
+        ApiSessionsEndpoint(self)
+    }
+
     pub fn health(&self) -> HealthEndpoint {
         HealthEndpoint(self)
     }
@@ -40,12 +49,92 @@ impl TestClient {
         LogoutEndpoint(self)
     }
 
+    pub fn pastes(&self) -> PastesEndpoint {
+        PastesEndpoint(self)
+    }
+
     pub fn settings(&self) -> SettingsEndpoint {
         SettingsEndpoint(self)
     }
 
     pub fn signup(&self) -> SignupEndpoint {
         SignupEndpoint(self)
+    }
+
+    pub async fn get(&self) -> Result<Response> {
+        Ok(self.client.get(self.base_url.clone()).send().await?)
+    }
+
+    pub async fn get_arbitrary(&self, endpoint: &str) -> Result<Response> {
+        let url = self.base_url.join(endpoint)?;
+        Ok(self.client.get(url).send().await?)
+    }
+}
+
+pub struct ApiPastesEndpoint<'c>(&'c TestClient);
+
+impl<'c> ApiPastesEndpoint<'c> {
+    fn endpoint_str(&self) -> &str {
+        "api/pastes"
+    }
+    fn endpoint(&self) -> Result<Url> {
+        Ok(self.0.base_url.join(self.endpoint_str())?)
+    }
+
+    fn endpoint_with_trailing_slash(&self) -> Result<Url> {
+        Ok(self.0.base_url.join(&format!("{}/", self.endpoint_str()))?)
+    }
+
+    pub async fn get(&self) -> Result<Response> {
+        Ok(self.0.client.get(self.endpoint()?).send().await?)
+    }
+
+    pub async fn post(&self, paste: &TestPaste) -> Result<Response> {
+        Ok(self
+            .0
+            .client
+            .post(self.endpoint()?)
+            .json(&paste)
+            .send()
+            .await?)
+    }
+
+    pub async fn get_by_id(&self, paste: &TestPaste) -> Result<Response> {
+        let id = paste.id.clone().unwrap_or_default();
+        let endpoint = self.endpoint_with_trailing_slash()?.join(&id)?;
+        Ok(self.0.client.get(endpoint).send().await?)
+    }
+
+    pub async fn get_raw_by_id(&self, paste: &TestPaste) -> Result<Response> {
+        let id = paste.id.clone().unwrap_or_default();
+        let endpoint = self
+            .endpoint_with_trailing_slash()?
+            .join(&format!("{id}/raw"))?;
+        Ok(self.0.client.get(endpoint).send().await?)
+    }
+
+    pub async fn patch_by_id(&self, paste: &TestPaste) -> Result<Response> {
+        let id = paste.id.clone().unwrap_or_default();
+        let endpoint = self.endpoint_with_trailing_slash()?.join(&id)?;
+        Ok(self.0.client.patch(endpoint).json(&paste).send().await?)
+    }
+
+    pub async fn delete_by_id(&self, paste: &TestPaste) -> Result<Response> {
+        let id = paste.id.clone().unwrap_or_default();
+        let endpoint = self.endpoint_with_trailing_slash()?.join(&id)?;
+        Ok(self.0.client.delete(endpoint).send().await?)
+    }
+}
+
+pub struct ApiSessionsEndpoint<'c>(&'c TestClient);
+
+impl<'c> ApiSessionsEndpoint<'c> {
+    fn endpoint(&self) -> Result<Url> {
+        Ok(self.0.base_url.join("api_sessions")?)
+    }
+
+    pub async fn post(&self) -> Result<Response> {
+        Ok(self.0.client.post(self.endpoint()?).send().await?)
     }
 }
 
@@ -92,6 +181,97 @@ impl<'c> LogoutEndpoint<'c> {
 
     pub async fn delete(&self) -> Result<Response> {
         Ok(self.0.client.delete(self.endpoint()?).send().await?)
+    }
+}
+
+pub struct PastesEndpoint<'c>(&'c TestClient);
+
+impl<'c> PastesEndpoint<'c> {
+    fn endpoint_str(&self) -> &str {
+        "pastes"
+    }
+    fn endpoint(&self) -> Result<Url> {
+        Ok(self.0.base_url.join(self.endpoint_str())?)
+    }
+
+    fn endpoint_with_trailing_slash(&self) -> Result<Url> {
+        Ok(self.0.base_url.join(&format!("{}/", self.endpoint_str()))?)
+    }
+
+    pub async fn get(&self) -> Result<Response> {
+        Ok(self.0.client.get(self.endpoint()?).send().await?)
+    }
+
+    pub async fn post(&self, paste: &TestPaste) -> Result<Response> {
+        Ok(self
+            .0
+            .client
+            .post(self.endpoint()?)
+            .form(&[
+                ("filename", &paste.filename),
+                ("description", &paste.description),
+                ("body", &paste.body),
+                ("visibility", &paste.visibility),
+            ])
+            .send()
+            .await?)
+    }
+
+    pub async fn get_new(&self) -> Result<Response> {
+        let endpoint = self.endpoint_with_trailing_slash()?.join("new")?;
+        Ok(self.0.client.get(endpoint).send().await?)
+    }
+
+    pub async fn get_by_id(&self, paste: &TestPaste) -> Result<Response> {
+        let id = paste.id.clone().unwrap_or_default();
+        let endpoint = self.endpoint_with_trailing_slash()?.join(&id)?;
+        Ok(self.0.client.get(endpoint).send().await?)
+    }
+
+    pub async fn get_raw_by_id(&self, paste: &TestPaste) -> Result<Response> {
+        let id = paste.id.clone().unwrap_or_default();
+        let endpoint = self
+            .endpoint_with_trailing_slash()?
+            .join(&format!("{id}/raw"))?;
+        Ok(self.0.client.get(endpoint).send().await?)
+    }
+
+    pub async fn get_download_by_id(&self, paste: &TestPaste) -> Result<Response> {
+        let id = paste.id.clone().unwrap_or_default();
+        let endpoint = self
+            .endpoint_with_trailing_slash()?
+            .join(&format!("{id}/download"))?;
+        Ok(self.0.client.get(endpoint).send().await?)
+    }
+
+    pub async fn get_edit_by_id(&self, paste: &TestPaste) -> Result<Response> {
+        let id = paste.id.clone().unwrap_or_default();
+        let endpoint = self
+            .endpoint_with_trailing_slash()?
+            .join(&format!("{id}/edit"))?;
+        Ok(self.0.client.get(endpoint).send().await?)
+    }
+
+    pub async fn put_by_id(&self, paste: &TestPaste) -> Result<Response> {
+        let id = paste.id.clone().unwrap_or_default();
+        let endpoint = self.endpoint_with_trailing_slash()?.join(&id)?;
+        Ok(self
+            .0
+            .client
+            .put(endpoint)
+            .form(&[
+                ("filename", &paste.filename),
+                ("description", &paste.description),
+                ("body", &paste.body),
+            ])
+            .send()
+            .await?)
+    }
+
+    pub async fn delete_by_id(&self, paste: &TestPaste) -> Result<Response> {
+        let id = paste.id.clone().unwrap_or_default();
+        let endpoint = self.endpoint_with_trailing_slash()?.join(&id)?;
+        Ok(self.0.client.delete(endpoint).send().await?)
     }
 }
 
