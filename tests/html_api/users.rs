@@ -1,10 +1,11 @@
 use crate::common::app::TestApp;
 use crate::common::client::TestClient;
+use crate::common::rand_helper;
 use crate::common::user_helper::TestUser;
 use crate::prelude::*;
 
 #[tokio::test]
-async fn can_signup_with_valid_invite_code() -> Result<()> {
+async fn signup_happy_path() -> Result<()> {
     let app = TestApp::spawn().await?;
     let client = TestClient::new(app.address, None)?;
     let invite = app.seed_random_invite_code().await?;
@@ -13,6 +14,110 @@ async fn can_signup_with_valid_invite_code() -> Result<()> {
     let response = client.signup().post(invite, &user).await?;
 
     assert_eq!(response.status(), 200);
+    Ok(())
+}
+
+#[tokio::test]
+async fn signup_requires_valid_invite_code() -> Result<()> {
+    let app = TestApp::spawn().await?;
+    let client = TestClient::new(app.address, None)?;
+    let user = TestUser::builder().random()?.build();
+    let bad_invites = &["doesnt-exist", ""];
+
+    for bad_invite in bad_invites {
+        let response = client.signup().post(bad_invite.to_string(), &user).await?;
+        assert_eq!(response.status(), 401);
+    }
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn signup_requires_all_fields() -> Result<()> {
+    let app = TestApp::spawn().await?;
+    let client = TestClient::new(app.address, None)?;
+    let bad_users = &[
+        TestUser::builder().username("").build(),
+        TestUser::builder().email("").build(),
+        TestUser::builder().password("").build(),
+    ];
+
+    for bad_user in bad_users {
+        let invite = app.seed_random_invite_code().await?;
+        let response = client.signup().post(invite, &bad_user).await?;
+        assert_eq!(response.status(), 400);
+    }
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn signup_requires_alphanumeric_username_between_3_and_32_chars() -> Result<()> {
+    let app = TestApp::spawn().await?;
+    let client = TestClient::new(app.address, None)?;
+    let bad_users = &[
+        TestUser::builder()
+            .username(rand_helper::random_alphanumeric_string(2..=2)?)
+            .build(),
+        TestUser::builder()
+            .username(rand_helper::random_alphanumeric_string(33..=33)?)
+            .build(),
+        TestUser::builder()
+            .username(rand_helper::random_string(3..=32)?)
+            .build(),
+    ];
+
+    for bad_user in bad_users {
+        let invite = app.seed_random_invite_code().await?;
+        let response = client.signup().post(invite, &bad_user).await?;
+        assert_eq!(response.status(), 400);
+    }
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn signup_requires_valid_email_address() -> Result<()> {
+    let app = TestApp::spawn().await?;
+    let client = TestClient::new(app.address, None)?;
+    let random = rand_helper::random_alphanumeric_string(1..=30)?;
+    let bad_users = &[
+        // Missing @ symbol
+        TestUser::builder().email(&random).build(),
+        // Missing domain part
+        TestUser::builder().email(format!("{random}@")).build(),
+        // Missing username part
+        TestUser::builder().email(format!("@{random}")).build(),
+    ];
+
+    for bad_user in bad_users {
+        let invite = app.seed_random_invite_code().await?;
+        let response = client.signup().post(invite, &bad_user).await?;
+        assert_eq!(response.status(), 400);
+    }
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn signup_requires_password_between_8_and_256_chars() -> Result<()> {
+    let app = TestApp::spawn().await?;
+    let client = TestClient::new(app.address, None)?;
+    let bad_users = &[
+        TestUser::builder()
+            .password(rand_helper::random_alphanumeric_string(7..=7)?)
+            .build(),
+        TestUser::builder()
+            .password(rand_helper::random_alphanumeric_string(257..=257)?)
+            .build(),
+    ];
+
+    for bad_user in bad_users {
+        let invite = app.seed_random_invite_code().await?;
+        let response = client.signup().post(invite, &bad_user).await?;
+        assert_eq!(response.status(), 400);
+    }
+
     Ok(())
 }
 

@@ -63,7 +63,7 @@ impl TestUserBuilder {
     }
 
     pub fn random_email(self) -> Result<Self> {
-        Ok(self.email(rand_helper::random_email(6..=35)?))
+        Ok(self.email(rand_helper::random_email(3..=35)?))
     }
 
     pub fn random_password(self) -> Result<Self> {

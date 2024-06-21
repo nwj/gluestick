@@ -16,7 +16,7 @@ use rusqlite::{
 use secrecy::{ExposeSecret, Secret};
 use serde::Deserialize;
 use uuid::Uuid;
-use validator::Validate;
+use validator::{Validate, ValidationErrors};
 
 #[derive(Clone, Debug)]
 pub struct User {
@@ -269,6 +269,29 @@ impl Password {
                 )?
                 .to_string(),
         ))
+    }
+}
+
+impl Validate for Password {
+    fn validate(&self) -> Result<(), ValidationErrors> {
+        let mut errors = ValidationErrors::new();
+        if self.expose_secret().len() < 8 {
+            errors.add(
+                "0",
+                validator::ValidationError::new("password must be at least 8 characters long"),
+            );
+        } else if self.expose_secret().len() > 256 {
+            errors.add(
+                "0",
+                validator::ValidationError::new("password may not be longer than 256 characters"),
+            );
+        }
+
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
+        }
     }
 }
 

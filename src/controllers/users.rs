@@ -16,6 +16,7 @@ use axum::{
 };
 use secrecy::ExposeSecret;
 use serde::Deserialize;
+use validator::Validate;
 
 pub async fn new() -> NewUsersTemplate {
     NewUsersTemplate { session: None }
@@ -34,6 +35,15 @@ pub async fn create(
     Form(input): Form<CreateUser>,
 ) -> controllers::Result<impl IntoResponse> {
     if let Some(invite_code) = InviteCode::find(&db, input.invite_code).await? {
+        // This is called here, rather than by the model (i.e. whenever User is constructed)
+        // because we don't want to validate password all the time. For instance, during login,
+        // it's good not to enforce this validation, since we are happy to let password guessing
+        // attacks try various passwords that we wouldn't actually accept at signup
+        input
+            .password
+            .validate()
+            .map_err(|e| controllers::Error::BadRequest(Box::new(e)))?;
+
         let user = User::new(input.username, input.email, &input.password)?;
         user.clone().insert(&db).await?;
 
