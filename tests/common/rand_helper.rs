@@ -47,8 +47,8 @@ pub fn random_email(range: RangeInclusive<usize>) -> Result<String> {
         return Err("range cannot be empty".into());
     }
 
-    if *range.start() < 6 {
-        return Err("range lower bound must be 6 or greater to accommodate the space required for a (non-intranet) email address".into());
+    if *range.start() < 3 {
+        return Err("range lower bound must be 3 or greater to accommodate the space required for an email address".into());
     }
 
     let mut rng = thread_rng();
@@ -60,12 +60,12 @@ pub fn random_email(range: RangeInclusive<usize>) -> Result<String> {
         .choose(&mut rng)
         .copied()
         .copied()
-        .unwrap_or(".com");
+        .unwrap_or_default();
     let remaining_len = len - 1 - tld.len();
     let username_len = remaining_len / 2 + remaining_len % 2;
     let domain_len = remaining_len / 2;
-    let username = random_alphanumeric_string(1..=username_len)?;
-    let domain = random_alphanumeric_string(1..=domain_len)?;
+    let username = random_alphanumeric_string(username_len..=username_len)?;
+    let domain = random_alphanumeric_string(domain_len..=domain_len)?;
     Ok(format!("{username}@{domain}{tld}"))
 }
 
@@ -89,7 +89,7 @@ pub fn random_filename(range: RangeInclusive<usize>) -> Result<String> {
         .copied()
         .unwrap_or_default();
     let remaining_len = len - extension.len();
-    let name = random_alphanumeric_string(1..=remaining_len)?;
+    let name = random_alphanumeric_string(remaining_len..=remaining_len)?;
     Ok(format!("{name}{extension}"))
 }
 

@@ -30,12 +30,12 @@ pub async fn index(
     let pagination_params = pagination_params.unwrap_or_default();
     let mut pastes = Paste::cursor_paginated(
         &db,
-        pagination_params.limit(),
+        pagination_params.limit_with_lookahead(),
         pagination_params.direction(),
         pagination_params.cursor(),
     )
     .await?;
-    let pagination = CursorPaginationResponse::new(&pagination_params, &mut pastes);
+    let pagination = CursorPaginationResponse::new_with_lookahead(&pagination_params, &mut pastes);
     Ok(Json(IndexResponse { pastes, pagination }))
 }
 

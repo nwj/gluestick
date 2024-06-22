@@ -46,7 +46,7 @@ impl OffsetPaginationParams {
         let value = usize::deserialize(deserializer)?;
         if value > PER_PAGE_MAX {
             Err(D::Error::custom(format!(
-                "limit value must be less than or equal to {PER_PAGE_MAX}, got {value}"
+                "per_page value must be less than or equal to {PER_PAGE_MAX}, got {value}"
             )))
         } else {
             Ok(value)
@@ -134,7 +134,7 @@ impl CursorPaginationParams {
         let value = usize::deserialize(deserializer)?;
         if value > PER_PAGE_MAX {
             Err(D::Error::custom(format!(
-                "limit value must be less than or equal to {PER_PAGE_MAX}, got {value}"
+                "per_page value must be less than or equal to {PER_PAGE_MAX}, got {value}"
             )))
         } else {
             Ok(value)

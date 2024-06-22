@@ -21,19 +21,11 @@ impl TestUser {
         TestUserBuilder::new()
     }
 
+    #[allow(dead_code)]
     pub async fn persist(self, client: &TestClient, invite_code: String) -> Result<Self> {
         client.signup().post(invite_code, &self).await?;
         // logout so that we don't leave a persisted session on the client
         client.logout().delete().await?;
-        Ok(self)
-    }
-
-    pub async fn persist_with_session(
-        self,
-        client: &TestClient,
-        invite_code: String,
-    ) -> Result<Self> {
-        client.signup().post(invite_code, &self).await?;
         Ok(self)
     }
 }
@@ -63,7 +55,7 @@ impl TestUserBuilder {
     }
 
     pub fn random_email(self) -> Result<Self> {
-        Ok(self.email(rand_helper::random_email(6..=35)?))
+        Ok(self.email(rand_helper::random_email(3..=35)?))
     }
 
     pub fn random_password(self) -> Result<Self> {
