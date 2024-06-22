@@ -5,6 +5,8 @@ use crate::common::paste_helper::TestPaste;
 use crate::prelude::*;
 use serde::Deserialize;
 use std::collections::HashSet;
+use std::thread::sleep;
+use std::time::Duration;
 
 #[derive(Debug, Deserialize)]
 struct IndexResponse {
@@ -124,6 +126,93 @@ async fn index_uses_default_if_per_page_more_than_100() -> Result<()> {
     let response_data: IndexResponse = response.json().await?;
     assert_eq!(response_data.pastes.len(), 10);
 
+    Ok(())
+}
+
+#[tokio::test]
+async fn index_paginates_correctly() -> Result<()> {
+    let app = TestApp::spawn().await?;
+    let (_, api_key) = app.seed_random_user_and_api_key().await?;
+    let client = TestClient::new(app.address, Some(&api_key))?;
+
+    let mut pastes = Vec::new();
+    for i in 0..8 {
+        let paste = TestPaste::builder()
+            .filename(i.to_string())
+            .description(i.to_string())
+            .body(i.to_string())
+            .build()
+            .persist(&client)
+            .await?;
+        pastes.push(paste);
+
+        // This is necessary because we assert below on the order of items within and across pages.
+        // That order is based on uuid v7 ordering, which has millisecond precision. Our tests are
+        // so fast at creating these pastes that without this sleep, we can get multiple pastes
+        // with the same millisecond of creation, which then fails the ordering assertions.
+        sleep(Duration::from_millis(1));
+    }
+
+    // First page
+    let params = PaginationParams::builder().per_page(3).build();
+    let response = client.api_pastes().get(Some(params)).await?;
+    let response_data: IndexResponse = response.json().await?;
+    let expected: Vec<TestPaste> = pastes[5..8].into_iter().cloned().rev().collect();
+    assert!(response_data.pagination.prev_page.is_none());
+    assert!(response_data.pagination.next_page.is_some());
+    assert_eq!(expected, response_data.pastes);
+
+    // Second page (forward)
+    let next_cursor = response_data.pagination.next_page.unwrap();
+    let params = PaginationParams::builder()
+        .per_page(3)
+        .next_page(&next_cursor)
+        .build();
+    let response = client.api_pastes().get(Some(params)).await?;
+    let response_data: IndexResponse = response.json().await?;
+    let expected: Vec<TestPaste> = pastes[2..5].into_iter().cloned().rev().collect();
+    assert!(response_data.pagination.prev_page.is_some());
+    assert!(response_data.pagination.next_page.is_some());
+    assert_eq!(expected, response_data.pastes);
+
+    // Third page (forward)
+    let next_cursor = response_data.pagination.next_page.unwrap();
+    let params = PaginationParams::builder()
+        .per_page(3)
+        .next_page(&next_cursor)
+        .build();
+    let response = client.api_pastes().get(Some(params)).await?;
+    let response_data: IndexResponse = response.json().await?;
+    let expected: Vec<TestPaste> = pastes[0..2].into_iter().cloned().rev().collect();
+    assert!(response_data.pagination.prev_page.is_some());
+    assert!(response_data.pagination.next_page.is_none());
+    assert_eq!(expected, response_data.pastes);
+
+    // Second page (backward)
+    let prev_cursor = response_data.pagination.prev_page.unwrap();
+    let params = PaginationParams::builder()
+        .per_page(3)
+        .prev_page(&prev_cursor)
+        .build();
+    let response = client.api_pastes().get(Some(params)).await?;
+    let response_data: IndexResponse = response.json().await?;
+    let expected: Vec<TestPaste> = pastes[2..5].into_iter().cloned().rev().collect();
+    assert!(response_data.pagination.prev_page.is_some());
+    assert!(response_data.pagination.next_page.is_some());
+    assert_eq!(expected, response_data.pastes);
+
+    // First page (backward)
+    let prev_cursor = response_data.pagination.prev_page.unwrap();
+    let params = PaginationParams::builder()
+        .per_page(3)
+        .prev_page(&prev_cursor)
+        .build();
+    let response = client.api_pastes().get(Some(params)).await?;
+    let response_data: IndexResponse = response.json().await?;
+    let expected: Vec<TestPaste> = pastes[5..8].into_iter().cloned().rev().collect();
+    assert!(response_data.pagination.prev_page.is_none());
+    assert!(response_data.pagination.next_page.is_some());
+    assert_eq!(expected, response_data.pastes);
     Ok(())
 }
 
