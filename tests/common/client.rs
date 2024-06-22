@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+use crate::common::pagination_helper::PaginationParams;
 use crate::common::paste_helper::TestPaste;
 use crate::common::user_helper::TestUser;
 use crate::prelude::*;
@@ -85,8 +86,18 @@ impl<'c> ApiPastesEndpoint<'c> {
         Ok(self.0.base_url.join(&format!("{}/", self.endpoint_str()))?)
     }
 
-    pub async fn get(&self) -> Result<Response> {
-        Ok(self.0.client.get(self.endpoint()?).send().await?)
+    pub async fn get(&self, params: Option<PaginationParams>) -> Result<Response> {
+        if let Some(params) = params {
+            Ok(self
+                .0
+                .client
+                .get(self.endpoint()?)
+                .json(&params)
+                .send()
+                .await?)
+        } else {
+            Ok(self.0.client.get(self.endpoint()?).send().await?)
+        }
     }
 
     pub async fn post(&self, paste: &TestPaste) -> Result<Response> {
