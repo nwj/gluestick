@@ -64,8 +64,8 @@ pub fn random_email(range: RangeInclusive<usize>) -> Result<String> {
     let remaining_len = len - 1 - tld.len();
     let username_len = remaining_len / 2 + remaining_len % 2;
     let domain_len = remaining_len / 2;
-    let username = random_alphanumeric_string(1..=username_len)?;
-    let domain = random_alphanumeric_string(1..=domain_len)?;
+    let username = random_alphanumeric_string(username_len..=username_len)?;
+    let domain = random_alphanumeric_string(domain_len..=domain_len)?;
     Ok(format!("{username}@{domain}{tld}"))
 }
 
@@ -89,7 +89,7 @@ pub fn random_filename(range: RangeInclusive<usize>) -> Result<String> {
         .copied()
         .unwrap_or_default();
     let remaining_len = len - extension.len();
-    let name = random_alphanumeric_string(1..=remaining_len)?;
+    let name = random_alphanumeric_string(remaining_len..=remaining_len)?;
     Ok(format!("{name}{extension}"))
 }
 
