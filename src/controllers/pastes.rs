@@ -1,20 +1,14 @@
-use crate::{
-    controllers,
-    db::Database,
-    helpers::pagination::{CursorPaginationParams, CursorPaginationResponse},
-    models::{
-        paste::{Paste, Visibility},
-        session::Session,
-    },
-    views::pastes::{
-        EditPastesTemplate, IndexPastesTemplate, NewPastesTemplate, ShowPastesTemplate,
-    },
+use crate::controllers::prelude::*;
+use crate::db::Database;
+use crate::helpers::pagination::{CursorPaginationParams, CursorPaginationResponse};
+use crate::models::paste::{Paste, Visibility};
+use crate::models::session::Session;
+use crate::views::pastes::{
+    EditPastesTemplate, IndexPastesTemplate, NewPastesTemplate, ShowPastesTemplate,
 };
-use axum::{
-    extract::{Form, Path, Query, State},
-    http::{header::HeaderMap, HeaderValue, StatusCode},
-    response::{IntoResponse, Redirect},
-};
+use axum::extract::{Form, Path, Query, State};
+use axum::http::{header::HeaderMap, HeaderValue, StatusCode};
+use axum::response::{IntoResponse, Redirect};
 use serde::Deserialize;
 use uuid::Uuid;
 use validator::Validate;
@@ -23,7 +17,7 @@ pub async fn index(
     session: Option<Session>,
     Query(pagination_params): Query<CursorPaginationParams>,
     State(db): State<Database>,
-) -> controllers::Result<impl IntoResponse> {
+) -> Result<impl IntoResponse> {
     let mut pairs = Paste::cursor_paginated_with_username(
         &db,
         pagination_params.limit_with_lookahead(),
@@ -52,7 +46,7 @@ pub async fn new(session: Session) -> NewPastesTemplate {
     NewPastesTemplate { session }
 }
 
-#[derive(Deserialize, Debug, Validate)]
+#[derive(Debug, Deserialize, Validate)]
 pub struct CreatePaste {
     pub filename: String,
     pub description: String,
@@ -64,7 +58,7 @@ pub async fn create(
     session: Session,
     State(db): State<Database>,
     Form(input): Form<CreatePaste>,
-) -> controllers::Result<impl IntoResponse> {
+) -> Result<impl IntoResponse> {
     let paste = Paste::new(
         session.user.id,
         input.filename,
@@ -82,7 +76,7 @@ pub async fn show(
     session: Option<Session>,
     State(db): State<Database>,
     Path(id): Path<Uuid>,
-) -> controllers::Result<impl IntoResponse> {
+) -> Result<impl IntoResponse> {
     match Paste::find_with_username(&db, id).await? {
         Some((paste, username)) => {
             let syntax_highlighted_html = paste.syntax_highlight(&db).await?;
@@ -96,24 +90,24 @@ pub async fn show(
                 },
             ))
         }
-        None => Err(controllers::Error::NotFound),
+        None => Err(Error::NotFound),
     }
 }
 
 pub async fn show_raw(
     State(db): State<Database>,
     Path(id): Path<Uuid>,
-) -> controllers::Result<impl IntoResponse> {
+) -> Result<impl IntoResponse> {
     match Paste::find(&db, id).await? {
         Some(paste) => Ok((StatusCode::OK, paste.body.to_string())),
-        None => Err(controllers::Error::NotFound),
+        None => Err(Error::NotFound),
     }
 }
 
 pub async fn download(
     State(db): State<Database>,
     Path(id): Path<Uuid>,
-) -> controllers::Result<impl IntoResponse> {
+) -> Result<impl IntoResponse> {
     match Paste::find(&db, id).await? {
         Some(paste) => Ok((
             StatusCode::OK,
@@ -123,7 +117,7 @@ pub async fn download(
             )],
             paste.body.to_string(),
         )),
-        None => Err(controllers::Error::NotFound),
+        None => Err(Error::NotFound),
     }
 }
 
@@ -131,7 +125,7 @@ pub async fn edit(
     session: Session,
     State(db): State<Database>,
     Path(id): Path<Uuid>,
-) -> controllers::Result<impl IntoResponse> {
+) -> Result<impl IntoResponse> {
     let optional_paste = Paste::find(&db, id).await?;
 
     match optional_paste {
@@ -142,12 +136,12 @@ pub async fn edit(
             };
             Ok(response)
         }
-        Some(_) => Err(controllers::Error::Forbidden),
-        None => Err(controllers::Error::NotFound),
+        Some(_) => Err(Error::Forbidden),
+        None => Err(Error::NotFound),
     }
 }
 
-#[derive(Deserialize, Debug, Validate)]
+#[derive(Debug, Deserialize, Validate)]
 pub struct UpdatePaste {
     pub filename: String,
     pub description: Option<String>,
@@ -159,7 +153,7 @@ pub async fn update(
     State(db): State<Database>,
     Path(id): Path<Uuid>,
     Form(input): Form<UpdatePaste>,
-) -> controllers::Result<impl IntoResponse> {
+) -> Result<impl IntoResponse> {
     let optional_paste = Paste::find(&db, id).await?;
 
     match optional_paste {
@@ -168,7 +162,7 @@ pub async fn update(
             response.insert(
                 "HX-Redirect",
                 HeaderValue::from_str(&format!("/pastes/{}", &paste.id))
-                    .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?,
+                    .map_err(|e| Error::InternalServerError(Box::new(e)))?,
             );
 
             paste
@@ -182,8 +176,8 @@ pub async fn update(
 
             Ok(response)
         }
-        Some(_) => Err(controllers::Error::Forbidden),
-        None => Err(controllers::Error::NotFound),
+        Some(_) => Err(Error::Forbidden),
+        None => Err(Error::NotFound),
     }
 }
 
@@ -191,7 +185,7 @@ pub async fn destroy(
     session: Session,
     State(db): State<Database>,
     Path(id): Path<Uuid>,
-) -> controllers::Result<impl IntoResponse> {
+) -> Result<impl IntoResponse> {
     let optional_paste = Paste::find(&db, id).await?;
 
     match optional_paste {
@@ -202,7 +196,7 @@ pub async fn destroy(
             response.insert("HX-Redirect", HeaderValue::from_static("/pastes"));
             Ok(response)
         }
-        Some(_) => Err(controllers::Error::Forbidden),
-        None => Err(controllers::Error::NotFound),
+        Some(_) => Err(Error::Forbidden),
+        None => Err(Error::NotFound),
     }
 }

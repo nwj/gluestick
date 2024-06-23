@@ -1,18 +1,12 @@
-use crate::{
-    controllers,
-    db::Database,
-    models::{
-        session::{Session, SessionToken},
-        user::{Password, User},
-    },
-    views::sessions::NewSessionsTemplate,
-};
-use axum::{
-    body::Body,
-    extract::{Form, State},
-    http::{header::HeaderMap, HeaderValue, StatusCode},
-    response::{IntoResponse, Response},
-};
+use crate::controllers::prelude::*;
+use crate::db::Database;
+use crate::models::session::{Session, SessionToken};
+use crate::models::user::{Password, User};
+use crate::views::sessions::NewSessionsTemplate;
+use axum::body::Body;
+use axum::extract::{Form, State};
+use axum::http::{header::HeaderMap, HeaderValue, StatusCode};
+use axum::response::{IntoResponse, Response};
 use secrecy::ExposeSecret;
 use serde::Deserialize;
 use validator::Validate;
@@ -21,7 +15,7 @@ pub async fn new() -> NewSessionsTemplate {
     NewSessionsTemplate { session: None }
 }
 
-#[derive(Deserialize, Debug, Validate)]
+#[derive(Debug, Deserialize, Validate)]
 pub struct CreateSession {
     pub email: String,
     pub password: Password,
@@ -30,13 +24,13 @@ pub struct CreateSession {
 pub async fn create(
     State(db): State<Database>,
     Form(input): Form<CreateSession>,
-) -> controllers::Result<impl IntoResponse> {
+) -> Result<impl IntoResponse> {
     let Some(user) = User::find_by_email(&db, input.email).await? else {
-        return Err(controllers::Error::Unauthorized);
+        return Err(Error::Unauthorized);
     };
 
     user.verify_password(&input.password)
-        .map_err(|_| controllers::Error::Unauthorized)?;
+        .map_err(|_| Error::Unauthorized)?;
 
     let token = SessionToken::generate();
 
@@ -51,17 +45,14 @@ pub async fn create(
             ),
         )
         .body(Body::empty())
-        .map_err(|e| controllers::Error::InternalServerError(Box::new(e)))?;
+        .map_err(|e| Error::InternalServerError(Box::new(e)))?;
 
     Session::new(&token, user).insert(&db).await?;
 
     Ok(response)
 }
 
-pub async fn delete(
-    session: Session,
-    State(db): State<Database>,
-) -> controllers::Result<impl IntoResponse> {
+pub async fn delete(session: Session, State(db): State<Database>) -> Result<impl IntoResponse> {
     session.user.delete_sessions(&db).await?;
 
     let mut headers = HeaderMap::new();

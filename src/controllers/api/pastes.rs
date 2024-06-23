@@ -1,17 +1,11 @@
-use crate::{
-    controllers,
-    db::Database,
-    helpers::pagination::{CursorPaginationParams, CursorPaginationResponse},
-    models::{
-        api_session::ApiSession,
-        paste::{Paste, Visibility},
-    },
-};
-use axum::{
-    extract::{Path, State},
-    response::IntoResponse,
-    Json,
-};
+use crate::controllers::api::prelude::*;
+use crate::db::Database;
+use crate::helpers::pagination::{CursorPaginationParams, CursorPaginationResponse};
+use crate::models::api_session::ApiSession;
+use crate::models::paste::{Paste, Visibility};
+use axum::extract::{Path, State};
+use axum::response::IntoResponse;
+use axum::Json;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use validator::Validate;
@@ -26,7 +20,7 @@ pub async fn index(
     _session: ApiSession,
     State(db): State<Database>,
     pagination_params: Option<Json<CursorPaginationParams>>,
-) -> controllers::api::Result<impl IntoResponse> {
+) -> Result<impl IntoResponse> {
     let pagination_params = pagination_params.unwrap_or_default();
     let mut pastes = Paste::cursor_paginated(
         &db,
@@ -51,7 +45,7 @@ pub async fn create(
     session: ApiSession,
     State(db): State<Database>,
     Json(input): Json<CreatePaste>,
-) -> controllers::api::Result<impl IntoResponse> {
+) -> Result<impl IntoResponse> {
     let paste = Paste::new(
         session.user.id,
         input.filename,
@@ -68,10 +62,10 @@ pub async fn show(
     _session: ApiSession,
     Path(id): Path<Uuid>,
     State(db): State<Database>,
-) -> controllers::api::Result<impl IntoResponse> {
+) -> Result<impl IntoResponse> {
     match Paste::find(&db, id).await? {
         Some(paste) => Ok(Json(paste)),
-        None => Err(controllers::api::Error::NotFound),
+        None => Err(Error::NotFound),
     }
 }
 
@@ -79,10 +73,10 @@ pub async fn show_raw(
     _session: ApiSession,
     Path(id): Path<Uuid>,
     State(db): State<Database>,
-) -> controllers::api::Result<impl IntoResponse> {
+) -> Result<impl IntoResponse> {
     match Paste::find(&db, id).await? {
         Some(paste) => Ok(paste.body.to_string()),
-        None => Err(controllers::api::Error::NotFound),
+        None => Err(Error::NotFound),
     }
 }
 
@@ -98,7 +92,7 @@ pub async fn update(
     Path(id): Path<Uuid>,
     State(db): State<Database>,
     Json(input): Json<UpdatePaste>,
-) -> controllers::api::Result<impl IntoResponse> {
+) -> Result<impl IntoResponse> {
     let optional_paste = Paste::find(&db, id).await?;
 
     match optional_paste {
@@ -108,8 +102,8 @@ pub async fn update(
                 .await?;
             Ok(())
         }
-        Some(_) => Err(controllers::api::Error::Forbidden),
-        None => Err(controllers::api::Error::NotFound),
+        Some(_) => Err(Error::Forbidden),
+        None => Err(Error::NotFound),
     }
 }
 
@@ -117,7 +111,7 @@ pub async fn destroy(
     session: ApiSession,
     Path(id): Path<Uuid>,
     State(db): State<Database>,
-) -> controllers::api::Result<impl IntoResponse> {
+) -> Result<impl IntoResponse> {
     let optional_paste = Paste::find(&db, id).await?;
 
     match optional_paste {
@@ -125,7 +119,7 @@ pub async fn destroy(
             paste.delete(&db).await?;
             Ok(())
         }
-        Some(_) => Err(controllers::api::Error::Forbidden),
-        None => Err(controllers::api::Error::NotFound),
+        Some(_) => Err(Error::Forbidden),
+        None => Err(Error::NotFound),
     }
 }
