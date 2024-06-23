@@ -1,4 +1,6 @@
-use crate::{db::Database, models, models::user::User};
+use crate::db::Database;
+use crate::models::prelude::*;
+use crate::models::user::User;
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use secrecy::{ExposeSecret, Secret};
@@ -18,7 +20,7 @@ impl Session {
         }
     }
 
-    pub async fn insert(self, db: &Database) -> models::Result<usize> {
+    pub async fn insert(self, db: &Database) -> Result<usize> {
         let result = db
             .conn
             .call(move |conn| {
@@ -52,7 +54,7 @@ impl SessionToken {
         Self(Secret::new(format!("{:032x}", rng.gen::<u128>())))
     }
 
-    pub fn parse(s: impl AsRef<str>) -> models::Result<Self> {
+    pub fn parse(s: impl AsRef<str>) -> Result<Self> {
         let s = s.as_ref();
         u128::from_str_radix(s, 16)?;
         Ok(Self(Secret::new(s.to_string())))

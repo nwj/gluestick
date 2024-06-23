@@ -1,18 +1,13 @@
-use crate::{
-    db::Database,
-    models,
-    models::{api_session::ApiKey, session::SessionToken},
-};
-use argon2::{
-    password_hash::{rand_core::OsRng, PasswordHasher, SaltString},
-    Argon2, PasswordHash, PasswordVerifier,
-};
+use crate::db::Database;
+use crate::models::api_session::ApiKey;
+use crate::models::prelude::*;
+use crate::models::session::SessionToken;
+use argon2::password_hash::{PasswordHasher, SaltString};
+use argon2::{Argon2, PasswordHash, PasswordVerifier};
 use derive_more::{AsRef, Display, From, Into};
-use rusqlite::{
-    named_params,
-    types::{FromSql, FromSqlError, FromSqlResult, ToSql, ToSqlOutput, ValueRef},
-    Row,
-};
+use rand::rngs::OsRng;
+use rusqlite::types::{FromSql, FromSqlError, FromSqlResult, ToSql, ToSqlOutput, ValueRef};
+use rusqlite::{named_params, Row};
 use secrecy::{ExposeSecret, Secret};
 use serde::Deserialize;
 use uuid::Uuid;
@@ -27,7 +22,7 @@ pub struct User {
 }
 
 impl User {
-    pub fn new(username: String, email: String, password: &Password) -> models::Result<Self> {
+    pub fn new(username: String, email: String, password: &Password) -> Result<Self> {
         Ok(User {
             id: Uuid::now_v7(),
             username: Username::try_from(username)?,
@@ -45,7 +40,7 @@ impl User {
         })
     }
 
-    pub fn verify_password(&self, password: &Password) -> models::Result<()> {
+    pub fn verify_password(&self, password: &Password) -> Result<()> {
         Argon2::default().verify_password(
             password.expose_secret().as_bytes(),
             &PasswordHash::new(self.password.expose_secret())?,
@@ -53,7 +48,7 @@ impl User {
         Ok(())
     }
 
-    pub async fn insert(self, db: &Database) -> models::Result<usize> {
+    pub async fn insert(self, db: &Database) -> Result<usize> {
         let result = db
             .conn
             .call(move |conn| {
@@ -72,7 +67,7 @@ impl User {
         Ok(result)
     }
 
-    pub async fn find_by_email(db: &Database, email: String) -> models::Result<Option<User>> {
+    pub async fn find_by_email(db: &Database, email: String) -> Result<Option<User>> {
         let optional_user = db
             .conn
             .call(move |conn| {
@@ -90,10 +85,7 @@ impl User {
         Ok(optional_user)
     }
 
-    pub async fn find_by_session_token(
-        db: &Database,
-        token: SessionToken,
-    ) -> models::Result<Option<User>> {
+    pub async fn find_by_session_token(db: &Database, token: SessionToken) -> Result<Option<User>> {
         let optional_user = db
             .conn
             .call(move |conn| {
@@ -114,7 +106,7 @@ impl User {
         Ok(optional_user)
     }
 
-    pub async fn delete_sessions(self, db: &Database) -> models::Result<usize> {
+    pub async fn delete_sessions(self, db: &Database) -> Result<usize> {
         let result = db
             .conn
             .call(move |conn| {
@@ -129,7 +121,7 @@ impl User {
         Ok(result)
     }
 
-    pub async fn find_by_api_key(db: &Database, key: ApiKey) -> models::Result<Option<User>> {
+    pub async fn find_by_api_key(db: &Database, key: ApiKey) -> Result<Option<User>> {
         let optional_user = db
             .conn
             .call(move |conn| {
@@ -151,7 +143,7 @@ impl User {
     }
 }
 
-#[derive(Debug, Display, Clone, AsRef, Into, Validate)]
+#[derive(AsRef, Clone, Debug, Display, Into, Validate)]
 pub struct Username {
     #[validate(
         length(min = 3, max = 32),
@@ -161,7 +153,7 @@ pub struct Username {
 }
 
 impl Username {
-    pub fn new(s: String) -> models::Result<Self> {
+    pub fn new(s: String) -> Result<Self> {
         let username = Self { inner: s };
         username.validate()?;
         Ok(username)
@@ -179,7 +171,7 @@ impl Username {
 }
 
 impl TryFrom<String> for Username {
-    type Error = models::Error;
+    type Error = Error;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
         Self::new(value)
@@ -207,14 +199,14 @@ impl FromSql for Username {
     }
 }
 
-#[derive(Debug, Display, Clone, AsRef, Into, Validate)]
+#[derive(AsRef, Clone, Debug, Display, Into, Validate)]
 pub struct EmailAddress {
     #[validate(email)]
     inner: String,
 }
 
 impl EmailAddress {
-    pub fn new(s: &str) -> models::Result<Self> {
+    pub fn new(s: &str) -> Result<Self> {
         let email = Self {
             inner: s.to_lowercase(),
         };
@@ -224,7 +216,7 @@ impl EmailAddress {
 }
 
 impl TryFrom<String> for EmailAddress {
-    type Error = models::Error;
+    type Error = Error;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
         Self::new(&value)
@@ -252,15 +244,15 @@ impl FromSql for EmailAddress {
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct Password(Secret<String>);
 
 impl Password {
-    pub fn to_hash(&self) -> models::Result<HashedPassword> {
+    pub fn to_hash(&self) -> Result<HashedPassword> {
         Ok(HashedPassword(Self::hash_password(&self.0)?))
     }
 
-    fn hash_password(password: &Secret<String>) -> models::Result<Secret<String>> {
+    fn hash_password(password: &Secret<String>) -> Result<Secret<String>> {
         Ok(Secret::new(
             Argon2::default()
                 .hash_password(
@@ -301,7 +293,7 @@ impl ExposeSecret<String> for Password {
     }
 }
 
-#[derive(Debug, Clone, From)]
+#[derive(Clone, Debug, From)]
 pub struct HashedPassword(Secret<String>);
 
 impl ExposeSecret<String> for HashedPassword {

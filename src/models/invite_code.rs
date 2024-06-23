@@ -1,4 +1,5 @@
-use crate::{db::Database, models};
+use crate::db::Database;
+use crate::models::prelude::*;
 use rusqlite::{named_params, Row};
 
 pub struct InviteCode {
@@ -10,7 +11,7 @@ impl InviteCode {
         Ok(Self { code: row.get(0)? })
     }
 
-    pub async fn find(db: &Database, code: String) -> models::Result<Option<Self>> {
+    pub async fn find(db: &Database, code: String) -> Result<Option<Self>> {
         let optional_code = db
             .conn
             .call(move |conn| {
@@ -27,7 +28,7 @@ impl InviteCode {
         Ok(optional_code)
     }
 
-    pub async fn delete(self, db: &Database) -> models::Result<usize> {
+    pub async fn delete(self, db: &Database) -> Result<usize> {
         let result = db
             .conn
             .call(move |conn| {

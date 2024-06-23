@@ -1,27 +1,18 @@
-use crate::{
-    db::Database,
-    helpers::{
-        pagination::{Direction, HasOrderedId},
-        syntax_highlight,
-    },
-    models,
-    models::user::Username,
-};
-use chrono::{
-    serde::ts_seconds,
-    {DateTime, Utc},
-};
+use crate::db::Database;
+use crate::helpers::pagination::{Direction, HasOrderedId};
+use crate::helpers::syntax_highlight;
+use crate::models::prelude::*;
+use crate::models::user::Username;
+use chrono::serde::ts_seconds;
+use chrono::{DateTime, Utc};
 use derive_more::{AsRef, Display, Into};
-use rusqlite::{
-    named_params,
-    types::{FromSql, FromSqlError, FromSqlResult, ToSql, ToSqlOutput, Type, ValueRef},
-    Row, Transaction, TransactionBehavior,
-};
+use rusqlite::types::{FromSql, FromSqlError, FromSqlResult, ToSql, ToSqlOutput, Type, ValueRef};
+use rusqlite::{named_params, Row, Transaction, TransactionBehavior};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use validator::Validate;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Paste {
     pub id: Uuid,
     pub user_id: Uuid,
@@ -42,7 +33,7 @@ impl Paste {
         description: String,
         body: String,
         visibility: Visibility,
-    ) -> models::Result<Self> {
+    ) -> Result<Self> {
         Ok(Self {
             id: Uuid::now_v7(),
             user_id,
@@ -67,20 +58,20 @@ impl Paste {
                 rusqlite::Error::FromSqlConversionFailure(
                     6,
                     Type::Integer,
-                    Box::new(models::Error::ParseDateTime),
+                    Box::new(Error::ParseDateTime),
                 ),
             )?,
             updated_at: DateTime::from_timestamp(row.get(7)?, 0).ok_or(
                 rusqlite::Error::FromSqlConversionFailure(
                     7,
                     Type::Integer,
-                    Box::new(models::Error::ParseDateTime),
+                    Box::new(Error::ParseDateTime),
                 ),
             )?,
         })
     }
 
-    pub async fn syntax_highlight(&self, db: &Database) -> models::Result<Option<String>> {
+    pub async fn syntax_highlight(&self, db: &Database) -> Result<Option<String>> {
         Ok(syntax_highlight::generate_with_cache_attempt(
             db,
             &self.id,
@@ -95,7 +86,7 @@ impl Paste {
         limit: usize,
         direction: Direction,
         cursor: Option<Uuid>,
-    ) -> models::Result<Vec<Paste>> {
+    ) -> Result<Vec<Paste>> {
         let pastes: Vec<_> = db
             .conn
             .call(move |conn| {
@@ -130,7 +121,7 @@ impl Paste {
         limit: usize,
         direction: Direction,
         cursor: Option<Uuid>,
-    ) -> models::Result<Vec<(Paste, Username)>> {
+    ) -> Result<Vec<(Paste, Username)>> {
         let pairs: Vec<_> = db
             .conn
             .call(move |conn| {
@@ -185,7 +176,7 @@ impl Paste {
         Ok(pairs)
     }
 
-    pub async fn insert(self, db: &Database) -> models::Result<()> {
+    pub async fn insert(self, db: &Database) -> Result<()> {
         let optional_html =
             syntax_highlight::generate(self.body.as_ref(), self.filename.extension());
 
@@ -222,7 +213,7 @@ impl Paste {
         Ok(())
     }
 
-    pub async fn find(db: &Database, id: Uuid) -> models::Result<Option<Paste>> {
+    pub async fn find(db: &Database, id: Uuid) -> Result<Option<Paste>> {
         let optional_paste = db
             .conn
             .call(move |conn| {
@@ -250,10 +241,7 @@ impl Paste {
         }
     }
 
-    pub async fn find_with_username(
-        db: &Database,
-        id: Uuid,
-    ) -> models::Result<Option<(Paste, Username)>> {
+    pub async fn find_with_username(db: &Database, id: Uuid) -> Result<Option<(Paste, Username)>> {
         let optional_pair = db
             .conn
             .call(move |conn| {
@@ -291,7 +279,7 @@ impl Paste {
         filename: Option<String>,
         description: Option<String>,
         body: Option<String>,
-    ) -> models::Result<()> {
+    ) -> Result<()> {
         let original_filename = self.filename.clone();
         let original_body = self.body.clone();
 
@@ -337,7 +325,7 @@ impl Paste {
         Ok(())
     }
 
-    pub async fn delete(self, db: &Database) -> models::Result<usize> {
+    pub async fn delete(self, db: &Database) -> Result<usize> {
         let result = db
             .conn
             .call(move |conn| {
@@ -356,7 +344,7 @@ impl HasOrderedId for Paste {
     }
 }
 
-#[derive(Debug, Display, Clone, AsRef, Into, Validate, Serialize, Deserialize)]
+#[derive(AsRef, Clone, Debug, Deserialize, Display, Into, Serialize, Validate)]
 #[serde(try_from = "String", into = "String")]
 pub struct Filename {
     #[validate(
@@ -367,7 +355,7 @@ pub struct Filename {
 }
 
 impl Filename {
-    pub fn new(s: &str) -> models::Result<Self> {
+    pub fn new(s: &str) -> Result<Self> {
         let filename = Self {
             inner: s.trim().to_string(),
         };
@@ -399,7 +387,7 @@ impl Filename {
 }
 
 impl TryFrom<String> for Filename {
-    type Error = models::Error;
+    type Error = Error;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
         Self::new(&value)
@@ -427,7 +415,7 @@ impl FromSql for Filename {
     }
 }
 
-#[derive(Debug, Display, Clone, AsRef, Into, Validate, Serialize, Deserialize)]
+#[derive(AsRef, Clone, Debug, Deserialize, Display, Into, Serialize, Validate)]
 #[serde(try_from = "String", into = "String")]
 pub struct Description {
     #[validate(length(max = 256))]
@@ -435,7 +423,7 @@ pub struct Description {
 }
 
 impl Description {
-    pub fn new(s: &str) -> models::Result<Self> {
+    pub fn new(s: &str) -> Result<Self> {
         let description = Self {
             inner: s.trim().to_string(),
         };
@@ -453,7 +441,7 @@ impl Description {
 }
 
 impl TryFrom<String> for Description {
-    type Error = models::Error;
+    type Error = Error;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
         Self::new(&value)
@@ -481,7 +469,7 @@ impl FromSql for Description {
     }
 }
 
-#[derive(Debug, Display, Clone, AsRef, Into, PartialEq, Validate, Serialize, Deserialize)]
+#[derive(AsRef, Clone, Debug, Deserialize, Display, Into, PartialEq, Serialize, Validate)]
 #[serde(try_from = "String", into = "String")]
 pub struct Body {
     #[validate(length(min = 1))]
@@ -489,7 +477,7 @@ pub struct Body {
 }
 
 impl Body {
-    pub fn new(s: &str) -> models::Result<Self> {
+    pub fn new(s: &str) -> Result<Self> {
         let body = Self {
             inner: s.trim().to_string(),
         };
@@ -499,7 +487,7 @@ impl Body {
 }
 
 impl TryFrom<String> for Body {
-    type Error = models::Error;
+    type Error = Error;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
         Self::new(&value)
@@ -527,7 +515,7 @@ impl FromSql for Body {
     }
 }
 
-#[derive(Debug, Clone, Copy, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub enum Visibility {
     #[serde(rename = "public")]
     Public,
