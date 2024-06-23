@@ -1,6 +1,6 @@
 use crate::{
+    models::prelude::Error as ModelsError,
     models::session::Session,
-    models::Error as ModelsError,
     views::{IndexTemplate, InternalServerErrorTemplate, NotFoundTemplate},
 };
 use axum::{

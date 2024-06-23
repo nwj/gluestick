@@ -1,4 +1,4 @@
-use crate::models::Error as ModelsError;
+use crate::models::prelude::Error as ModelsError;
 use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
