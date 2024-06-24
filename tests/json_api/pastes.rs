@@ -273,7 +273,7 @@ async fn create_show_update_destroy_happy_path() -> Result<()> {
     let response = client.api_pastes().delete_by_id(&paste).await?;
     assert_eq!(response.status(), 200);
 
-    // SHow
+    // Show
     let response = client.api_pastes().get_by_id(&paste).await?;
     assert_eq!(response.status(), 404);
     Ok(())

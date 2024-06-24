@@ -2,9 +2,9 @@ use crate::common::app::TestApp;
 use crate::common::client::TestClient;
 use crate::common::pagination_helper::PaginationParams;
 use crate::common::paste_helper::TestPaste;
+use crate::common::rand_helper::{random_alphanumeric_string, random_filename, random_string};
 use crate::common::user_helper::TestUser;
 use crate::prelude::*;
-use reqwest::StatusCode;
 use std::thread::sleep;
 use std::time::Duration;
 
@@ -239,35 +239,65 @@ async fn index_paginates_correctly() -> Result<()> {
 }
 
 #[tokio::test]
-async fn create_persists_when_valid_form_data() -> Result<()> {
+async fn create_show_update_destroy_happy_path() -> Result<()> {
     let app = TestApp::spawn().await?;
     let user = TestUser::builder().random()?.build().seed(&app).await?;
     let client = TestClient::new(app.address, None)?;
     client.login().post(&user).await?;
-    let paste = TestPaste::builder().random()?.build();
+    let mut paste = TestPaste::builder().random()?.build();
 
+    // Create
     let response = client.pastes().post(&paste).await?;
+    assert_eq!(response.status(), 200);
+    paste.id = response.url().path().split("/").nth(2).map(String::from);
 
-    assert_eq!(response.status(), StatusCode::OK);
-    let persisted = app
-        .db
-        .conn
-        .call(|conn| {
-            Ok(conn
-                .prepare("SELECT filename, description, body FROM pastes")?
-                .query_map([], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)))?
-                .collect::<std::result::Result<Vec<(String, String, String)>, _>>())
-        })
-        .await??;
-    assert_eq!(persisted.len(), 1);
-    assert_eq!(persisted[0].0, paste.filename);
-    assert_eq!(persisted[0].1, paste.description);
-    assert_eq!(persisted[0].2, paste.body);
+    // Show
+    let response = client.pastes().get_by_id(&paste).await?;
+    assert_eq!(response.status(), 200);
+    let html = response.text().await?;
+    assert!(html.contains(&paste.filename));
+    assert!(html.contains(&paste.description));
+    assert!(html.contains(&paste.body));
+
+    // Update
+    paste.filename = random_filename(1..=30)?;
+    paste.description = random_string(1..=30)?;
+    paste.body = random_string(1..=30)?;
+    let response = client.pastes().put_by_id(&paste).await?;
+    assert_eq!(response.status(), 200);
+
+    // Show
+    let response = client.pastes().get_by_id(&paste).await?;
+    assert_eq!(response.status(), 200);
+    let html = response.text().await?;
+    assert!(html.contains(&paste.filename));
+    assert!(html.contains(&paste.description));
+    assert!(html.contains(&paste.body));
+
+    // Delete
+    let response = client.pastes().delete_by_id(&paste).await?;
+    assert_eq!(response.status(), 200);
+
+    // Show
+    let response = client.pastes().get_by_id(&paste).await?;
+    assert_eq!(response.status(), 404);
     Ok(())
 }
 
 #[tokio::test]
-async fn create_responds_with_400_when_data_missing() -> Result<()> {
+async fn create_requires_session() -> Result<()> {
+    let app = TestApp::spawn().await?;
+    let _user = TestUser::builder().random()?.build().seed(&app).await?;
+    let client = TestClient::new(app.address, None)?;
+    let paste = TestPaste::builder().random()?.build();
+
+    let response = client.pastes().post(&paste).await?;
+    assert_eq!(response.status(), 401);
+    Ok(())
+}
+
+#[tokio::test]
+async fn create_responds_with_400_when_missing_required_fields() -> Result<()> {
     let app = TestApp::spawn().await?;
     let user = TestUser::builder().random()?.build().seed(&app).await?;
     let client = TestClient::new(app.address, None)?;
@@ -281,5 +311,227 @@ async fn create_responds_with_400_when_data_missing() -> Result<()> {
         let response = client.pastes().post(&bad_paste).await?;
         assert_eq!(response.status(), 400);
     }
+    Ok(())
+}
+
+#[tokio::test]
+async fn create_responds_with_400_when_invalid_fields() -> Result<()> {
+    let app = TestApp::spawn().await?;
+    let user = TestUser::builder().random()?.build().seed(&app).await?;
+    let client = TestClient::new(app.address, None)?;
+    client.login().post(&user).await?;
+    let bad_pastes = vec![
+        TestPaste::builder()
+            .filename(random_filename(257..=257)?)
+            .build(),
+        TestPaste::builder()
+            .filename("illegal/characters.md")
+            .build(),
+        TestPaste::builder()
+            .description(random_alphanumeric_string(257..=257)?)
+            .build(),
+    ];
+
+    for bad_paste in bad_pastes {
+        let response = client.pastes().post(&bad_paste).await?;
+        assert_eq!(response.status(), 400)
+    }
+    Ok(())
+}
+
+#[tokio::test]
+async fn show_responds_with_404_when_paste_doesnt_exist() -> Result<()> {
+    let app = TestApp::spawn().await?;
+    let _user = TestUser::builder().random()?.build().seed(&app).await?;
+    let client = TestClient::new(app.address, None)?;
+    let paste = TestPaste::builder().random()?.random_id().build();
+
+    let response = client.pastes().get_by_id(&paste).await?;
+    assert_eq!(response.status(), 404);
+    Ok(())
+}
+
+#[tokio::test]
+async fn update_requires_a_session() -> Result<()> {
+    let app = TestApp::spawn().await?;
+    let (_user, api_key) = TestUser::builder()
+        .random()?
+        .build()
+        .seed_with_api_key(&app)
+        .await?;
+    let client = TestClient::new(app.address, Some(&api_key))?;
+    let paste = TestPaste::builder()
+        .random()?
+        .build()
+        .persist(&client)
+        .await?;
+    let mut modified_paste = paste.clone();
+    modified_paste.filename = random_filename(1..=30)?;
+
+    let response = client.pastes().put_by_id(&modified_paste).await?;
+    assert_eq!(response.status(), 401);
+
+    let response = client.api_pastes().get_by_id(&paste).await?;
+    assert_eq!(response.status(), 200);
+    let persisted_paste: TestPaste = response.json().await?;
+    assert_eq!(paste, persisted_paste);
+    Ok(())
+}
+
+#[tokio::test]
+async fn update_responds_with_404_when_paste_doesnt_exist() -> Result<()> {
+    let app = TestApp::spawn().await?;
+    let (user, api_key) = TestUser::builder()
+        .random()?
+        .build()
+        .seed_with_api_key(&app)
+        .await?;
+    let client = TestClient::new(app.address, Some(&api_key))?;
+    client.login().post(&user).await?;
+    let paste = TestPaste::builder().random()?.random_id().build();
+
+    let response = client.pastes().put_by_id(&paste).await?;
+    assert_eq!(response.status(), 404);
+    Ok(())
+}
+
+#[tokio::test]
+async fn update_responds_with_400_when_invalid_fields() -> Result<()> {
+    let app = TestApp::spawn().await?;
+    let (user, api_key) = TestUser::builder()
+        .random()?
+        .build()
+        .seed_with_api_key(&app)
+        .await?;
+    let client = TestClient::new(app.address, Some(&api_key))?;
+    client.login().post(&user).await?;
+    let paste = TestPaste::builder()
+        .random()?
+        .build()
+        .persist(&client)
+        .await?;
+    let bad_pastes = vec![
+        TestPaste::builder()
+            .id(paste.id.clone().unwrap())
+            .filename(random_filename(257..=257)?)
+            .build(),
+        TestPaste::builder()
+            .id(paste.id.clone().unwrap())
+            .filename("illegal/characters.md")
+            .build(),
+        TestPaste::builder()
+            .id(paste.id.clone().unwrap())
+            .description(random_alphanumeric_string(257..=257)?)
+            .build(),
+    ];
+
+    for bad_paste in bad_pastes {
+        let response = client.pastes().put_by_id(&bad_paste).await?;
+        assert_eq!(response.status(), 400)
+    }
+    Ok(())
+}
+
+#[tokio::test]
+async fn cannot_update_other_users_pastes() -> Result<()> {
+    let app = TestApp::spawn().await?;
+    let (_user1, api_key1) = TestUser::builder()
+        .random()?
+        .build()
+        .seed_with_api_key(&app)
+        .await?;
+    let client1 = TestClient::new(app.address, Some(&api_key1))?;
+    let paste = TestPaste::builder()
+        .random()?
+        .build()
+        .persist(&client1)
+        .await?;
+    let (user2, api_key2) = TestUser::builder()
+        .random()?
+        .build()
+        .seed_with_api_key(&app)
+        .await?;
+    let client2 = TestClient::new(app.address, Some(&api_key2))?;
+    client2.login().post(&user2).await?;
+    let mut modified_paste = paste.clone();
+    modified_paste.filename = random_filename(1..=30)?;
+
+    let response = client2.pastes().put_by_id(&modified_paste).await?;
+    assert_eq!(response.status(), 403);
+
+    let response = client1.api_pastes().get_by_id(&paste).await?;
+    assert_eq!(response.status(), 200);
+    let persisted_paste: TestPaste = response.json().await?;
+    assert_eq!(paste, persisted_paste);
+    Ok(())
+}
+
+#[tokio::test]
+async fn destroy_requires_a_session() -> Result<()> {
+    let app = TestApp::spawn().await?;
+    let (_user, api_key) = TestUser::builder()
+        .random()?
+        .build()
+        .seed_with_api_key(&app)
+        .await?;
+    let client = TestClient::new(app.address, Some(&api_key))?;
+    let paste = TestPaste::builder()
+        .random()?
+        .build()
+        .persist(&client)
+        .await?;
+
+    let response = client.pastes().delete_by_id(&paste).await?;
+    assert_eq!(response.status(), 401);
+
+    let response = client.api_pastes().get_by_id(&paste).await?;
+    assert_eq!(response.status(), 200);
+    Ok(())
+}
+
+#[tokio::test]
+async fn destroy_responds_with_404_when_paste_doesnt_exist() -> Result<()> {
+    let app = TestApp::spawn().await?;
+    let (user, api_key) = TestUser::builder()
+        .random()?
+        .build()
+        .seed_with_api_key(&app)
+        .await?;
+    let client = TestClient::new(app.address, Some(&api_key))?;
+    client.login().post(&user).await?;
+    let paste = TestPaste::builder().random()?.random_id().build();
+
+    let response = client.pastes().delete_by_id(&paste).await?;
+    assert_eq!(response.status(), 404);
+    Ok(())
+}
+
+#[tokio::test]
+async fn cannot_destroy_other_users_pastes() -> Result<()> {
+    let app = TestApp::spawn().await?;
+    let (_user1, api_key1) = TestUser::builder()
+        .random()?
+        .build()
+        .seed_with_api_key(&app)
+        .await?;
+    let (user2, api_key2) = TestUser::builder()
+        .random()?
+        .build()
+        .seed_with_api_key(&app)
+        .await?;
+    let client1 = TestClient::new(app.address, Some(&api_key1))?;
+    let client2 = TestClient::new(app.address, Some(&api_key2))?;
+    client2.login().post(&user2).await?;
+    let paste = TestPaste::builder()
+        .random()?
+        .build()
+        .persist(&client1)
+        .await?;
+
+    let response = client2.pastes().delete_by_id(&paste).await?;
+    assert_eq!(response.status(), 403);
+
+    let response = client1.api_pastes().get_by_id(&paste).await?;
+    assert_eq!(response.status(), 200);
     Ok(())
 }
