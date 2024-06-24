@@ -81,19 +81,21 @@ impl TestApp {
 
     pub async fn seed_user(&self, user_id: Uuid, user: TestUser) -> Result<()> {
         let hashed_password = rand_helper::hash_password(user.password)?;
-        self.db.conn.call(move |conn| {
-                let mut stmt = conn.prepare("INSERT INTO users VALUES(:id, :username, :email, :password);")?;
-                stmt.execute(named_params! {":id": user_id, ":username": user.username, ":email": user.email.to_lowercase(), ":password": hashed_password})?;
+        self.db
+            .conn
+            .call(move |conn| {
+                let mut stmt =
+                    conn.prepare("INSERT INTO users VALUES(:id, :username, :email, :password);")?;
+                stmt.execute(named_params! {
+                    ":id": user_id,
+                    ":username": user.username,
+                    ":email": user.email.to_lowercase(),
+                    ":password": hashed_password
+                })?;
                 Ok(())
-        }).await?;
+            })
+            .await?;
         Ok(())
-    }
-
-    pub async fn seed_random_user(&self) -> Result<TestUser> {
-        let user_id = Uuid::now_v7();
-        let user = TestUser::builder().random()?.build();
-        self.seed_user(user_id, user.clone()).await?;
-        Ok(user)
     }
 
     pub async fn seed_api_key(&self, api_key: String, user_id: Uuid) -> Result<()> {
@@ -108,14 +110,5 @@ impl TestApp {
             })
             .await?;
         Ok(())
-    }
-
-    pub async fn seed_random_user_and_api_key(&self) -> Result<(TestUser, String)> {
-        let user_id = Uuid::now_v7();
-        let user = TestUser::builder().random()?.build();
-        let api_key = rand_helper::random_api_key();
-        self.seed_user(user_id, user.clone()).await?;
-        self.seed_api_key(api_key.clone(), user_id).await?;
-        Ok((user, api_key))
     }
 }

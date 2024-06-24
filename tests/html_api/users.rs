@@ -207,7 +207,7 @@ async fn has_session_after_signup() -> Result<()> {
 async fn login_logout_happy_path() -> Result<()> {
     let app = TestApp::spawn().await?;
     let client = TestClient::new(app.address, None)?;
-    let user = app.seed_random_user().await?;
+    let user = TestUser::builder().random()?.build().seed(&app).await?;
 
     let response = client.login().post(&user).await?;
     assert_eq!(response.status(), 200);
@@ -229,11 +229,11 @@ async fn login_logout_happy_path() -> Result<()> {
 async fn login_requires_email_and_password() -> Result<()> {
     let app = TestApp::spawn().await?;
     let client = TestClient::new(app.address, None)?;
-    let mut no_email = app.seed_random_user().await?;
+    let mut no_email = TestUser::builder().random()?.build().seed(&app).await?;
     no_email.email = "".into();
-    let mut no_password = app.seed_random_user().await?;
+    let mut no_password = TestUser::builder().random()?.build().seed(&app).await?;
     no_password.password = "".into();
-    let mut no_nothing = app.seed_random_user().await?;
+    let mut no_nothing = TestUser::builder().random()?.build().seed(&app).await?;
     no_nothing.email = "".into();
     no_nothing.password = "".into();
     let bad_users = &[no_email, no_password, no_nothing];
@@ -249,8 +249,8 @@ async fn login_requires_email_and_password() -> Result<()> {
 async fn cant_login_with_your_email_but_someone_elses_password() -> Result<()> {
     let app = TestApp::spawn().await?;
     let client = TestClient::new(app.address, None)?;
-    let user1 = app.seed_random_user().await?;
-    let mut user2 = app.seed_random_user().await?;
+    let user1 = TestUser::builder().random()?.build().seed(&app).await?;
+    let mut user2 = TestUser::builder().random()?.build().seed(&app).await?;
     user2.password = user1.password;
 
     let response = client.login().post(&user2).await?;
@@ -265,8 +265,8 @@ async fn cant_login_with_your_email_but_someone_elses_password() -> Result<()> {
 async fn cant_login_with_your_password_but_someone_elses_email() -> Result<()> {
     let app = TestApp::spawn().await?;
     let client = TestClient::new(app.address, None)?;
-    let user1 = app.seed_random_user().await?;
-    let mut user2 = app.seed_random_user().await?;
+    let user1 = TestUser::builder().random()?.build().seed(&app).await?;
+    let mut user2 = TestUser::builder().random()?.build().seed(&app).await?;
     user2.email = user1.email;
 
     let response = client.login().post(&user2).await?;
