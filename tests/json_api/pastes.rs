@@ -139,10 +139,7 @@ async fn index_400s_if_per_page_more_than_100() -> Result<()> {
 
     let params = PaginationParams::builder().per_page(per_page).build();
     let response = client.api_pastes().get(Some(params)).await?;
-    assert_eq!(response.status(), 200);
-    let response_data: IndexResponse = response.json().await?;
-    assert_eq!(response_data.pastes.len(), 10);
-
+    assert_eq!(response.status(), 400);
     Ok(())
 }
 

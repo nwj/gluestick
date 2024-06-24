@@ -18,6 +18,21 @@ impl PaginationParams {
     pub fn builder() -> PaginationParamsBuilder {
         PaginationParamsBuilder::new()
     }
+
+    pub fn to_query_params(&self) -> Vec<(&str, String)> {
+        let mut vec = Vec::new();
+        if let Some(per_page) = self.per_page {
+            vec.push(("per_page", per_page.to_string()))
+        }
+        if let Some(prev_page) = &self.prev_page {
+            vec.push(("prev_page", prev_page.into()))
+        }
+        if let Some(next_page) = &self.next_page {
+            vec.push(("next_page", next_page.into()))
+        }
+
+        vec
+    }
 }
 
 impl PaginationParamsBuilder {
