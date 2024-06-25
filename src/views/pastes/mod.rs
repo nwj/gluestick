@@ -37,8 +37,8 @@ pub struct EditPastesTemplate {
 #[allow(clippy::unnecessary_wraps)]
 mod filters {
 
-    use chrono::{DateTime, Duration, TimeZone, Utc};
     use std::fmt::Write;
+    use time::{Duration, OffsetDateTime};
 
     pub fn linewise_truncate<T: std::fmt::Display>(s: T, n: usize) -> askama::Result<String> {
         let s = s.to_string();
@@ -142,22 +142,22 @@ mod filters {
         Ok([&result, SUFFIX[base.floor() as usize]].join(" "))
     }
 
-    pub fn format_relative_time<Tz: TimeZone>(datetime: &DateTime<Tz>) -> askama::Result<String> {
-        let now = Utc::now();
-        let diff = now.signed_duration_since(datetime);
+    pub fn format_relative_time(datetime: &OffsetDateTime) -> askama::Result<String> {
+        let now = OffsetDateTime::now_utc();
+        let diff = now - *datetime;
 
         let (value, unit) = if diff < Duration::minutes(1) {
-            (diff.num_seconds(), "second")
+            (diff.whole_seconds(), "second")
         } else if diff < Duration::hours(1) {
-            (diff.num_minutes(), "minute")
+            (diff.whole_minutes(), "minute")
         } else if diff < Duration::days(1) {
-            (diff.num_hours(), "hour")
+            (diff.whole_hours(), "hour")
         } else if diff < Duration::days(30) {
-            (diff.num_days(), "day")
+            (diff.whole_days(), "day")
         } else if diff < Duration::days(365) {
-            (diff.num_days() / 30, "month")
+            (diff.whole_days() / 30, "month")
         } else {
-            (diff.num_days() / 365, "year")
+            (diff.whole_days() / 365, "year")
         };
 
         Ok(format!(
