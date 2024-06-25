@@ -209,8 +209,12 @@ impl<'c> PastesEndpoint<'c> {
         Ok(self.0.base_url.join(&format!("{}/", self.endpoint_str()))?)
     }
 
-    pub async fn get(&self) -> Result<Response> {
-        Ok(self.0.client.get(self.endpoint()?).send().await?)
+    pub async fn get(&self, params: Option<PaginationParams>) -> Result<Response> {
+        let mut url = self.endpoint()?;
+        if let Some(params) = params {
+            url = Url::parse_with_params(&url.to_string(), params.to_query_params())?;
+        }
+        Ok(self.0.client.get(url).send().await?)
     }
 
     pub async fn post(&self, paste: &TestPaste) -> Result<Response> {

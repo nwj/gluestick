@@ -8,7 +8,6 @@ async fn fallback_responds_with_404() -> Result<()> {
     let client = TestClient::new(app.address, None)?;
 
     let response = client.get_arbitrary("doesnt_exist").await?;
-
     assert_eq!(response.status(), 404);
     Ok(())
 }
@@ -19,7 +18,6 @@ async fn health_check_responds_with_200_and_zero_content() -> Result<()> {
     let client = TestClient::new(app.address, None)?;
 
     let response = client.health().get().await?;
-
     assert_eq!(response.status(), 200);
     assert_eq!(Some(0), response.content_length());
     Ok(())

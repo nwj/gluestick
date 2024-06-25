@@ -60,7 +60,6 @@ impl TestPasteBuilder {
         self
     }
 
-    #[allow(dead_code)]
     pub fn visibility(mut self, visibility: impl Into<String>) -> Self {
         let _ = self.visibility.insert(visibility.into());
         self

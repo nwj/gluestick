@@ -3,6 +3,7 @@ use crate::common::client::TestClient;
 use crate::common::pagination_helper::{PaginationParams, PaginationResponse};
 use crate::common::paste_helper::TestPaste;
 use crate::common::rand_helper::{random_alphanumeric_string, random_filename, random_string};
+use crate::common::user_helper::TestUser;
 use crate::prelude::*;
 use serde::Deserialize;
 use std::collections::HashSet;
@@ -18,7 +19,11 @@ struct IndexResponse {
 #[tokio::test]
 async fn index_happy_path() -> Result<()> {
     let app = TestApp::spawn().await?;
-    let (_, api_key) = app.seed_random_user_and_api_key().await?;
+    let (_, api_key) = TestUser::builder()
+        .random()?
+        .build()
+        .seed_with_api_key(&app)
+        .await?;
     let client = TestClient::new(app.address, Some(&api_key))?;
     let paste1 = TestPaste::builder().build().persist(&client).await?;
     let paste2 = TestPaste::builder().build().persist(&client).await?;
@@ -45,7 +50,11 @@ async fn index_requires_an_api_key() -> Result<()> {
 #[tokio::test]
 async fn index_does_not_include_secret_pastes() -> Result<()> {
     let app = TestApp::spawn().await?;
-    let (_, api_key) = app.seed_random_user_and_api_key().await?;
+    let (_, api_key) = TestUser::builder()
+        .random()?
+        .build()
+        .seed_with_api_key(&app)
+        .await?;
     let client = TestClient::new(app.address, Some(&api_key))?;
     let paste1 = TestPaste::builder().build().persist(&client).await?;
     TestPaste::builder()
@@ -63,7 +72,11 @@ async fn index_does_not_include_secret_pastes() -> Result<()> {
 #[tokio::test]
 async fn index_has_per_page_default() -> Result<()> {
     let app = TestApp::spawn().await?;
-    let (_, api_key) = app.seed_random_user_and_api_key().await?;
+    let (_, api_key) = TestUser::builder()
+        .random()?
+        .build()
+        .seed_with_api_key(&app)
+        .await?;
     let client = TestClient::new(app.address, Some(&api_key))?;
     for _ in 0..11 {
         TestPaste::builder()
@@ -83,7 +96,11 @@ async fn index_has_per_page_default() -> Result<()> {
 #[tokio::test]
 async fn index_uses_per_page_when_provided() -> Result<()> {
     let app = TestApp::spawn().await?;
-    let (_, api_key) = app.seed_random_user_and_api_key().await?;
+    let (_, api_key) = TestUser::builder()
+        .random()?
+        .build()
+        .seed_with_api_key(&app)
+        .await?;
     let client = TestClient::new(app.address, Some(&api_key))?;
     let per_page = 3;
     for _ in 0..per_page + 1 {
@@ -99,14 +116,17 @@ async fn index_uses_per_page_when_provided() -> Result<()> {
     assert_eq!(response.status(), 200);
     let response_data: IndexResponse = response.json().await?;
     assert_eq!(response_data.pastes.len(), per_page);
-
     Ok(())
 }
 
 #[tokio::test]
-async fn index_uses_default_if_per_page_more_than_100() -> Result<()> {
+async fn index_400s_if_per_page_more_than_100() -> Result<()> {
     let app = TestApp::spawn().await?;
-    let (_, api_key) = app.seed_random_user_and_api_key().await?;
+    let (_, api_key) = TestUser::builder()
+        .random()?
+        .build()
+        .seed_with_api_key(&app)
+        .await?;
     let client = TestClient::new(app.address, Some(&api_key))?;
     let per_page = 101;
     for _ in 0..11 {
@@ -119,17 +139,18 @@ async fn index_uses_default_if_per_page_more_than_100() -> Result<()> {
 
     let params = PaginationParams::builder().per_page(per_page).build();
     let response = client.api_pastes().get(Some(params)).await?;
-    assert_eq!(response.status(), 200);
-    let response_data: IndexResponse = response.json().await?;
-    assert_eq!(response_data.pastes.len(), 10);
-
+    assert_eq!(response.status(), 400);
     Ok(())
 }
 
 #[tokio::test]
 async fn index_paginates_correctly() -> Result<()> {
     let app = TestApp::spawn().await?;
-    let (_, api_key) = app.seed_random_user_and_api_key().await?;
+    let (_, api_key) = TestUser::builder()
+        .random()?
+        .build()
+        .seed_with_api_key(&app)
+        .await?;
     let client = TestClient::new(app.address, Some(&api_key))?;
 
     let mut pastes = Vec::new();
@@ -216,7 +237,11 @@ async fn index_paginates_correctly() -> Result<()> {
 #[tokio::test]
 async fn create_show_update_destroy_happy_path() -> Result<()> {
     let app = TestApp::spawn().await?;
-    let (_, api_key) = app.seed_random_user_and_api_key().await?;
+    let (_, api_key) = TestUser::builder()
+        .random()?
+        .build()
+        .seed_with_api_key(&app)
+        .await?;
     let client = TestClient::new(app.address, Some(&api_key))?;
     let mut paste = TestPaste::builder().random()?.build();
 
@@ -248,7 +273,7 @@ async fn create_show_update_destroy_happy_path() -> Result<()> {
     let response = client.api_pastes().delete_by_id(&paste).await?;
     assert_eq!(response.status(), 200);
 
-    // SHow
+    // Show
     let response = client.api_pastes().get_by_id(&paste).await?;
     assert_eq!(response.status(), 404);
     Ok(())
@@ -268,7 +293,11 @@ async fn create_requires_an_api_key() -> Result<()> {
 #[tokio::test]
 async fn create_responds_with_400_when_missing_required_fields() -> Result<()> {
     let app = TestApp::spawn().await?;
-    let (_, api_key) = app.seed_random_user_and_api_key().await?;
+    let (_, api_key) = TestUser::builder()
+        .random()?
+        .build()
+        .seed_with_api_key(&app)
+        .await?;
     let client = TestClient::new(app.address, Some(&api_key))?;
     let bad_pastes = vec![
         TestPaste::builder().filename("").build(),
@@ -285,7 +314,11 @@ async fn create_responds_with_400_when_missing_required_fields() -> Result<()> {
 #[tokio::test]
 async fn create_responds_with_400_when_invalid_fields() -> Result<()> {
     let app = TestApp::spawn().await?;
-    let (_, api_key) = app.seed_random_user_and_api_key().await?;
+    let (_, api_key) = TestUser::builder()
+        .random()?
+        .build()
+        .seed_with_api_key(&app)
+        .await?;
     let client = TestClient::new(app.address, Some(&api_key))?;
     let bad_pastes = vec![
         TestPaste::builder()
@@ -309,7 +342,11 @@ async fn create_responds_with_400_when_invalid_fields() -> Result<()> {
 #[tokio::test]
 async fn show_requires_an_api_key() -> Result<()> {
     let app = TestApp::spawn().await?;
-    let (_, api_key) = app.seed_random_user_and_api_key().await?;
+    let (_, api_key) = TestUser::builder()
+        .random()?
+        .build()
+        .seed_with_api_key(&app)
+        .await?;
     let authed_client = TestClient::new(app.address, Some(&api_key))?;
     let client = TestClient::new(app.address, None)?;
     let paste = TestPaste::builder()
@@ -326,7 +363,11 @@ async fn show_requires_an_api_key() -> Result<()> {
 #[tokio::test]
 async fn show_responds_with_404_when_paste_doesnt_exist() -> Result<()> {
     let app = TestApp::spawn().await?;
-    let (_, api_key) = app.seed_random_user_and_api_key().await?;
+    let (_, api_key) = TestUser::builder()
+        .random()?
+        .build()
+        .seed_with_api_key(&app)
+        .await?;
     let client = TestClient::new(app.address, Some(&api_key))?;
     let paste = TestPaste::builder().random()?.random_id().build();
 
@@ -338,7 +379,11 @@ async fn show_responds_with_404_when_paste_doesnt_exist() -> Result<()> {
 #[tokio::test]
 async fn show_responds_with_400_when_invalid_input() -> Result<()> {
     let app = TestApp::spawn().await?;
-    let (_, api_key) = app.seed_random_user_and_api_key().await?;
+    let (_, api_key) = TestUser::builder()
+        .random()?
+        .build()
+        .seed_with_api_key(&app)
+        .await?;
     let client = TestClient::new(app.address, Some(&api_key))?;
     let paste = TestPaste::builder().random()?.id("garbage").build();
 
@@ -350,7 +395,11 @@ async fn show_responds_with_400_when_invalid_input() -> Result<()> {
 #[tokio::test]
 async fn update_requires_an_api_key() -> Result<()> {
     let app = TestApp::spawn().await?;
-    let (_, api_key) = app.seed_random_user_and_api_key().await?;
+    let (_, api_key) = TestUser::builder()
+        .random()?
+        .build()
+        .seed_with_api_key(&app)
+        .await?;
     let authed_client = TestClient::new(app.address, Some(&api_key))?;
     let client = TestClient::new(app.address, None)?;
     let paste = TestPaste::builder()
@@ -374,7 +423,11 @@ async fn update_requires_an_api_key() -> Result<()> {
 #[tokio::test]
 async fn update_responds_with_404_when_paste_doesnt_exist() -> Result<()> {
     let app = TestApp::spawn().await?;
-    let (_, api_key) = app.seed_random_user_and_api_key().await?;
+    let (_, api_key) = TestUser::builder()
+        .random()?
+        .build()
+        .seed_with_api_key(&app)
+        .await?;
     let client = TestClient::new(app.address, Some(&api_key))?;
     let paste = TestPaste::builder().random()?.random_id().build();
 
@@ -386,7 +439,11 @@ async fn update_responds_with_404_when_paste_doesnt_exist() -> Result<()> {
 #[tokio::test]
 async fn update_responds_with_400_when_invalid_input() -> Result<()> {
     let app = TestApp::spawn().await?;
-    let (_, api_key) = app.seed_random_user_and_api_key().await?;
+    let (_, api_key) = TestUser::builder()
+        .random()?
+        .build()
+        .seed_with_api_key(&app)
+        .await?;
     let client = TestClient::new(app.address, Some(&api_key))?;
     let paste = TestPaste::builder().random()?.id("garbage").build();
 
@@ -398,7 +455,11 @@ async fn update_responds_with_400_when_invalid_input() -> Result<()> {
 #[tokio::test]
 async fn update_responds_with_400_when_invalid_fields() -> Result<()> {
     let app = TestApp::spawn().await?;
-    let (_, api_key) = app.seed_random_user_and_api_key().await?;
+    let (_, api_key) = TestUser::builder()
+        .random()?
+        .build()
+        .seed_with_api_key(&app)
+        .await?;
     let client = TestClient::new(app.address, Some(&api_key))?;
     let paste = TestPaste::builder()
         .random()?
@@ -430,8 +491,16 @@ async fn update_responds_with_400_when_invalid_fields() -> Result<()> {
 #[tokio::test]
 async fn cannot_update_other_users_pastes() -> Result<()> {
     let app = TestApp::spawn().await?;
-    let (_, api_key1) = app.seed_random_user_and_api_key().await?;
-    let (_, api_key2) = app.seed_random_user_and_api_key().await?;
+    let (_, api_key1) = TestUser::builder()
+        .random()?
+        .build()
+        .seed_with_api_key(&app)
+        .await?;
+    let (_, api_key2) = TestUser::builder()
+        .random()?
+        .build()
+        .seed_with_api_key(&app)
+        .await?;
     let client1 = TestClient::new(app.address, Some(&api_key1))?;
     let client2 = TestClient::new(app.address, Some(&api_key2))?;
     let paste = TestPaste::builder()
@@ -455,7 +524,11 @@ async fn cannot_update_other_users_pastes() -> Result<()> {
 #[tokio::test]
 async fn destroy_requires_an_api_key() -> Result<()> {
     let app = TestApp::spawn().await?;
-    let (_, api_key) = app.seed_random_user_and_api_key().await?;
+    let (_, api_key) = TestUser::builder()
+        .random()?
+        .build()
+        .seed_with_api_key(&app)
+        .await?;
     let authed_client = TestClient::new(app.address, Some(&api_key))?;
     let client = TestClient::new(app.address, None)?;
     let paste = TestPaste::builder()
@@ -475,7 +548,11 @@ async fn destroy_requires_an_api_key() -> Result<()> {
 #[tokio::test]
 async fn destroy_responds_with_404_when_paste_doesnt_exist() -> Result<()> {
     let app = TestApp::spawn().await?;
-    let (_, api_key) = app.seed_random_user_and_api_key().await?;
+    let (_, api_key) = TestUser::builder()
+        .random()?
+        .build()
+        .seed_with_api_key(&app)
+        .await?;
     let client = TestClient::new(app.address, Some(&api_key))?;
     let paste = TestPaste::builder().random()?.random_id().build();
 
@@ -487,7 +564,11 @@ async fn destroy_responds_with_404_when_paste_doesnt_exist() -> Result<()> {
 #[tokio::test]
 async fn destroy_responds_with_400_when_invalid_input() -> Result<()> {
     let app = TestApp::spawn().await?;
-    let (_, api_key) = app.seed_random_user_and_api_key().await?;
+    let (_, api_key) = TestUser::builder()
+        .random()?
+        .build()
+        .seed_with_api_key(&app)
+        .await?;
     let client = TestClient::new(app.address, Some(&api_key))?;
     let paste = TestPaste::builder().random()?.id("garbage").build();
 
@@ -499,8 +580,16 @@ async fn destroy_responds_with_400_when_invalid_input() -> Result<()> {
 #[tokio::test]
 async fn cannot_destroy_other_users_pastes() -> Result<()> {
     let app = TestApp::spawn().await?;
-    let (_, api_key1) = app.seed_random_user_and_api_key().await?;
-    let (_, api_key2) = app.seed_random_user_and_api_key().await?;
+    let (_, api_key1) = TestUser::builder()
+        .random()?
+        .build()
+        .seed_with_api_key(&app)
+        .await?;
+    let (_, api_key2) = TestUser::builder()
+        .random()?
+        .build()
+        .seed_with_api_key(&app)
+        .await?;
     let client1 = TestClient::new(app.address, Some(&api_key1))?;
     let client2 = TestClient::new(app.address, Some(&api_key2))?;
     let paste = TestPaste::builder()

@@ -1,6 +1,7 @@
-use crate::common::client::TestClient;
+use crate::common::app::TestApp;
 use crate::common::rand_helper;
 use crate::prelude::*;
+use uuid::Uuid;
 
 #[derive(Clone, Debug)]
 pub struct TestUser {
@@ -9,7 +10,7 @@ pub struct TestUser {
     pub password: String,
 }
 
-#[derive(Default, Clone)]
+#[derive(Clone, Default)]
 pub struct TestUserBuilder {
     username: Option<String>,
     email: Option<String>,
@@ -21,12 +22,18 @@ impl TestUser {
         TestUserBuilder::new()
     }
 
-    #[allow(dead_code)]
-    pub async fn persist(self, client: &TestClient, invite_code: String) -> Result<Self> {
-        client.signup().post(invite_code, &self).await?;
-        // logout so that we don't leave a persisted session on the client
-        client.logout().delete().await?;
+    pub async fn seed(self, app: &TestApp) -> Result<Self> {
+        let id = Uuid::now_v7();
+        app.seed_user(id, self.clone()).await?;
         Ok(self)
+    }
+
+    pub async fn seed_with_api_key(self, app: &TestApp) -> Result<(Self, String)> {
+        let id = Uuid::now_v7();
+        let api_key = rand_helper::random_api_key();
+        app.seed_user(id, self.clone()).await?;
+        app.seed_api_key(api_key.clone(), id).await?;
+        Ok((self, api_key))
     }
 }
 

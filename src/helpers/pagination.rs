@@ -1,106 +1,17 @@
-use serde::{de::Error, Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+use validator::Validate;
 
 const PER_PAGE_DEFAULT: usize = 10;
 const PER_PAGE_MAX: usize = 100;
-const PAGE_MAX: usize = 50;
 
-#[derive(Deserialize, Debug)]
-#[serde(default)]
-pub struct OffsetPaginationParams {
-    #[serde(deserialize_with = "OffsetPaginationParams::deserialize_page")]
-    pub page: usize,
-    #[serde(deserialize_with = "OffsetPaginationParams::deserialize_per_page")]
-    pub per_page: usize,
-}
-
-impl OffsetPaginationParams {
-    pub fn limit_with_lookahead(&self) -> usize {
-        // We add 1 here, so that we can "look ahead" and see if there are results beyond the
-        // current page (which can then inform things like `next_page`).
-        self.per_page + 1
-    }
-
-    pub fn offset(&self) -> usize {
-        self.page * self.per_page
-    }
-
-    fn deserialize_page<'de, D>(deserializer: D) -> Result<usize, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let value = usize::deserialize(deserializer)?;
-        if value > PAGE_MAX {
-            Err(D::Error::custom(format!(
-                "page value must be less than or equal to {PAGE_MAX}, got {value}"
-            )))
-        } else {
-            Ok(value)
-        }
-    }
-
-    fn deserialize_per_page<'de, D>(deserializer: D) -> Result<usize, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let value = usize::deserialize(deserializer)?;
-        if value > PER_PAGE_MAX {
-            Err(D::Error::custom(format!(
-                "per_page value must be less than or equal to {PER_PAGE_MAX}, got {value}"
-            )))
-        } else {
-            Ok(value)
-        }
-    }
-}
-
-impl Default for OffsetPaginationParams {
-    fn default() -> Self {
-        Self {
-            page: 0,
-            per_page: PER_PAGE_DEFAULT,
-        }
-    }
-}
-
-pub struct OffsetPaginationResponse {
-    pub prev_page: Option<usize>,
-    pub next_page: Option<usize>,
-}
-
-impl OffsetPaginationResponse {
-    // This assumes that results were produced using limit_with_lookahead
-    pub fn new<T>(params: &OffsetPaginationParams, results: &mut Vec<T>) -> Self {
-        let prev_page = match params.page {
-            0 => None,
-            p => Some(p - 1),
-        };
-
-        let has_lookahead_result = results.len() > params.per_page;
-        if has_lookahead_result {
-            results.pop();
-        }
-
-        let next_page = match (params.page, has_lookahead_result) {
-            (p, _) if p > PAGE_MAX => None,
-            (_, false) => None,
-            (p, true) => Some(p + 1),
-        };
-
-        Self {
-            prev_page,
-            next_page,
-        }
-    }
-}
-
-#[derive(Clone, Deserialize, Debug)]
-#[serde(default)]
+#[derive(Clone, Deserialize, Debug, Validate)]
 pub struct CursorPaginationParams {
+    #[serde(default = "CursorPaginationParams::per_page_default")]
+    #[validate(range(min = 1, max = PER_PAGE_MAX))]
+    pub per_page: usize,
     pub prev_page: Option<Uuid>,
     pub next_page: Option<Uuid>,
-    #[serde(deserialize_with = "CursorPaginationParams::deserialize_per_page")]
-    pub per_page: usize,
 }
 
 impl CursorPaginationParams {
@@ -127,27 +38,17 @@ impl CursorPaginationParams {
         }
     }
 
-    fn deserialize_per_page<'de, D>(deserializer: D) -> Result<usize, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let value = usize::deserialize(deserializer)?;
-        if value > PER_PAGE_MAX {
-            Err(D::Error::custom(format!(
-                "per_page value must be less than or equal to {PER_PAGE_MAX}, got {value}"
-            )))
-        } else {
-            Ok(value)
-        }
+    fn per_page_default() -> usize {
+        PER_PAGE_DEFAULT
     }
 }
 
 impl Default for CursorPaginationParams {
     fn default() -> Self {
         Self {
+            per_page: PER_PAGE_DEFAULT,
             prev_page: None,
             next_page: None,
-            per_page: PER_PAGE_DEFAULT,
         }
     }
 }
