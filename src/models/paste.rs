@@ -3,12 +3,11 @@ use crate::helpers::pagination::{Direction, HasOrderedId};
 use crate::helpers::syntax_highlight;
 use crate::models::prelude::*;
 use crate::models::user::Username;
-use chrono::serde::ts_seconds;
-use chrono::{DateTime, Utc};
 use derive_more::{AsRef, Display, Into};
 use rusqlite::types::{FromSql, FromSqlError, FromSqlResult, ToSql, ToSqlOutput, Type, ValueRef};
 use rusqlite::{named_params, Row, Transaction, TransactionBehavior};
 use serde::{Deserialize, Serialize};
+use time::OffsetDateTime;
 use uuid::Uuid;
 use validator::Validate;
 
@@ -20,10 +19,8 @@ pub struct Paste {
     pub description: Description,
     pub body: Body,
     pub visibility: Visibility,
-    #[serde(with = "ts_seconds")]
-    pub created_at: DateTime<Utc>,
-    #[serde(with = "ts_seconds")]
-    pub updated_at: DateTime<Utc>,
+    pub created_at: OffsetDateTime,
+    pub updated_at: OffsetDateTime,
 }
 
 impl Paste {
@@ -41,8 +38,8 @@ impl Paste {
             description: Description::try_from(description)?,
             body: Body::try_from(body)?,
             visibility,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: OffsetDateTime::now_utc(),
+            updated_at: OffsetDateTime::now_utc(),
         })
     }
 
@@ -54,20 +51,12 @@ impl Paste {
             description: row.get(3)?,
             body: row.get(4)?,
             visibility: row.get(5)?,
-            created_at: DateTime::from_timestamp(row.get(6)?, 0).ok_or(
-                rusqlite::Error::FromSqlConversionFailure(
-                    6,
-                    Type::Integer,
-                    Box::new(Error::ParseDateTime),
-                ),
-            )?,
-            updated_at: DateTime::from_timestamp(row.get(7)?, 0).ok_or(
-                rusqlite::Error::FromSqlConversionFailure(
-                    7,
-                    Type::Integer,
-                    Box::new(Error::ParseDateTime),
-                ),
-            )?,
+            created_at: OffsetDateTime::from_unix_timestamp(row.get(6)?).map_err(|e| {
+                rusqlite::Error::FromSqlConversionFailure(6, Type::Integer, Box::new(e))
+            })?,
+            updated_at: OffsetDateTime::from_unix_timestamp(row.get(7)?).map_err(|e| {
+                rusqlite::Error::FromSqlConversionFailure(7, Type::Integer, Box::new(e))
+            })?,
         })
     }
 
@@ -195,8 +184,8 @@ impl Paste {
                             ":description": self.description,
                             ":body": self.body,
                             ":visibility": self.visibility,
-                            ":created_at": self.created_at.timestamp(),
-                            ":updated_at": self.updated_at.timestamp(),
+                            ":created_at": self.created_at.unix_timestamp(),
+                            ":updated_at": self.updated_at.unix_timestamp(),
                         }
                     )?;
 
