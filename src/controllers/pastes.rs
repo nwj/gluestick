@@ -9,9 +9,9 @@ use crate::views::pastes::{
 use axum::extract::{Form, Path, Query, State};
 use axum::http::{header::HeaderMap, HeaderValue, StatusCode};
 use axum::response::{IntoResponse, Redirect};
+use garde::Validate;
 use serde::Deserialize;
 use uuid::Uuid;
-use validator::Validate;
 
 pub async fn index(
     session: Option<Session>,
@@ -50,7 +50,7 @@ pub async fn new(session: Session) -> NewPastesTemplate {
     NewPastesTemplate { session }
 }
 
-#[derive(Debug, Deserialize, Validate)]
+#[derive(Debug, Deserialize)]
 pub struct CreatePaste {
     pub filename: String,
     pub description: String,
@@ -145,7 +145,7 @@ pub async fn edit(
     }
 }
 
-#[derive(Debug, Deserialize, Validate)]
+#[derive(Debug, Deserialize)]
 pub struct UpdatePaste {
     pub filename: String,
     pub description: Option<String>,

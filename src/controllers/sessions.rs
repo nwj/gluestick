@@ -9,13 +9,12 @@ use axum::http::{header::HeaderMap, HeaderValue, StatusCode};
 use axum::response::{IntoResponse, Response};
 use secrecy::ExposeSecret;
 use serde::Deserialize;
-use validator::Validate;
 
 pub async fn new() -> NewSessionsTemplate {
     NewSessionsTemplate { session: None }
 }
 
-#[derive(Debug, Deserialize, Validate)]
+#[derive(Debug, Deserialize)]
 pub struct CreateSession {
     pub email: String,
     pub password: Password,

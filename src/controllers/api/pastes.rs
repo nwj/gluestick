@@ -6,9 +6,9 @@ use crate::models::paste::{Paste, Visibility};
 use axum::extract::{Path, State};
 use axum::response::IntoResponse;
 use axum::Json;
+use garde::Validate;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-use validator::Validate;
 
 #[derive(Serialize)]
 struct IndexResponse {
@@ -37,7 +37,7 @@ pub async fn index(
     Ok(Json(IndexResponse { pastes, pagination }))
 }
 
-#[derive(Debug, Deserialize, Validate)]
+#[derive(Debug, Deserialize)]
 pub struct CreatePaste {
     filename: String,
     description: String,
@@ -84,7 +84,7 @@ pub async fn show_raw(
     }
 }
 
-#[derive(Debug, Deserialize, Validate)]
+#[derive(Debug, Deserialize)]
 pub struct UpdatePaste {
     filename: Option<String>,
     description: Option<String>,
