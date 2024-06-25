@@ -11,7 +11,7 @@ pub enum Error {
     TokioRusqlite(#[from] tokio_rusqlite::Error),
 
     #[error(transparent)]
-    Validation(#[from] validator::ValidationErrors),
+    Garde(#[from] garde::error::Report),
 }
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;

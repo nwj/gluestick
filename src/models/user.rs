@@ -5,13 +5,13 @@ use crate::models::session::SessionToken;
 use argon2::password_hash::{PasswordHasher, SaltString};
 use argon2::{Argon2, PasswordHash, PasswordVerifier};
 use derive_more::{AsRef, Display, From, Into};
+use garde::Validate;
 use rand::rngs::OsRng;
 use rusqlite::types::{FromSql, FromSqlError, FromSqlResult, ToSql, ToSqlOutput, ValueRef};
 use rusqlite::{named_params, Row};
 use secrecy::{ExposeSecret, Secret};
 use serde::Deserialize;
 use uuid::Uuid;
-use validator::{Validate, ValidationErrors};
 
 #[derive(Clone, Debug)]
 pub struct User {
@@ -144,29 +144,14 @@ impl User {
 }
 
 #[derive(AsRef, Clone, Debug, Display, Into, Validate)]
-pub struct Username {
-    #[validate(
-        length(min = 3, max = 32),
-        custom(function = "Username::validate_alphanumeric")
-    )]
-    inner: String,
-}
+#[garde(transparent)]
+pub struct Username(#[garde(length(chars, min = 3, max = 32), alphanumeric)] String);
 
 impl Username {
     pub fn new(s: String) -> Result<Self> {
-        let username = Self { inner: s };
+        let username = Self(s);
         username.validate()?;
         Ok(username)
-    }
-
-    fn validate_alphanumeric(username: &str) -> Result<(), validator::ValidationError> {
-        if username.chars().all(char::is_alphanumeric) {
-            Ok(())
-        } else {
-            Err(validator::ValidationError::new(
-                "username must be alphanumeric",
-            ))
-        }
     }
 }
 
@@ -188,7 +173,7 @@ impl std::str::FromStr for Username {
 
 impl ToSql for Username {
     fn to_sql(&self) -> Result<ToSqlOutput<'_>, rusqlite::Error> {
-        self.inner.to_sql()
+        self.0.to_sql()
     }
 }
 
@@ -200,16 +185,12 @@ impl FromSql for Username {
 }
 
 #[derive(AsRef, Clone, Debug, Display, Into, Validate)]
-pub struct EmailAddress {
-    #[validate(email)]
-    inner: String,
-}
+#[garde(transparent)]
+pub struct EmailAddress(#[garde(email)] String);
 
 impl EmailAddress {
     pub fn new(s: &str) -> Result<Self> {
-        let email = Self {
-            inner: s.to_lowercase(),
-        };
+        let email = Self(s.to_lowercase());
         email.validate()?;
         Ok(email)
     }
@@ -233,7 +214,7 @@ impl std::str::FromStr for EmailAddress {
 
 impl ToSql for EmailAddress {
     fn to_sql(&self) -> Result<ToSqlOutput<'_>, rusqlite::Error> {
-        self.inner.to_sql()
+        self.0.to_sql()
     }
 }
 
@@ -244,8 +225,9 @@ impl FromSql for EmailAddress {
     }
 }
 
-#[derive(Clone, Debug, Deserialize)]
-pub struct Password(Secret<String>);
+#[derive(Clone, Debug, Deserialize, Validate)]
+#[garde(transparent)]
+pub struct Password(#[garde(custom(Self::validate_inner))] Secret<String>);
 
 impl Password {
     pub fn to_hash(&self) -> Result<HashedPassword> {
@@ -262,28 +244,16 @@ impl Password {
                 .to_string(),
         ))
     }
-}
 
-impl Validate for Password {
-    fn validate(&self) -> Result<(), ValidationErrors> {
-        let mut errors = ValidationErrors::new();
-        if self.expose_secret().len() < 8 {
-            errors.add(
-                "0",
-                validator::ValidationError::new("password must be at least 8 characters long"),
-            );
-        } else if self.expose_secret().len() > 256 {
-            errors.add(
-                "0",
-                validator::ValidationError::new("password may not be longer than 256 characters"),
-            );
+    #[allow(clippy::trivially_copy_pass_by_ref)]
+    fn validate_inner(value: &Secret<String>, _context: &()) -> garde::Result {
+        if value.expose_secret().chars().count() < 8 {
+            return Err(garde::Error::new("length is lower than 8"));
         }
-
-        if errors.is_empty() {
-            Ok(())
-        } else {
-            Err(errors)
+        if value.expose_secret().chars().count() > 256 {
+            return Err(garde::Error::new("length is greater than 256"));
         }
+        Ok(())
     }
 }
 

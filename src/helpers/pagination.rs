@@ -1,6 +1,6 @@
+use garde::Validate;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-use validator::Validate;
 
 const PER_PAGE_DEFAULT: usize = 10;
 const PER_PAGE_MAX: usize = 100;
@@ -8,9 +8,11 @@ const PER_PAGE_MAX: usize = 100;
 #[derive(Clone, Deserialize, Debug, Validate)]
 pub struct CursorPaginationParams {
     #[serde(default = "CursorPaginationParams::per_page_default")]
-    #[validate(range(min = 1, max = PER_PAGE_MAX))]
+    #[garde(range(min = 1, max = PER_PAGE_MAX))]
     pub per_page: usize,
+    #[garde(skip)]
     pub prev_page: Option<Uuid>,
+    #[garde(skip)]
     pub next_page: Option<Uuid>,
 }
 

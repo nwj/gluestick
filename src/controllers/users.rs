@@ -8,9 +8,9 @@ use axum::body::Body;
 use axum::extract::{Form, State};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
+use garde::Validate;
 use secrecy::ExposeSecret;
 use serde::Deserialize;
-use validator::Validate;
 
 pub async fn new() -> NewUsersTemplate {
     NewUsersTemplate { session: None }

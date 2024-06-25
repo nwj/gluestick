@@ -27,9 +27,7 @@ pub enum Error {
 impl From<ModelsError> for Error {
     fn from(error: ModelsError) -> Self {
         match error {
-            ModelsError::Validation(_) | ModelsError::ParseInt(_) => {
-                Self::BadRequest(Box::new(error))
-            }
+            ModelsError::Garde(_) | ModelsError::ParseInt(_) => Self::BadRequest(Box::new(error)),
             _ => Self::InternalServerError(Box::new(error)),
         }
     }

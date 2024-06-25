@@ -4,12 +4,12 @@ use crate::helpers::syntax_highlight;
 use crate::models::prelude::*;
 use crate::models::user::Username;
 use derive_more::{AsRef, Display, Into};
+use garde::Validate;
 use rusqlite::types::{FromSql, FromSqlError, FromSqlResult, ToSql, ToSqlOutput, Type, ValueRef};
 use rusqlite::{named_params, Row, Transaction, TransactionBehavior};
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 use uuid::Uuid;
-use validator::Validate;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Paste {
@@ -335,43 +335,37 @@ impl HasOrderedId for Paste {
 
 #[derive(AsRef, Clone, Debug, Deserialize, Display, Into, Serialize, Validate)]
 #[serde(try_from = "String", into = "String")]
-pub struct Filename {
-    #[validate(
-        length(min = 1, max = 256),
-        custom(function = "Filename::validate_no_illegal_characters")
-    )]
-    inner: String,
-}
+#[garde(transparent)]
+pub struct Filename(
+    #[garde(length(chars, min = 1, max = 256), custom(Self::validate_inner))] String,
+);
 
 impl Filename {
     pub fn new(s: &str) -> Result<Self> {
-        let filename = Self {
-            inner: s.trim().to_string(),
-        };
+        let filename = Self(s.trim().to_string());
         filename.validate()?;
         Ok(filename)
     }
 
     pub fn extension(&self) -> Option<&str> {
-        if let Some((_, suffix)) = self.inner.rsplit_once('.') {
+        if let Some((_, suffix)) = self.0.rsplit_once('.') {
             Some(suffix)
         } else {
             None
         }
     }
 
-    fn validate_no_illegal_characters(filename: &str) -> Result<(), validator::ValidationError> {
-        if filename.contains(&['<', '>', ':', '"', '/', '\\', '|', '?', '*'][..]) {
-            Err(validator::ValidationError::new(
-                "filenames may not include the following characters: '<', '>', ':', '\"', '/', '\\', '|', '?', or '*'",
-            ))
-        } else if filename.ends_with('.') {
-            Err(validator::ValidationError::new(
-                "filenames may not end with a '.' character",
-            ))
-        } else {
-            Ok(())
+    #[allow(clippy::trivially_copy_pass_by_ref)]
+    fn validate_inner(value: &str, _context: &()) -> garde::Result {
+        if value.contains(&['<', '>', ':', '"', '/', '\\', '|', '?', '*'][..]) {
+            return Err(garde::Error::new(
+                "may not contain the following characters: '<', '>', ':', '\"', '/', '\\', '|', '?', or '*'",
+            ));
         }
+        if value.ends_with('.') {
+            return Err(garde::Error::new("may not end with a '.' character"));
+        }
+        Ok(())
     }
 }
 
@@ -393,7 +387,7 @@ impl std::str::FromStr for Filename {
 
 impl ToSql for Filename {
     fn to_sql(&self) -> Result<ToSqlOutput<'_>, rusqlite::Error> {
-        self.inner.to_sql()
+        self.0.to_sql()
     }
 }
 
@@ -406,22 +400,20 @@ impl FromSql for Filename {
 
 #[derive(AsRef, Clone, Debug, Deserialize, Display, Into, Serialize, Validate)]
 #[serde(try_from = "String", into = "String")]
-pub struct Description {
-    #[validate(length(max = 256))]
-    inner: String,
-}
+#[garde(transparent)]
+pub struct Description(#[garde(length(chars, max = 256))] String);
 
 impl Description {
     pub fn new(s: &str) -> Result<Self> {
-        let description = Self {
-            inner: s.trim().to_string(),
-        };
+        let description = Self(s.trim().to_string());
+        println!("{s}");
+        println!("{:?}", description.validate());
         description.validate()?;
         Ok(description)
     }
 
     pub fn len(&self) -> usize {
-        self.inner.len()
+        self.0.len()
     }
 
     pub fn is_empty(&self) -> bool {
@@ -447,7 +439,7 @@ impl std::str::FromStr for Description {
 
 impl ToSql for Description {
     fn to_sql(&self) -> Result<ToSqlOutput<'_>, rusqlite::Error> {
-        self.inner.to_sql()
+        self.0.to_sql()
     }
 }
 
@@ -460,16 +452,12 @@ impl FromSql for Description {
 
 #[derive(AsRef, Clone, Debug, Deserialize, Display, Into, PartialEq, Serialize, Validate)]
 #[serde(try_from = "String", into = "String")]
-pub struct Body {
-    #[validate(length(min = 1))]
-    inner: String,
-}
+#[garde(transparent)]
+pub struct Body(#[garde(length(chars, min = 1))] String);
 
 impl Body {
     pub fn new(s: &str) -> Result<Self> {
-        let body = Self {
-            inner: s.trim().to_string(),
-        };
+        let body = Self(s.trim().to_string());
         body.validate()?;
         Ok(body)
     }
@@ -493,7 +481,7 @@ impl std::str::FromStr for Body {
 
 impl ToSql for Body {
     fn to_sql(&self) -> Result<ToSqlOutput<'_>, rusqlite::Error> {
-        self.inner.to_sql()
+        self.0.to_sql()
     }
 }
 
