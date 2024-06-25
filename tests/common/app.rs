@@ -1,3 +1,4 @@
+use crate::common::paste_helper::TestPaste;
 use crate::common::rand_helper;
 use crate::common::user_helper::TestUser;
 use crate::prelude::*;
@@ -79,7 +80,13 @@ impl TestApp {
         Ok(invite_code)
     }
 
-    pub async fn seed_user(&self, user_id: Uuid, user: TestUser) -> Result<()> {
+    pub async fn seed_user(&self, user: TestUser) -> Result<()> {
+        let id = Uuid::try_parse(
+            &user
+                .id
+                .clone()
+                .unwrap_or("can't seed user without an id".into()),
+        )?;
         let hashed_password = rand_helper::hash_password(user.password)?;
         self.db
             .conn
@@ -87,7 +94,7 @@ impl TestApp {
                 let mut stmt =
                     conn.prepare("INSERT INTO users VALUES(:id, :username, :email, :password);")?;
                 stmt.execute(named_params! {
-                    ":id": user_id,
+                    ":id": id,
                     ":username": user.username,
                     ":email": user.email.to_lowercase(),
                     ":password": hashed_password
@@ -98,7 +105,13 @@ impl TestApp {
         Ok(())
     }
 
-    pub async fn seed_api_key(&self, api_key: String, user_id: Uuid) -> Result<()> {
+    pub async fn seed_api_key(&self, api_key: String, user: &TestUser) -> Result<()> {
+        let user_id = Uuid::try_parse(
+            &user
+                .id
+                .clone()
+                .unwrap_or("can't seed api key without a user id".into()),
+        )?;
         let hashed_api_key = rand_helper::hash_api_key(api_key);
         self.db
             .conn
@@ -106,6 +119,38 @@ impl TestApp {
                 let mut stmt = conn
                     .prepare("INSERT INTO api_sessions VALUES(:api_key, :user_id, unixepoch());")?;
                 stmt.execute(named_params! {":api_key": hashed_api_key, ":user_id": user_id})?;
+                Ok(())
+            })
+            .await?;
+        Ok(())
+    }
+
+    pub async fn seed_paste(&self, paste: TestPaste, user: &TestUser) -> Result<()> {
+        let id = Uuid::try_parse(
+            &paste
+                .id
+                .clone()
+                .unwrap_or("can't seed paste without an id".into()),
+        )?;
+        let user_id = Uuid::try_parse(
+            &user
+                .id
+                .clone()
+                .unwrap_or("can't seed paste without a user id".into()),
+        )?;
+        self.db
+            .conn
+            .call(move |conn| {
+                let mut stmt = conn
+                    .prepare("INSERT INTO pastes VALUES(:id, :user_id, :filename, :description, :body, :visibility, unixepoch(), unixepoch());")?;
+                stmt.execute(named_params! {
+                    ":id": id,
+                    ":user_id": user_id,
+                    ":filename": paste.filename,
+                    ":description": paste.description,
+                    ":body": paste.body,
+                    ":visibility": paste.visibility,
+                })?;
                 Ok(())
             })
             .await?;
