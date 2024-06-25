@@ -1,5 +1,6 @@
-use crate::common::client::TestClient;
+use crate::common::app::TestApp;
 use crate::common::rand_helper;
+use crate::common::user_helper::TestUser;
 use crate::prelude::*;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -27,10 +28,8 @@ impl TestPaste {
         TestPasteBuilder::new()
     }
 
-    pub async fn persist(mut self, client: &TestClient) -> Result<Self> {
-        let response = client.api_pastes().post(&self).await?;
-        let id: Uuid = response.json().await?;
-        self.id = Some(id.to_string());
+    pub async fn seed(self, app: &TestApp, user: &TestUser) -> Result<Self> {
+        app.seed_paste(self.clone(), user).await?;
         Ok(self)
     }
 }
@@ -81,9 +80,10 @@ impl TestPasteBuilder {
         Ok(self.body(rand_helper::random_string(1..=1024)?))
     }
 
-    // This does not set random id or visibility, since that's usually not what we want
+    // This does not set visibility, since that's usually not what we want
     pub fn random(self) -> Result<Self> {
         Ok(self
+            .random_id()
             .random_filename()?
             .random_description()?
             .random_body()?)

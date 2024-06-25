@@ -5,6 +5,7 @@ use uuid::Uuid;
 
 #[derive(Clone, Debug)]
 pub struct TestUser {
+    pub id: Option<String>,
     pub username: String,
     pub email: String,
     pub password: String,
@@ -22,17 +23,18 @@ impl TestUser {
         TestUserBuilder::new()
     }
 
-    pub async fn seed(self, app: &TestApp) -> Result<Self> {
-        let id = Uuid::now_v7();
-        app.seed_user(id, self.clone()).await?;
+    pub async fn seed(mut self, app: &TestApp) -> Result<Self> {
+        self.id = Some(Uuid::now_v7().to_string());
+        app.seed_user(self.clone()).await?;
         Ok(self)
     }
 
-    pub async fn seed_with_api_key(self, app: &TestApp) -> Result<(Self, String)> {
-        let id = Uuid::now_v7();
+    pub async fn seed_with_api_key(mut self, app: &TestApp) -> Result<(Self, String)> {
+        let id = Uuid::now_v7().to_string();
+        self.id = Some(id.clone());
         let api_key = rand_helper::random_api_key();
-        app.seed_user(id, self.clone()).await?;
-        app.seed_api_key(api_key.clone(), id).await?;
+        app.seed_user(self.clone()).await?;
+        app.seed_api_key(api_key.clone(), &self).await?;
         Ok((self, api_key))
     }
 }
@@ -79,6 +81,7 @@ impl TestUserBuilder {
         let password = self.password.clone().unwrap_or("knight_killer".into());
 
         TestUser {
+            id: None,
             username,
             email,
             password,
