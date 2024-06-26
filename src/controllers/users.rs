@@ -1,7 +1,7 @@
 use crate::controllers::prelude::*;
 use crate::db::Database;
 use crate::models::invite_code::InviteCode;
-use crate::models::session::{Session, SessionToken};
+use crate::models::session::{Session, SessionToken, SESSION_COOKIE_NAME};
 use crate::models::user::{Password, User};
 use crate::views::users::{NewUsersTemplate, ShowUsersTemplate};
 use axum::body::Body;
@@ -48,7 +48,8 @@ pub async fn create(
             .header(
                 "Set-Cookie",
                 format!(
-                    "session_token={}; Max-Age=999999; Secure; HttpOnly",
+                    "{}={}; Max-Age=999999; Secure; HttpOnly",
+                    SESSION_COOKIE_NAME,
                     &token.expose_secret()
                 ),
             )
