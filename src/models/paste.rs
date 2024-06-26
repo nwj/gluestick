@@ -406,8 +406,6 @@ pub struct Description(#[garde(length(chars, max = 256))] String);
 impl Description {
     pub fn new(s: &str) -> Result<Self> {
         let description = Self(s.trim().to_string());
-        println!("{s}");
-        println!("{:?}", description.validate());
         description.validate()?;
         Ok(description)
     }
