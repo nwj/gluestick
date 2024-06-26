@@ -7,6 +7,8 @@ use secrecy::{ExposeSecret, Secret};
 use sha2::{Digest, Sha256};
 use tokio_rusqlite::named_params;
 
+pub const SESSION_COOKIE_NAME: &str = "session_token";
+
 pub struct Session {
     pub token: HashedSessionToken,
     pub user: User,
@@ -40,7 +42,7 @@ impl Session {
 
 #[derive(Clone)]
 #[allow(clippy::module_name_repetitions)]
-pub struct SessionToken(pub Secret<String>);
+pub struct SessionToken(Secret<String>);
 
 impl SessionToken {
     pub fn generate() -> Self {

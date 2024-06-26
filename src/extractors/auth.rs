@@ -1,15 +1,13 @@
 use crate::controllers::api::prelude::Error as ApiControllerError;
 use crate::controllers::prelude::Error as ControllerError;
 use crate::db::Database;
-use crate::models::api_session::{ApiKey, ApiSession};
-use crate::models::session::{Session, SessionToken};
+use crate::models::api_session::{ApiKey, ApiSession, API_KEY_HEADER_NAME};
+use crate::models::session::{Session, SessionToken, SESSION_COOKIE_NAME};
 use crate::models::user::User;
 use axum::extract::{FromRef, FromRequestParts};
 use axum::http::request::Parts;
 use axum::{async_trait, RequestPartsExt};
 use axum_extra::extract::CookieJar;
-
-const X_API_KEY: &str = "X-GLUESTICK-API-KEY";
 
 #[async_trait]
 impl<S> FromRequestParts<S> for Session
@@ -29,7 +27,7 @@ where
             .await
             .map_err(|_| ControllerError::Unauthorized)?;
         let cookie = cookie_jar
-            .get("session_token")
+            .get(SESSION_COOKIE_NAME)
             .ok_or(ControllerError::Unauthorized)?;
         let token =
             SessionToken::parse(cookie.value()).map_err(|_| ControllerError::Unauthorized)?;
@@ -57,15 +55,14 @@ where
             .await
             .map_err(|e| ApiControllerError::InternalServerError(Box::new(e)))?;
 
-        let header_content = parts
+        let header = parts
             .headers
-            .get(X_API_KEY)
+            .get(API_KEY_HEADER_NAME)
             .ok_or(ApiControllerError::Unauthorized)?
             .to_str()
             .map_err(|_| ApiControllerError::Unauthorized)?;
 
-        let api_key =
-            ApiKey::parse(header_content).map_err(|_| ApiControllerError::Unauthorized)?;
+        let api_key = ApiKey::parse(header).map_err(|_| ApiControllerError::Unauthorized)?;
 
         let optional_user = User::find_by_api_key(&db, api_key.clone()).await?;
 

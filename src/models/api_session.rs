@@ -7,6 +7,8 @@ use secrecy::{ExposeSecret, Secret};
 use sha2::{Digest, Sha256};
 use tokio_rusqlite::named_params;
 
+pub const API_KEY_HEADER_NAME: &str = "X-GLUESTICK-API-KEY";
+
 pub struct ApiSession {
     pub api_key: HashedApiKey,
     pub user: User,
