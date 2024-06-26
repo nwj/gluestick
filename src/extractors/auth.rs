@@ -23,16 +23,17 @@ where
             .await
             .map_err(|e| ControllerError::InternalServerError(Box::new(e)))?;
 
-        let cookie_jar = CookieJar::from_request_parts(parts, state)
+        let cookie = CookieJar::from_request_parts(parts, state)
             .await
-            .map_err(|_| ControllerError::Unauthorized)?;
-        let cookie = cookie_jar
+            .map_err(|_| ControllerError::Unauthorized)?
             .get(SESSION_COOKIE_NAME)
-            .ok_or(ControllerError::Unauthorized)?;
-        let token =
-            SessionToken::parse(cookie.value()).map_err(|_| ControllerError::Unauthorized)?;
+            .ok_or(ControllerError::Unauthorized)?
+            .to_owned();
 
-        let optional_user = User::find_by_session_token(&db, token.clone()).await?;
+        let token =
+            SessionToken::try_from(cookie.value()).map_err(|_| ControllerError::Unauthorized)?;
+
+        let optional_user = User::find_by_session_token(&db, &token).await?;
 
         match optional_user {
             Some(user) => Ok(Session::new(&token, user)),
@@ -62,9 +63,9 @@ where
             .to_str()
             .map_err(|_| ApiControllerError::Unauthorized)?;
 
-        let api_key = ApiKey::parse(header).map_err(|_| ApiControllerError::Unauthorized)?;
+        let api_key = ApiKey::try_from(header).map_err(|_| ApiControllerError::Unauthorized)?;
 
-        let optional_user = User::find_by_api_key(&db, api_key.clone()).await?;
+        let optional_user = User::find_by_api_key(&db, &api_key).await?;
 
         match optional_user {
             Some(user) => Ok(ApiSession::new(&api_key, user)),

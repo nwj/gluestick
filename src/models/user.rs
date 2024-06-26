@@ -1,7 +1,7 @@
 use crate::db::Database;
-use crate::models::api_session::ApiKey;
+use crate::models::api_session::HashedApiKey;
 use crate::models::prelude::*;
-use crate::models::session::SessionToken;
+use crate::models::session::HashedSessionToken;
 use argon2::password_hash::{PasswordHasher, SaltString};
 use argon2::{Argon2, PasswordHash, PasswordVerifier};
 use derive_more::{AsRef, Display, From, Into};
@@ -22,12 +22,16 @@ pub struct User {
 }
 
 impl User {
-    pub fn new(username: String, email: String, password: &Password) -> Result<Self> {
+    pub fn new(
+        username: String,
+        email: String,
+        password: impl TryInto<HashedPassword, Error = argon2::password_hash::Error>,
+    ) -> Result<Self> {
         Ok(User {
             id: Uuid::now_v7(),
             username: Username::try_from(username)?,
             email: EmailAddress::try_from(email)?,
-            password: password.to_hash()?,
+            password: password.try_into()?,
         })
     }
 
@@ -85,7 +89,11 @@ impl User {
         Ok(optional_user)
     }
 
-    pub async fn find_by_session_token(db: &Database, token: SessionToken) -> Result<Option<User>> {
+    pub async fn find_by_session_token(
+        db: &Database,
+        token: impl Into<HashedSessionToken>,
+    ) -> Result<Option<User>> {
+        let token = token.into();
         let optional_user = db
             .conn
             .call(move |conn| {
@@ -94,8 +102,7 @@ impl User {
                     FROM users JOIN sessions ON users.id = sessions.user_id
                     WHERE sessions.session_token = :token;",
                 )?;
-                let mut rows =
-                    statement.query(named_params! {":token": token.to_hash().expose_secret()})?;
+                let mut rows = statement.query(named_params! {":token": token})?;
                 match rows.next()? {
                     Some(row) => Ok(Some(User::from_sql_row(row)?)),
                     None => Ok(None),
@@ -121,7 +128,11 @@ impl User {
         Ok(result)
     }
 
-    pub async fn find_by_api_key(db: &Database, key: ApiKey) -> Result<Option<User>> {
+    pub async fn find_by_api_key(
+        db: &Database,
+        key: impl Into<HashedApiKey>,
+    ) -> Result<Option<User>> {
+        let key = key.into();
         let optional_user = db
             .conn
             .call(move |conn| {
@@ -130,8 +141,7 @@ impl User {
                     FROM users JOIN api_sessions ON users.id = api_sessions.user_id
                     WHERE api_sessions.api_key = :key;",
                 )?;
-                let mut rows =
-                    statement.query(named_params! {":key": key.to_hash().expose_secret()})?;
+                let mut rows = statement.query(named_params! {":key": key})?;
                 match rows.next()? {
                     Some(row) => Ok(Some(User::from_sql_row(row)?)),
                     None => Ok(None),
@@ -230,21 +240,6 @@ impl FromSql for EmailAddress {
 pub struct Password(#[garde(custom(Self::validate_inner))] Secret<String>);
 
 impl Password {
-    pub fn to_hash(&self) -> Result<HashedPassword> {
-        Ok(HashedPassword(Self::hash_password(&self.0)?))
-    }
-
-    fn hash_password(password: &Secret<String>) -> Result<Secret<String>> {
-        Ok(Secret::new(
-            Argon2::default()
-                .hash_password(
-                    password.expose_secret().as_bytes(),
-                    &SaltString::generate(&mut OsRng),
-                )?
-                .to_string(),
-        ))
-    }
-
     #[allow(clippy::trivially_copy_pass_by_ref)]
     fn validate_inner(value: &Secret<String>, _context: &()) -> garde::Result {
         if value.expose_secret().chars().count() < 8 {
@@ -265,6 +260,21 @@ impl ExposeSecret<String> for Password {
 
 #[derive(Clone, Debug, From)]
 pub struct HashedPassword(Secret<String>);
+
+impl TryFrom<&Password> for HashedPassword {
+    type Error = argon2::password_hash::Error;
+
+    fn try_from(value: &Password) -> std::result::Result<Self, Self::Error> {
+        Ok(HashedPassword(Secret::new(
+            Argon2::default()
+                .hash_password(
+                    value.expose_secret().as_bytes(),
+                    &SaltString::generate(&mut OsRng),
+                )?
+                .to_string(),
+        )))
+    }
+}
 
 impl ExposeSecret<String> for HashedPassword {
     fn expose_secret(&self) -> &String {
