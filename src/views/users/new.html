@@ -4,10 +4,26 @@
     <h1>Sign-up for Gluestick</h1>
     <section class="signup">
         <form action="/signup" method="post">
-            <input type="text" name="username" placeholder="Your username..." />
-            <input type="email" name="email" placeholder="Your email address..." />
-            <input type="password" name="password" placeholder="Your password..." />
-            <input type="text" name="invite_code" placeholder="Your invite code..." />
+            {% if let Some(error) = validation_report.get_first("username") %}<span>{{ error }}</span>{% endif %}
+            <input type="text"
+                   name="username"
+                   placeholder="Your username..."
+                   value="{{ username }}" />
+            {% if let Some(error) = validation_report.get_first("email") %}<span>{{ error }}</span>{% endif %}
+            <input type="text"
+                   name="email"
+                   placeholder="Your email address..."
+                   value="{{ email }}" />
+            {% if let Some(error) = validation_report.get_first("password") %}<span>{{ error }}</span>{% endif %}
+            <input type="password"
+                   name="password"
+                   placeholder="Your password..."
+                   value="{{ password }}" />
+            {% if let Some(error) = validation_report.get_first("invite_code") %}<span>{{ error }}</span>{% endif %}
+            <input type="text"
+                   name="invite_code"
+                   placeholder="Your invite code..."
+                   value="{{ invite_code }}" />
             <button class="primary" type="submit">Sign Up</button>
         </form>
     </section>

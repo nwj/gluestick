@@ -3,11 +3,12 @@ use crate::models::prelude::*;
 use rusqlite::named_params;
 use rusqlite::types::{FromSql, FromSqlResult, ToSql, ToSqlOutput, ValueRef};
 
-#[derive(Debug, Default)]
+#[derive(Clone, Debug)]
 pub struct InviteCode(String);
 
 impl InviteCode {
-    pub async fn find(db: &Database, code: String) -> Result<Option<Self>> {
+    pub async fn find(db: &Database, code: impl Into<String>) -> Result<Option<Self>> {
+        let code = code.into();
         let optional_code = db
             .conn
             .call(move |conn| {

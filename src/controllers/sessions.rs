@@ -1,34 +1,34 @@
 use crate::controllers::prelude::*;
 use crate::db::Database;
 use crate::models::session::{Session, SessionToken, SESSION_COOKIE_NAME};
-use crate::models::user::{Password, User};
+use crate::models::user::User;
+use crate::params::prelude::Unvalidated;
+use crate::params::sessions::CreateSessionParams;
 use crate::views::sessions::NewSessionsTemplate;
 use axum::body::Body;
 use axum::extract::{Form, State};
 use axum::http::{header::HeaderMap, HeaderValue, StatusCode};
 use axum::response::{IntoResponse, Response};
 use secrecy::ExposeSecret;
-use serde::Deserialize;
 
 pub async fn new() -> NewSessionsTemplate {
     NewSessionsTemplate { session: None }
 }
 
-#[derive(Debug, Deserialize)]
-pub struct CreateSession {
-    pub email: String,
-    pub password: Password,
-}
-
 pub async fn create(
     State(db): State<Database>,
-    Form(input): Form<CreateSession>,
+    Form(params): Form<Unvalidated<CreateSessionParams>>,
 ) -> Result<impl IntoResponse> {
-    let Some(user) = User::find_by_email(&db, input.email).await? else {
+    let params = params
+        .validate()
+        .map_err(|_| Error::Unauthorized)?
+        .into_inner();
+
+    let Some(user) = User::find_by_email(&db, params.email.into_inner()).await? else {
         return Err(Error::Unauthorized);
     };
 
-    user.verify_password(&input.password)
+    user.verify_password(params.password.into_inner().expose_secret())
         .map_err(|_| Error::Unauthorized)?;
 
     let token = SessionToken::generate();

@@ -61,7 +61,9 @@ async fn signup_requires_all_fields() -> Result<()> {
     for bad_user in bad_users {
         let invite = app.seed_random_invite_code().await?;
         let response = client.signup().post(invite, &bad_user).await?;
-        assert_eq!(response.status(), 400);
+        assert_eq!(response.status(), 200);
+        let response = client.settings().get().await?;
+        assert_eq!(response.status(), 401);
     }
 
     Ok(())
@@ -86,7 +88,9 @@ async fn signup_requires_alphanumeric_username_between_3_and_32_chars() -> Resul
     for bad_user in bad_users {
         let invite = app.seed_random_invite_code().await?;
         let response = client.signup().post(invite, &bad_user).await?;
-        assert_eq!(response.status(), 400);
+        assert_eq!(response.status(), 200);
+        let response = client.settings().get().await?;
+        assert_eq!(response.status(), 401);
     }
 
     Ok(())
@@ -109,7 +113,9 @@ async fn signup_requires_valid_email_address() -> Result<()> {
     for bad_user in bad_users {
         let invite = app.seed_random_invite_code().await?;
         let response = client.signup().post(invite, &bad_user).await?;
-        assert_eq!(response.status(), 400);
+        assert_eq!(response.status(), 200);
+        let response = client.settings().get().await?;
+        assert_eq!(response.status(), 401);
     }
 
     Ok(())
@@ -131,7 +137,9 @@ async fn signup_requires_password_between_8_and_256_chars() -> Result<()> {
     for bad_user in bad_users {
         let invite = app.seed_random_invite_code().await?;
         let response = client.signup().post(invite, &bad_user).await?;
-        assert_eq!(response.status(), 400);
+        assert_eq!(response.status(), 200);
+        let response = client.settings().get().await?;
+        assert_eq!(response.status(), 401);
     }
 
     Ok(())
