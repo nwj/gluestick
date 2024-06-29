@@ -1,3 +1,4 @@
+use crate::db::Database;
 use serde::Deserialize;
 use std::collections::HashMap;
 use thiserror::Error;
@@ -81,5 +82,17 @@ pub struct Valid<T>(pub T);
 impl<T: Validate> Valid<T> {
     pub fn into_inner(self) -> T {
         self.0
+    }
+}
+
+#[allow(async_fn_in_trait)]
+pub trait Verify {
+    type Output;
+    async fn verify(self, db: &Database) -> Result<Self::Output, Report>;
+}
+
+impl<T: Verify> Valid<T> {
+    pub async fn verify(self, db: &Database) -> Result<T::Output, Report> {
+        self.0.verify(db).await
     }
 }

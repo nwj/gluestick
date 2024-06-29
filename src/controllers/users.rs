@@ -1,6 +1,5 @@
 use crate::controllers::prelude::*;
 use crate::db::Database;
-use crate::models::invite_code::InviteCode;
 use crate::models::session::{Session, SessionToken, SESSION_COOKIE_NAME};
 use crate::models::user::User;
 use crate::params::prelude::Unvalidated;
@@ -21,10 +20,8 @@ pub async fn create(
     Form(params): Form<Unvalidated<CreateUserParams>>,
 ) -> Result<impl IntoResponse> {
     match params.clone().validate() {
-        Ok(validated_params) => {
-            if let Some(invite_code) =
-                InviteCode::find(&db, validated_params.0.invite_code.0.clone()).await?
-            {
+        Ok(validated_params) => match validated_params.clone().verify(&db).await {
+            Ok(invite_code) => {
                 let user: User = validated_params.try_into()?;
                 user.clone().insert(&db).await?;
 
@@ -45,12 +42,21 @@ pub async fn create(
 
                 Session::new(&token, user).insert(&db).await?;
                 invite_code.delete(&db).await?;
-
                 Ok(response)
-            } else {
-                Err(Error::Unauthorized)
             }
-        }
+            Err(report) => {
+                let params = params.into_inner();
+                let template = NewUsersTemplate {
+                    session: None,
+                    username: params.username.into_inner(),
+                    email: params.email.into_inner(),
+                    password: params.password.expose_secret().to_string(),
+                    invite_code: params.invite_code.into_inner(),
+                    validation_report: report,
+                };
+                Ok(template.into_response())
+            }
+        },
         Err(report) => {
             let params = params.into_inner();
             let template = NewUsersTemplate {

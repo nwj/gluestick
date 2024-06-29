@@ -91,6 +91,24 @@ impl User {
         Ok(optional_user)
     }
 
+    pub async fn find_by_username(db: &Database, username: String) -> Result<Option<User>> {
+        let optional_user = db
+            .conn
+            .call(move |conn| {
+                let mut statement = conn.prepare(
+                    "SELECT id, username, email, password FROM users WHERE username = :username;",
+                )?;
+                let mut rows = statement.query(named_params! {":username": username})?;
+                match rows.next()? {
+                    Some(row) => Ok(Some(User::from_sql_row(row)?)),
+                    None => Ok(None),
+                }
+            })
+            .await?;
+
+        Ok(optional_user)
+    }
+
     pub async fn find_by_session_token(
         db: &Database,
         token: impl Into<HashedSessionToken>,

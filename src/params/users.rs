@@ -1,3 +1,6 @@
+use crate::db::Database;
+use crate::models::invite_code::InviteCode;
+use crate::models::user::User;
 use crate::params::prelude::*;
 use secrecy::{ExposeSecret, Secret};
 use serde::Deserialize;
@@ -37,9 +40,37 @@ impl Validate for UsernameParam {
     }
 }
 
+impl Verify for UsernameParam {
+    type Output = ();
+
+    async fn verify(self, db: &Database) -> Result<Self::Output> {
+        let mut report = Report::new();
+
+        if User::find_by_username(db, self.into_inner())
+            .await
+            .unwrap()
+            .is_some()
+        {
+            report.add("username", "Username is already taken");
+        }
+
+        if report.is_empty() {
+            Ok(())
+        } else {
+            Err(report)
+        }
+    }
+}
+
 #[derive(Clone, Debug, Deserialize)]
 #[serde(transparent)]
 pub struct EmailAddressParam(String);
+
+impl EmailAddressParam {
+    pub fn into_inner(self) -> String {
+        self.0
+    }
+}
 
 impl Validate for EmailAddressParam {
     fn validate(&self) -> Result<()> {
@@ -69,9 +100,25 @@ impl Validate for EmailAddressParam {
     }
 }
 
-impl EmailAddressParam {
-    pub fn into_inner(self) -> String {
-        self.0
+impl Verify for EmailAddressParam {
+    type Output = ();
+
+    async fn verify(self, db: &Database) -> Result<Self::Output> {
+        let mut report = Report::new();
+
+        if User::find_by_email(db, self.into_inner())
+            .await
+            .unwrap()
+            .is_some()
+        {
+            report.add("email", "Email is already taken");
+        }
+
+        if report.is_empty() {
+            Ok(())
+        } else {
+            Err(report)
+        }
     }
 }
 
@@ -129,6 +176,21 @@ impl Validate for InviteCodeParam {
     }
 }
 
+impl Verify for InviteCodeParam {
+    type Output = InviteCode;
+
+    async fn verify(self, db: &Database) -> Result<Self::Output> {
+        let mut report = Report::new();
+
+        if let Some(invite_code) = InviteCode::find(db, self.into_inner()).await.unwrap() {
+            Ok(invite_code)
+        } else {
+            report.add("invite_code", "Invalid invite code");
+            Err(report)
+        }
+    }
+}
+
 #[derive(Clone, Deserialize)]
 pub struct CreateUserParams {
     pub username: UsernameParam,
@@ -158,6 +220,35 @@ impl Validate for CreateUserParams {
             Ok(())
         } else {
             Err(report)
+        }
+    }
+}
+
+impl Verify for CreateUserParams {
+    type Output = InviteCode;
+
+    async fn verify(self, db: &Database) -> Result<Self::Output> {
+        let mut report = Report::new();
+
+        if let Err(username_report) = self.username.verify(db).await {
+            report.merge(username_report);
+        }
+        if let Err(email_report) = self.email.verify(db).await {
+            report.merge(email_report);
+        }
+
+        match self.invite_code.verify(db).await {
+            Err(invite_code_report) => {
+                report.merge(invite_code_report);
+                Err(report)
+            }
+            Ok(code) => {
+                if report.is_empty() {
+                    Ok(code)
+                } else {
+                    Err(report)
+                }
+            }
         }
     }
 }
