@@ -222,6 +222,22 @@ main {
     box-shadow: 10px 10px 0 0 var(--color-black);
   }
 
+  .invalid {
+    input[type="text"],
+    input[type="email"],
+    input[type="password"] {
+      border: 1px solid var(--color-fusion-red);
+    }
+
+    textarea {
+      border: 1px solid var(--color-fusion-red);
+    }
+
+    fieldset {
+      border: 1px solid var(--color-fusion-red);
+    }
+  }
+
   button.primary {
     border: unset;
     background-color: var(--color-celery-green);
@@ -230,12 +246,27 @@ main {
     cursor: pointer;
   }
 
-  .login,
-  .signup {
+  .login {
     input {
       display: block;
       margin-bottom: var(--spacing-md);
       font-size: var(--font-size-xl);
+    }
+  }
+
+  .signup {
+    input {
+      display: block;
+      font-size: var(--font-size-xl);
+      margin-bottom: var(--spacing-xs);
+    }
+
+    .error-msg {
+      height: var(--spacing-xs);
+      color: var(--color-fusion-red);
+      font-size: var(--font-size-sm);
+      margin-bottom: var(--spacing-md);
+      overflow: none;
     }
   }
 

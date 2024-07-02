@@ -4,26 +4,50 @@
     <h1>Sign-up for Gluestick</h1>
     <section class="signup">
         <form action="/signup" method="post">
-            {% if let Some(error) = validation_report.get_first("username") %}<span>{{ error }}</span>{% endif %}
-            <input type="text"
-                   name="username"
-                   placeholder="Your username..."
-                   value="{{ username }}" />
-            {% if let Some(error) = validation_report.get_first("email") %}<span>{{ error }}</span>{% endif %}
-            <input type="text"
-                   name="email"
-                   placeholder="Your email address..."
-                   value="{{ email }}" />
-            {% if let Some(error) = validation_report.get_first("password") %}<span>{{ error }}</span>{% endif %}
-            <input type="password"
-                   name="password"
-                   placeholder="Your password..."
-                   value="{{ password }}" />
-            {% if let Some(error) = validation_report.get_first("invite_code") %}<span>{{ error }}</span>{% endif %}
-            <input type="text"
-                   name="invite_code"
-                   placeholder="Your invite code..."
-                   value="{{ invite_code }}" />
+            {% let error = validation_report.get_first("username") %}
+            <div {% if let Some(error) = error %}class="invalid"{% endif %}>
+                <label for="username">Username</label>
+                <input type="text"
+                       name="username"
+                       placeholder="Your username..."
+                       value="{{ username }}" />
+                <div class="error-msg">
+                    {% if let Some(error) = error %}{{ error }}{% endif %}
+                </div>
+            </div>
+            {% let error = validation_report.get_first("email") %}
+            <div {% if let Some(error) = error %}class="invalid"{% endif %}>
+                <label for="email">Email</label>
+                <input type="text"
+                       name="email"
+                       placeholder="Your email address..."
+                       value="{{ email }}" />
+                <div class="error-msg">
+                    {% if let Some(error) = error %}{{ error }}{% endif %}
+                </div>
+            </div>
+            {% let error = validation_report.get_first("password") %}
+            <div {% if let Some(error) = error %}class="invalid"{% endif %}>
+                <label for="password">Password</label>
+                <input type="password"
+                       name="password"
+                       placeholder="Your password..."
+                       value="{{ password }}" />
+                <div class="error-msg">
+                    {% if let Some(error) = error %}{{ error }}{% endif %}
+                </div>
+            </div>
+            {% let error = validation_report.get_first("invite_code") %}
+            <div {% if let Some(error) = error %}class="invalid"{% endif %}>
+                <label for="invite_code">Invite Code</label>
+                <input type="text"
+                       name="invite_code"
+                       placeholder="Your invite code..."
+                       value="{{ invite_code }}" />
+                <div class="error-msg">
+                    {% if let Some(error) = error %}{{ error }}{% endif %}
+                </div>
+            </div>
             <button class="primary" type="submit">Sign Up</button>
         </form>
     </section>

@@ -161,13 +161,10 @@ impl Validate for PasswordParam {
         let mut report = Report::new();
 
         if self.expose_secret().chars().count() < 8 {
-            report.add("password", "Passwords must be at least 8 characters long");
+            report.add("password", "Password must be at least 8 characters long");
         }
         if self.expose_secret().chars().count() > 256 {
-            report.add(
-                "password",
-                "Passwords may not be longer than 256 characters",
-            );
+            report.add("password", "Password may not be longer than 256 characters");
         }
 
         if report.is_empty() {
