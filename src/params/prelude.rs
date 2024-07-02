@@ -62,7 +62,7 @@ impl std::fmt::Display for Report {
 }
 
 pub trait Validate {
-    fn validate(&self) -> Result<(), Report>;
+    fn validate(&self) -> Result<()>;
 }
 
 #[derive(Clone, Copy, Deserialize)]
@@ -77,7 +77,7 @@ impl<T: Validate> Unvalidated<T> {
         self.0
     }
 
-    pub fn validate(self) -> Result<Valid<T>, Report> {
+    pub fn validate(self) -> Result<Valid<T>> {
         self.0.validate()?;
         Ok(Valid(self.0))
     }

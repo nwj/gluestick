@@ -2,7 +2,6 @@ use crate::controllers::prelude::*;
 use crate::db::Database;
 use crate::models::session::{Session, SessionToken, SESSION_COOKIE_NAME};
 use crate::models::user::User;
-use crate::params::prelude::Error as ParamsError;
 use crate::params::prelude::Unvalidated;
 use crate::params::users::CreateUserParams;
 use crate::views::users::{NewUsersTemplate, ShowUsersTemplate};
@@ -20,22 +19,18 @@ pub async fn create(
     State(db): State<Database>,
     Form(params): Form<Unvalidated<CreateUserParams>>,
 ) -> Result<impl IntoResponse> {
-    let valid_params = params.clone().validate().map_err(|report| {
-        Error::Validation(Box::new(
-            NewUsersTemplate::from_params(params.clone().into_inner()).with_report(report),
-        ))
-    })?;
+    let error_template = NewUsersTemplate::from_params(params.clone().into_inner());
+
+    let valid_params = params
+        .clone()
+        .validate()
+        .map_err(|e| handle_params_error(e, error_template.clone()))?;
 
     let invite_code = valid_params
         .clone()
         .verify(&db)
         .await
-        .map_err(|err| match err {
-            ParamsError::Report(report) => Error::Validation(Box::new(
-                NewUsersTemplate::from_params(params.into_inner()).with_report(report),
-            )),
-            ParamsError::Other(e) => Error::InternalServerError(e),
-        })?;
+        .map_err(|e| handle_params_error(e, error_template))?;
 
     let user: User = valid_params.try_into()?;
     user.clone().insert(&db).await?;

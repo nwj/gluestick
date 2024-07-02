@@ -1,3 +1,4 @@
+use crate::controllers::prelude::ErrorTemplate;
 use crate::models::session::Session;
 use crate::params::prelude::Report;
 use crate::params::users::CreateUserParams;
@@ -26,11 +27,15 @@ impl NewUsersTemplate {
             validation_report: Report::default(),
         }
     }
+}
 
-    #[must_use]
-    pub fn with_report(mut self, report: Report) -> Self {
+impl ErrorTemplate for NewUsersTemplate {
+    fn render_template(&self) -> askama::Result<String> {
+        self.render()
+    }
+
+    fn with_report(&mut self, report: Report) {
         self.validation_report = report;
-        self
     }
 }
 

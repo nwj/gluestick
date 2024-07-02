@@ -28,7 +28,7 @@ impl From<UsernameParam> for String {
 }
 
 impl Validate for UsernameParam {
-    fn validate(&self) -> Result<(), Report> {
+    fn validate(&self) -> Result<()> {
         let mut report = Report::new();
 
         if self.0.chars().count() < 3 {
@@ -47,7 +47,7 @@ impl Validate for UsernameParam {
         if report.is_empty() {
             Ok(())
         } else {
-            Err(report)
+            Err(report.into())
         }
     }
 }
@@ -56,20 +56,14 @@ impl Verify for UsernameParam {
     type Output = ();
 
     async fn verify(self, db: &Database) -> Result<Self::Output> {
-        let mut report = Report::new();
-
-        if User::find_by_username(db, self.into_inner())
-            .await
-            .map_err(|e| Error::Other(Box::new(e)))?
-            .is_some()
-        {
-            report.add("username", "Username is already taken");
-        }
-
-        if report.is_empty() {
-            Ok(())
-        } else {
-            Err(report.into())
+        match User::find_by_username(db, self.into_inner()).await {
+            Ok(None) => Ok(()),
+            Ok(Some(_)) => {
+                let mut report = Report::new();
+                report.add("username", "Username is already taken");
+                Err(report.into())
+            }
+            Err(e) => Err(Error::Other(Box::new(e))),
         }
     }
 }
@@ -97,7 +91,7 @@ impl From<EmailAddressParam> for String {
 }
 
 impl Validate for EmailAddressParam {
-    fn validate(&self) -> Result<(), Report> {
+    fn validate(&self) -> Result<()> {
         let mut report = Report::new();
 
         if !self.0.contains('@') {
@@ -119,7 +113,7 @@ impl Validate for EmailAddressParam {
         if report.is_empty() {
             Ok(())
         } else {
-            Err(report)
+            Err(report.into())
         }
     }
 }
@@ -128,20 +122,14 @@ impl Verify for EmailAddressParam {
     type Output = ();
 
     async fn verify(self, db: &Database) -> Result<Self::Output> {
-        let mut report = Report::new();
-
-        if User::find_by_email(db, self.into_inner())
-            .await
-            .map_err(|e| Error::Other(Box::new(e)))?
-            .is_some()
-        {
-            report.add("email", "Email is already taken");
-        }
-
-        if report.is_empty() {
-            Ok(())
-        } else {
-            Err(report.into())
+        match User::find_by_email(db, self.into_inner()).await {
+            Ok(None) => Ok(()),
+            Ok(Some(_)) => {
+                let mut report = Report::new();
+                report.add("email", "Email is already taken");
+                Err(report.into())
+            }
+            Err(e) => Err(Error::Other(Box::new(e))),
         }
     }
 }
@@ -169,7 +157,7 @@ impl From<PasswordParam> for Secret<String> {
 }
 
 impl Validate for PasswordParam {
-    fn validate(&self) -> Result<(), Report> {
+    fn validate(&self) -> Result<()> {
         let mut report = Report::new();
 
         if self.expose_secret().chars().count() < 8 {
@@ -185,7 +173,7 @@ impl Validate for PasswordParam {
         if report.is_empty() {
             Ok(())
         } else {
-            Err(report)
+            Err(report.into())
         }
     }
 }
@@ -207,7 +195,7 @@ impl InviteCodeParam {
 }
 
 impl Validate for InviteCodeParam {
-    fn validate(&self) -> Result<(), Report> {
+    fn validate(&self) -> Result<()> {
         Ok(())
     }
 }
@@ -251,26 +239,34 @@ pub struct CreateUserParams {
 }
 
 impl Validate for CreateUserParams {
-    fn validate(&self) -> Result<(), Report> {
+    fn validate(&self) -> Result<()> {
         let mut report = Report::new();
 
-        if let Err(username_report) = self.username.validate() {
-            report.merge(username_report);
-        }
-        if let Err(email_report) = self.email.validate() {
-            report.merge(email_report);
-        }
-        if let Err(password_report) = self.password.validate() {
-            report.merge(password_report);
-        }
-        if let Err(invite_code_report) = self.invite_code.validate() {
-            report.merge(invite_code_report);
-        }
+        match self.username.validate() {
+            Err(Error::Report(username_report)) => report.merge(username_report),
+            Err(Error::Other(e)) => return Err(Error::Other(e)),
+            _ => {}
+        };
+        match self.email.validate() {
+            Err(Error::Report(email_report)) => report.merge(email_report),
+            Err(Error::Other(e)) => return Err(Error::Other(e)),
+            _ => {}
+        };
+        match self.password.validate() {
+            Err(Error::Report(password_report)) => report.merge(password_report),
+            Err(Error::Other(e)) => return Err(Error::Other(e)),
+            _ => {}
+        };
+        match self.invite_code.validate() {
+            Err(Error::Report(invite_code_report)) => report.merge(invite_code_report),
+            Err(Error::Other(e)) => return Err(Error::Other(e)),
+            _ => {}
+        };
 
         if report.is_empty() {
             Ok(())
         } else {
-            Err(report)
+            Err(report.into())
         }
     }
 }

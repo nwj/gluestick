@@ -13,7 +13,7 @@ impl EmailAddressParam {
 }
 
 impl Validate for EmailAddressParam {
-    fn validate(&self) -> Result<(), Report> {
+    fn validate(&self) -> Result<()> {
         Ok(())
     }
 }
@@ -29,7 +29,7 @@ impl PasswordParam {
 }
 
 impl Validate for PasswordParam {
-    fn validate(&self) -> Result<(), Report> {
+    fn validate(&self) -> Result<()> {
         Ok(())
     }
 }
@@ -47,20 +47,24 @@ pub struct CreateSessionParams {
 }
 
 impl Validate for CreateSessionParams {
-    fn validate(&self) -> Result<(), Report> {
+    fn validate(&self) -> Result<()> {
         let mut report = Report::new();
 
-        if let Err(email_report) = self.email.validate() {
-            report.merge(email_report);
-        }
-        if let Err(password_report) = self.password.validate() {
-            report.merge(password_report);
-        }
+        match self.email.validate() {
+            Err(Error::Report(email_report)) => report.merge(email_report),
+            Err(Error::Other(e)) => return Err(Error::Other(e)),
+            _ => {}
+        };
+        match self.password.validate() {
+            Err(Error::Report(password_report)) => report.merge(password_report),
+            Err(Error::Other(e)) => return Err(Error::Other(e)),
+            _ => {}
+        };
 
         if report.is_empty() {
             Ok(())
         } else {
-            Err(report)
+            Err(report.into())
         }
     }
 }

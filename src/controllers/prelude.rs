@@ -1,4 +1,6 @@
 use crate::models::prelude::Error as ModelsError;
+use crate::params::prelude::Error as ParamsError;
+use crate::params::prelude::Report;
 use crate::views::{InternalServerErrorTemplate, NotFoundTemplate};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
@@ -44,7 +46,7 @@ impl IntoResponse for Error {
                 (StatusCode::BAD_REQUEST, ()).into_response()
             }
 
-            Error::Validation(template) => match template.render() {
+            Error::Validation(template) => match template.render_template() {
                 Ok(html) => (StatusCode::OK, html).into_response(),
                 Err(err) => {
                     tracing::error!(%err, "template rendering error");
@@ -76,12 +78,17 @@ impl IntoResponse for Error {
     }
 }
 
-pub trait ErrorTemplate: std::fmt::Debug {
-    fn render(&self) -> askama::Result<String>;
+pub fn handle_params_error(err: ParamsError, mut template: impl ErrorTemplate + 'static) -> Error {
+    match err {
+        ParamsError::Report(report) => {
+            template.with_report(report);
+            Error::Validation(Box::new(template))
+        }
+        ParamsError::Other(err) => Error::InternalServerError(err),
+    }
 }
 
-impl<T: askama::Template + std::fmt::Debug> ErrorTemplate for T {
-    fn render(&self) -> askama::Result<String> {
-        self.render()
-    }
+pub trait ErrorTemplate: std::fmt::Debug {
+    fn render_template(&self) -> askama::Result<String>;
+    fn with_report(&mut self, report: Report);
 }
