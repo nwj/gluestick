@@ -1,8 +1,10 @@
 use crate::models::session::Session;
 use crate::params::prelude::Report;
+use crate::params::users::CreateUserParams;
 use askama_axum::Template;
+use secrecy::ExposeSecret;
 
-#[derive(Default, Template)]
+#[derive(Clone, Debug, Default, Template)]
 #[template(path = "users/new.html")]
 pub struct NewUsersTemplate {
     pub session: Option<()>,
@@ -11,6 +13,25 @@ pub struct NewUsersTemplate {
     pub password: String,
     pub invite_code: String,
     pub validation_report: Report,
+}
+
+impl NewUsersTemplate {
+    pub fn from_params(params: CreateUserParams) -> Self {
+        Self {
+            session: None,
+            username: params.username.into(),
+            email: params.email.into(),
+            password: params.password.into_inner().expose_secret().to_string(),
+            invite_code: params.invite_code.into(),
+            validation_report: Report::default(),
+        }
+    }
+
+    #[must_use]
+    pub fn with_report(mut self, report: Report) -> Self {
+        self.validation_report = report;
+        self
+    }
 }
 
 #[derive(Template)]

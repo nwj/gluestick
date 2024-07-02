@@ -13,7 +13,7 @@ impl EmailAddressParam {
 }
 
 impl Validate for EmailAddressParam {
-    fn validate(&self) -> Result<()> {
+    fn validate(&self) -> Result<(), Report> {
         Ok(())
     }
 }
@@ -29,7 +29,7 @@ impl PasswordParam {
 }
 
 impl Validate for PasswordParam {
-    fn validate(&self) -> Result<()> {
+    fn validate(&self) -> Result<(), Report> {
         Ok(())
     }
 }
@@ -40,14 +40,14 @@ impl ExposeSecret<String> for PasswordParam {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct CreateSessionParams {
     pub email: EmailAddressParam,
     pub password: PasswordParam,
 }
 
 impl Validate for CreateSessionParams {
-    fn validate(&self) -> Result<()> {
+    fn validate(&self) -> Result<(), Report> {
         let mut report = Report::new();
 
         if let Err(email_report) = self.email.validate() {

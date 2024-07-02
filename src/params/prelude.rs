@@ -1,11 +1,19 @@
 use crate::db::Database;
 use serde::Deserialize;
 use std::collections::HashMap;
-use thiserror::Error;
 
-pub type Result<T, E = Report> = std::result::Result<T, E>;
+pub type Result<T, E = Error> = std::result::Result<T, E>;
 
-#[derive(Debug, Default, Error)]
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
+    #[error(transparent)]
+    Report(#[from] Report),
+
+    #[error("other: {0}")]
+    Other(Box<dyn std::error::Error + Send + Sync>),
+}
+
+#[derive(Clone, Debug, Default, thiserror::Error)]
 pub struct Report {
     errors: HashMap<String, Vec<String>>,
 }
@@ -54,13 +62,12 @@ impl std::fmt::Display for Report {
 }
 
 pub trait Validate {
-    fn validate(&self) -> Result<()>;
+    fn validate(&self) -> Result<(), Report>;
 }
 
 #[derive(Clone, Copy, Deserialize)]
 #[serde(transparent)]
 pub struct Unvalidated<T>(T);
-
 impl<T: Validate> Unvalidated<T> {
     pub fn new(value: T) -> Self {
         Self(value)
@@ -70,7 +77,7 @@ impl<T: Validate> Unvalidated<T> {
         self.0
     }
 
-    pub fn validate(self) -> Result<Valid<T>> {
+    pub fn validate(self) -> Result<Valid<T>, Report> {
         self.0.validate()?;
         Ok(Valid(self.0))
     }
@@ -88,11 +95,11 @@ impl<T: Validate> Valid<T> {
 #[allow(async_fn_in_trait)]
 pub trait Verify {
     type Output;
-    async fn verify(self, db: &Database) -> Result<Self::Output, Report>;
+    async fn verify(self, db: &Database) -> Result<Self::Output>;
 }
 
 impl<T: Verify> Valid<T> {
-    pub async fn verify(self, db: &Database) -> Result<T::Output, Report> {
+    pub async fn verify(self, db: &Database) -> Result<T::Output> {
         self.0.verify(db).await
     }
 }

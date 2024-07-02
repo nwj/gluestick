@@ -10,6 +10,9 @@ pub enum Error {
     #[error("malformed request")]
     BadRequest(Box<dyn std::error::Error>),
 
+    #[error("failed validation or verification")]
+    Validation(Box<dyn ErrorTemplate>),
+
     #[error("invalid authentication credentials")]
     Unauthorized,
 
@@ -41,6 +44,18 @@ impl IntoResponse for Error {
                 (StatusCode::BAD_REQUEST, ()).into_response()
             }
 
+            Error::Validation(template) => match template.render() {
+                Ok(html) => (StatusCode::OK, html).into_response(),
+                Err(err) => {
+                    tracing::error!(%err, "template rendering error");
+                    (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        InternalServerErrorTemplate { session: None },
+                    )
+                        .into_response()
+                }
+            },
+
             Error::Unauthorized => (StatusCode::UNAUTHORIZED, ()).into_response(),
 
             Error::Forbidden => (StatusCode::FORBIDDEN, ()).into_response(),
@@ -58,5 +73,15 @@ impl IntoResponse for Error {
                     .into_response()
             }
         }
+    }
+}
+
+pub trait ErrorTemplate: std::fmt::Debug {
+    fn render(&self) -> askama::Result<String>;
+}
+
+impl<T: askama::Template + std::fmt::Debug> ErrorTemplate for T {
+    fn render(&self) -> askama::Result<String> {
+        self.render()
     }
 }
