@@ -2,7 +2,6 @@ use crate::controllers::prelude::*;
 use crate::db::Database;
 use crate::models::session::{Session, SessionToken, SESSION_COOKIE_NAME};
 use crate::models::user::User;
-use crate::params::prelude::Report;
 use crate::params::prelude::{Validate, Verify};
 use crate::params::users::CreateUserParams;
 use crate::views::users::{
@@ -23,12 +22,11 @@ pub async fn create(
     State(db): State<Database>,
     Form(params): Form<CreateUserParams>,
 ) -> Result<impl IntoResponse> {
-    let error_template = NewUsersTemplate::from_params(params.clone());
+    let error_template: NewUsersTemplate = params.clone().into();
 
     params
         .validate()
         .map_err(|e| handle_params_error(e, error_template.clone()))?;
-
     let invite_code = params
         .clone()
         .verify(&db)
@@ -68,11 +66,8 @@ pub async fn validate_username(
     State(db): State<Database>,
     Form(params): Form<CreateUserParams>,
 ) -> Result<impl IntoResponse> {
-    let username = params.username;
-    let template = UsernameInputPartial {
-        username: username.clone().into(),
-        validation_report: Report::default(),
-    };
+    let username = params.username.clone();
+    let template: UsernameInputPartial = params.into();
 
     username
         .validate()
@@ -90,11 +85,8 @@ pub async fn validate_email(
     State(db): State<Database>,
     Form(params): Form<CreateUserParams>,
 ) -> Result<impl IntoResponse> {
-    let email = params.email;
-    let template = EmailAddressInputPartial {
-        email: email.clone().into(),
-        validation_report: Report::default(),
-    };
+    let email = params.email.clone();
+    let template: EmailAddressInputPartial = params.into();
 
     email
         .validate()
@@ -107,11 +99,8 @@ pub async fn validate_email(
     Ok(template)
 }
 pub async fn validate_password(Form(params): Form<CreateUserParams>) -> Result<impl IntoResponse> {
-    let password = params.password;
-    let template = PasswordInputPartial {
-        password: password.clone().expose_secret().to_string(),
-        validation_report: Report::default(),
-    };
+    let password = params.password.clone();
+    let template: PasswordInputPartial = params.into();
 
     password
         .validate()

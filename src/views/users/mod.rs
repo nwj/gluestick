@@ -16,8 +16,8 @@ pub struct NewUsersTemplate {
     pub validation_report: Report,
 }
 
-impl NewUsersTemplate {
-    pub fn from_params(params: CreateUserParams) -> Self {
+impl From<CreateUserParams> for NewUsersTemplate {
+    fn from(params: CreateUserParams) -> Self {
         Self {
             session: None,
             username: params.username.into(),
@@ -52,6 +52,15 @@ pub struct UsernameInputPartial {
     pub validation_report: Report,
 }
 
+impl From<CreateUserParams> for UsernameInputPartial {
+    fn from(params: CreateUserParams) -> Self {
+        Self {
+            username: params.username.into(),
+            validation_report: Report::default(),
+        }
+    }
+}
+
 impl ErrorTemplate for UsernameInputPartial {
     fn render_template(&self) -> askama::Result<String> {
         self.render()
@@ -69,6 +78,15 @@ pub struct EmailAddressInputPartial {
     pub validation_report: Report,
 }
 
+impl From<CreateUserParams> for EmailAddressInputPartial {
+    fn from(params: CreateUserParams) -> Self {
+        Self {
+            email: params.email.into(),
+            validation_report: Report::default(),
+        }
+    }
+}
+
 impl ErrorTemplate for EmailAddressInputPartial {
     fn render_template(&self) -> askama::Result<String> {
         self.render()
@@ -84,6 +102,15 @@ impl ErrorTemplate for EmailAddressInputPartial {
 pub struct PasswordInputPartial {
     pub password: String,
     pub validation_report: Report,
+}
+
+impl From<CreateUserParams> for PasswordInputPartial {
+    fn from(params: CreateUserParams) -> Self {
+        Self {
+            password: params.password.expose_secret().into(),
+            validation_report: Report::default(),
+        }
+    }
 }
 
 impl ErrorTemplate for PasswordInputPartial {
