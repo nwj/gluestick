@@ -3,7 +3,7 @@ use crate::db::Database;
 use crate::models::session::{Session, SessionToken, SESSION_COOKIE_NAME};
 use crate::models::user::User;
 use crate::params::prelude::Report;
-use crate::params::prelude::{Unvalidated, Validate, Verify};
+use crate::params::prelude::{Validate, Verify};
 use crate::params::users::CreateUserParams;
 use crate::views::users::{
     EmailAddressInputPartial, NewUsersTemplate, PasswordInputPartial, ShowUsersTemplate,
@@ -21,22 +21,21 @@ pub async fn new() -> NewUsersTemplate {
 
 pub async fn create(
     State(db): State<Database>,
-    Form(params): Form<Unvalidated<CreateUserParams>>,
+    Form(params): Form<CreateUserParams>,
 ) -> Result<impl IntoResponse> {
-    let error_template = NewUsersTemplate::from_params(params.clone().into_inner());
+    let error_template = NewUsersTemplate::from_params(params.clone());
 
-    let valid_params = params
-        .clone()
+    params
         .validate()
         .map_err(|e| handle_params_error(e, error_template.clone()))?;
 
-    let invite_code = valid_params
+    let invite_code = params
         .clone()
         .verify(&db)
         .await
         .map_err(|e| handle_params_error(e, error_template))?;
 
-    let user: User = valid_params.try_into()?;
+    let user: User = params.try_into()?;
     user.clone().insert(&db).await?;
 
     let token = SessionToken::generate();
@@ -67,9 +66,9 @@ pub async fn show(session: Session) -> Result<impl IntoResponse> {
 
 pub async fn validate_username(
     State(db): State<Database>,
-    Form(params): Form<Unvalidated<CreateUserParams>>,
+    Form(params): Form<CreateUserParams>,
 ) -> Result<impl IntoResponse> {
-    let username = params.into_inner().username;
+    let username = params.username;
     let template = UsernameInputPartial {
         username: username.clone().into(),
         validation_report: Report::default(),
@@ -89,9 +88,9 @@ pub async fn validate_username(
 
 pub async fn validate_email(
     State(db): State<Database>,
-    Form(params): Form<Unvalidated<CreateUserParams>>,
+    Form(params): Form<CreateUserParams>,
 ) -> Result<impl IntoResponse> {
-    let email = params.into_inner().email;
+    let email = params.email;
     let template = EmailAddressInputPartial {
         email: email.clone().into(),
         validation_report: Report::default(),
@@ -107,10 +106,8 @@ pub async fn validate_email(
 
     Ok(template)
 }
-pub async fn validate_password(
-    Form(params): Form<Unvalidated<CreateUserParams>>,
-) -> Result<impl IntoResponse> {
-    let password = params.into_inner().password;
+pub async fn validate_password(Form(params): Form<CreateUserParams>) -> Result<impl IntoResponse> {
+    let password = params.password;
     let template = PasswordInputPartial {
         password: password.clone().expose_secret().to_string(),
         validation_report: Report::default(),

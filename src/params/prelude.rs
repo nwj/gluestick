@@ -1,5 +1,4 @@
 use crate::db::Database;
-use serde::Deserialize;
 use std::collections::HashMap;
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
@@ -65,41 +64,8 @@ pub trait Validate {
     fn validate(&self) -> Result<()>;
 }
 
-#[derive(Clone, Copy, Deserialize)]
-#[serde(transparent)]
-pub struct Unvalidated<T>(T);
-impl<T: Validate> Unvalidated<T> {
-    pub fn new(value: T) -> Self {
-        Self(value)
-    }
-
-    pub fn into_inner(self) -> T {
-        self.0
-    }
-
-    pub fn validate(self) -> Result<Valid<T>> {
-        self.0.validate()?;
-        Ok(Valid(self.0))
-    }
-}
-
-#[derive(Clone, Copy)]
-pub struct Valid<T>(pub T);
-
-impl<T: Validate> Valid<T> {
-    pub fn into_inner(self) -> T {
-        self.0
-    }
-}
-
 #[allow(async_fn_in_trait)]
 pub trait Verify {
     type Output;
     async fn verify(self, db: &Database) -> Result<Self::Output>;
-}
-
-impl<T: Verify> Valid<T> {
-    pub async fn verify(self, db: &Database) -> Result<T::Output> {
-        self.0.verify(db).await
-    }
 }

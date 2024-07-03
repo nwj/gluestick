@@ -2,7 +2,7 @@ use crate::controllers::prelude::*;
 use crate::db::Database;
 use crate::models::session::{Session, SessionToken, SESSION_COOKIE_NAME};
 use crate::models::user::User;
-use crate::params::prelude::Unvalidated;
+use crate::params::prelude::Validate;
 use crate::params::sessions::CreateSessionParams;
 use crate::views::sessions::NewSessionsTemplate;
 use axum::body::Body;
@@ -17,12 +17,9 @@ pub async fn new() -> NewSessionsTemplate {
 
 pub async fn create(
     State(db): State<Database>,
-    Form(params): Form<Unvalidated<CreateSessionParams>>,
+    Form(params): Form<CreateSessionParams>,
 ) -> Result<impl IntoResponse> {
-    let params = params
-        .validate()
-        .map_err(|_| Error::Unauthorized)?
-        .into_inner();
+    params.validate().map_err(|_| Error::Unauthorized)?;
 
     let Some(user) = User::find_by_email(&db, params.email.into_inner()).await? else {
         return Err(Error::Unauthorized);

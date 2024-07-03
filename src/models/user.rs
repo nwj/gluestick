@@ -2,7 +2,6 @@ use crate::db::Database;
 use crate::models::api_session::HashedApiKey;
 use crate::models::prelude::*;
 use crate::models::session::HashedSessionToken;
-use crate::params::prelude::Valid;
 use crate::params::users::CreateUserParams;
 use argon2::password_hash::{PasswordHasher, SaltString};
 use argon2::{Argon2, PasswordHash, PasswordVerifier};
@@ -173,11 +172,10 @@ impl User {
     }
 }
 
-impl TryFrom<Valid<CreateUserParams>> for User {
+impl TryFrom<CreateUserParams> for User {
     type Error = Error;
 
-    fn try_from(value: Valid<CreateUserParams>) -> std::result::Result<Self, Self::Error> {
-        let params = value.into_inner();
+    fn try_from(params: CreateUserParams) -> std::result::Result<Self, Self::Error> {
         let username = params.username.into_inner();
         let email = params.email.into_inner();
         let password = params.password.into_inner();
