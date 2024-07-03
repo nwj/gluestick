@@ -2,9 +2,13 @@ use crate::controllers::prelude::*;
 use crate::db::Database;
 use crate::models::session::{Session, SessionToken, SESSION_COOKIE_NAME};
 use crate::models::user::User;
-use crate::params::prelude::Unvalidated;
+use crate::params::prelude::Report;
+use crate::params::prelude::{Unvalidated, Validate, Verify};
 use crate::params::users::CreateUserParams;
-use crate::views::users::{NewUsersTemplate, ShowUsersTemplate};
+use crate::views::users::{
+    EmailAddressInputPartial, NewUsersTemplate, PasswordInputPartial, ShowUsersTemplate,
+    UsernameInputPartial,
+};
 use axum::body::Body;
 use axum::extract::{Form, State};
 use axum::http::StatusCode;
@@ -59,4 +63,62 @@ pub async fn create(
 pub async fn show(session: Session) -> Result<impl IntoResponse> {
     let session = Some(session);
     Ok(ShowUsersTemplate { session })
+}
+
+pub async fn validate_username(
+    State(db): State<Database>,
+    Form(params): Form<Unvalidated<CreateUserParams>>,
+) -> Result<impl IntoResponse> {
+    let username = params.into_inner().username;
+    let template = UsernameInputPartial {
+        username: username.clone().into(),
+        validation_report: Report::default(),
+    };
+
+    username
+        .validate()
+        .map_err(|e| handle_params_error(e, template.clone()))?;
+
+    username
+        .verify(&db)
+        .await
+        .map_err(|e| handle_params_error(e, template.clone()))?;
+
+    Ok(template)
+}
+
+pub async fn validate_email(
+    State(db): State<Database>,
+    Form(params): Form<Unvalidated<CreateUserParams>>,
+) -> Result<impl IntoResponse> {
+    let email = params.into_inner().email;
+    let template = EmailAddressInputPartial {
+        email: email.clone().into(),
+        validation_report: Report::default(),
+    };
+
+    email
+        .validate()
+        .map_err(|e| handle_params_error(e, template.clone()))?;
+    email
+        .verify(&db)
+        .await
+        .map_err(|e| handle_params_error(e, template.clone()))?;
+
+    Ok(template)
+}
+pub async fn validate_password(
+    Form(params): Form<Unvalidated<CreateUserParams>>,
+) -> Result<impl IntoResponse> {
+    let password = params.into_inner().password;
+    let template = PasswordInputPartial {
+        password: password.clone().expose_secret().to_string(),
+        validation_report: Report::default(),
+    };
+
+    password
+        .validate()
+        .map_err(|e| handle_params_error(e, template.clone()))?;
+
+    Ok(template)
 }

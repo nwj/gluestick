@@ -44,3 +44,54 @@ impl ErrorTemplate for NewUsersTemplate {
 pub struct ShowUsersTemplate {
     pub session: Option<Session>,
 }
+
+#[derive(Clone, Debug, Default, Template)]
+#[template(path = "users/partials/username_input.html")]
+pub struct UsernameInputPartial {
+    pub username: String,
+    pub validation_report: Report,
+}
+
+impl ErrorTemplate for UsernameInputPartial {
+    fn render_template(&self) -> askama::Result<String> {
+        self.render()
+    }
+
+    fn with_report(&mut self, report: Report) {
+        self.validation_report = report;
+    }
+}
+
+#[derive(Clone, Debug, Default, Template)]
+#[template(path = "users/partials/email_input.html")]
+pub struct EmailAddressInputPartial {
+    pub email: String,
+    pub validation_report: Report,
+}
+
+impl ErrorTemplate for EmailAddressInputPartial {
+    fn render_template(&self) -> askama::Result<String> {
+        self.render()
+    }
+
+    fn with_report(&mut self, report: Report) {
+        self.validation_report = report;
+    }
+}
+
+#[derive(Clone, Debug, Default, Template)]
+#[template(path = "users/partials/password_input.html")]
+pub struct PasswordInputPartial {
+    pub password: String,
+    pub validation_report: Report,
+}
+
+impl ErrorTemplate for PasswordInputPartial {
+    fn render_template(&self) -> askama::Result<String> {
+        self.render()
+    }
+
+    fn with_report(&mut self, report: Report) {
+        self.validation_report = report;
+    }
+}
