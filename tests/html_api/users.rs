@@ -278,6 +278,9 @@ async fn login_requires_email_and_password() -> Result<()> {
 
     for bad_user in bad_users {
         let response = client.login().post(&bad_user).await?;
+        assert_eq!(response.status(), 200);
+
+        let response = client.settings().get().await?;
         assert_eq!(response.status(), 401);
     }
     Ok(())
@@ -292,7 +295,7 @@ async fn cant_login_with_your_email_but_someone_elses_password() -> Result<()> {
     user2.password = user1.password;
 
     let response = client.login().post(&user2).await?;
-    assert_eq!(response.status(), 401);
+    assert_eq!(response.status(), 200);
 
     let response = client.settings().get().await?;
     assert_eq!(response.status(), 401);
@@ -308,7 +311,7 @@ async fn cant_login_with_your_password_but_someone_elses_email() -> Result<()> {
     user2.email = user1.email;
 
     let response = client.login().post(&user2).await?;
-    assert_eq!(response.status(), 401);
+    assert_eq!(response.status(), 200);
 
     let response = client.settings().get().await?;
     assert_eq!(response.status(), 401);

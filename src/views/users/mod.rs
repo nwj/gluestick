@@ -13,7 +13,7 @@ pub struct NewUsersTemplate {
     pub email: String,
     pub password: String,
     pub invite_code: String,
-    pub validation_report: Report,
+    pub error_report: Report,
 }
 
 impl From<CreateUserParams> for NewUsersTemplate {
@@ -24,7 +24,7 @@ impl From<CreateUserParams> for NewUsersTemplate {
             email: params.email.into(),
             password: params.password.into_inner().expose_secret().to_string(),
             invite_code: params.invite_code.into(),
-            validation_report: Report::default(),
+            error_report: Report::default(),
         }
     }
 }
@@ -35,7 +35,7 @@ impl ErrorTemplate for NewUsersTemplate {
     }
 
     fn with_report(&mut self, report: Report) {
-        self.validation_report = report;
+        self.error_report = report;
     }
 }
 
@@ -49,14 +49,14 @@ pub struct ShowUsersTemplate {
 #[template(path = "users/partials/username_input.html")]
 pub struct UsernameInputPartial {
     pub username: String,
-    pub validation_report: Report,
+    pub error_report: Report,
 }
 
 impl From<CreateUserParams> for UsernameInputPartial {
     fn from(params: CreateUserParams) -> Self {
         Self {
             username: params.username.into(),
-            validation_report: Report::default(),
+            error_report: Report::default(),
         }
     }
 }
@@ -67,7 +67,7 @@ impl ErrorTemplate for UsernameInputPartial {
     }
 
     fn with_report(&mut self, report: Report) {
-        self.validation_report = report;
+        self.error_report = report;
     }
 }
 
@@ -75,14 +75,14 @@ impl ErrorTemplate for UsernameInputPartial {
 #[template(path = "users/partials/email_input.html")]
 pub struct EmailAddressInputPartial {
     pub email: String,
-    pub validation_report: Report,
+    pub error_report: Report,
 }
 
 impl From<CreateUserParams> for EmailAddressInputPartial {
     fn from(params: CreateUserParams) -> Self {
         Self {
             email: params.email.into(),
-            validation_report: Report::default(),
+            error_report: Report::default(),
         }
     }
 }
@@ -93,7 +93,7 @@ impl ErrorTemplate for EmailAddressInputPartial {
     }
 
     fn with_report(&mut self, report: Report) {
-        self.validation_report = report;
+        self.error_report = report;
     }
 }
 
@@ -101,14 +101,14 @@ impl ErrorTemplate for EmailAddressInputPartial {
 #[template(path = "users/partials/password_input.html")]
 pub struct PasswordInputPartial {
     pub password: String,
-    pub validation_report: Report,
+    pub error_report: Report,
 }
 
 impl From<CreateUserParams> for PasswordInputPartial {
     fn from(params: CreateUserParams) -> Self {
         Self {
             password: params.password.expose_secret().into(),
-            validation_report: Report::default(),
+            error_report: Report::default(),
         }
     }
 }
@@ -119,6 +119,6 @@ impl ErrorTemplate for PasswordInputPartial {
     }
 
     fn with_report(&mut self, report: Report) {
-        self.validation_report = report;
+        self.error_report = report;
     }
 }
