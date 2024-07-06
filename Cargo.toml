@@ -20,7 +20,6 @@ axum = { version = "0.7.5", features = ["macros"] }
 axum-extra = { version = "0.9.3", features = ["cookie"] }
 derive_more = "0.99.18"
 dotenvy = "0.15.7"
-garde = { version = "0.19.2", features = ["email", "derive"] }
 memory-serve = "0.4.5"
 rand = "0.8.5"
 rand_chacha = "0.3.1"

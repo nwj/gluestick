@@ -1,18 +1,15 @@
-use garde::Validate;
+use crate::params::prelude::*;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 const PER_PAGE_DEFAULT: usize = 10;
 const PER_PAGE_MAX: usize = 100;
 
-#[derive(Clone, Deserialize, Debug, Validate)]
+#[derive(Clone, Deserialize, Debug)]
 pub struct CursorPaginationParams {
     #[serde(default = "CursorPaginationParams::per_page_default")]
-    #[garde(range(min = 1, max = PER_PAGE_MAX))]
     pub per_page: usize,
-    #[garde(skip)]
     pub prev_page: Option<Uuid>,
-    #[garde(skip)]
     pub next_page: Option<Uuid>,
 }
 
@@ -42,6 +39,29 @@ impl CursorPaginationParams {
 
     fn per_page_default() -> usize {
         PER_PAGE_DEFAULT
+    }
+}
+
+impl Validate for CursorPaginationParams {
+    fn validate(&self) -> Result<()> {
+        let mut report = Report::new();
+
+        if self.per_page < 1 {
+            report.add("per_page", "'per_page' must be greater than 0");
+        }
+
+        if self.per_page > PER_PAGE_MAX {
+            report.add(
+                "per_page",
+                format!("'per_page' may not be greater than {PER_PAGE_MAX}"),
+            );
+        }
+
+        if report.is_empty() {
+            Ok(())
+        } else {
+            Err(report.into())
+        }
     }
 }
 

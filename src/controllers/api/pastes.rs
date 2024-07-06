@@ -2,12 +2,13 @@ use crate::controllers::api::prelude::*;
 use crate::db::Database;
 use crate::helpers::pagination::{CursorPaginationParams, CursorPaginationResponse};
 use crate::models::api_session::ApiSession;
-use crate::models::paste::{Paste, Visibility};
+use crate::models::paste::Paste;
+use crate::params::api::pastes::{CreatePasteParams, UpdatePasteParams};
+use crate::params::prelude::Validate;
 use axum::extract::{Path, State};
 use axum::response::IntoResponse;
 use axum::Json;
-use garde::Validate;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use uuid::Uuid;
 
 #[derive(Serialize)]
@@ -37,25 +38,21 @@ pub async fn index(
     Ok(Json(IndexResponse { pastes, pagination }))
 }
 
-#[derive(Debug, Deserialize)]
-pub struct CreatePaste {
-    filename: String,
-    description: String,
-    body: String,
-    visibility: Visibility,
-}
-
 pub async fn create(
     session: ApiSession,
     State(db): State<Database>,
-    Json(input): Json<CreatePaste>,
+    Json(params): Json<CreatePasteParams>,
 ) -> Result<impl IntoResponse> {
+    params
+        .validate()
+        .map_err(|e| Error::BadRequest(Box::new(e)))?;
+
     let paste = Paste::new(
         session.user.id,
-        input.filename,
-        input.description,
-        input.body,
-        input.visibility,
+        params.filename.into(),
+        params.description.into(),
+        params.body.into(),
+        params.visibility.into(),
     )?;
     let id = paste.id;
     paste.insert(&db).await?;
@@ -84,25 +81,27 @@ pub async fn show_raw(
     }
 }
 
-#[derive(Debug, Deserialize)]
-pub struct UpdatePaste {
-    filename: Option<String>,
-    description: Option<String>,
-    body: Option<String>,
-}
-
 pub async fn update(
     session: ApiSession,
     Path(id): Path<Uuid>,
     State(db): State<Database>,
-    Json(input): Json<UpdatePaste>,
+    Json(params): Json<UpdatePasteParams>,
 ) -> Result<impl IntoResponse> {
+    params
+        .validate()
+        .map_err(|e| Error::BadRequest(Box::new(e)))?;
+
     let optional_paste = Paste::find(&db, id).await?;
 
     match optional_paste {
         Some(paste) if paste.user_id == session.user.id => {
             paste
-                .update(&db, input.filename, input.description, input.body)
+                .update(
+                    &db,
+                    params.filename.map(Into::into),
+                    params.description.map(Into::into),
+                    params.body.map(Into::into),
+                )
                 .await?;
             Ok(())
         }

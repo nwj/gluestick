@@ -3,15 +3,15 @@ use crate::helpers::pagination::{Direction, HasOrderedId};
 use crate::helpers::syntax_highlight;
 use crate::models::prelude::*;
 use crate::models::user::Username;
-use derive_more::{AsRef, Display, Into};
-use garde::Validate;
+use crate::params::pastes::VisibilityParam;
+use derive_more::{AsRef, Display, From};
 use rusqlite::types::{FromSql, FromSqlError, FromSqlResult, ToSql, ToSqlOutput, Type, ValueRef};
 use rusqlite::{named_params, Row, Transaction, TransactionBehavior};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use time::OffsetDateTime;
 use uuid::Uuid;
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Serialize)]
 pub struct Paste {
     pub id: Uuid,
     pub user_id: Uuid,
@@ -34,9 +34,9 @@ impl Paste {
         Ok(Self {
             id: Uuid::now_v7(),
             user_id,
-            filename: Filename::try_from(filename)?,
-            description: Description::try_from(description)?,
-            body: Body::try_from(body)?,
+            filename: filename.into(),
+            description: description.into(),
+            body: body.into(),
             visibility,
             created_at: OffsetDateTime::now_utc(),
             updated_at: OffsetDateTime::now_utc(),
@@ -273,13 +273,13 @@ impl Paste {
         let original_body = self.body.clone();
 
         if let Some(filename) = filename {
-            self.filename = Filename::try_from(filename)?;
+            self.filename = filename.into();
         }
         if let Some(description) = description {
-            self.description = Description::try_from(description)?;
+            self.description = description.into();
         }
         if let Some(body) = body {
-            self.body = Body::try_from(body)?;
+            self.body = body.into();
         }
 
         let mut optional_html: Option<String> = None;
@@ -333,17 +333,13 @@ impl HasOrderedId for Paste {
     }
 }
 
-#[derive(AsRef, Clone, Debug, Deserialize, Display, Into, Serialize, Validate)]
-#[serde(try_from = "String", into = "String")]
-#[garde(transparent)]
-pub struct Filename(
-    #[garde(length(chars, min = 1, max = 256), custom(Self::validate_inner))] String,
-);
+#[derive(Clone, Debug, Display, From, Serialize)]
+#[serde(transparent)]
+pub struct Filename(String);
 
 impl Filename {
     pub fn new(s: &str) -> Result<Self> {
         let filename = Self(s.trim().to_string());
-        filename.validate()?;
         Ok(filename)
     }
 
@@ -353,35 +349,6 @@ impl Filename {
         } else {
             None
         }
-    }
-
-    #[allow(clippy::trivially_copy_pass_by_ref)]
-    fn validate_inner(value: &str, _context: &()) -> garde::Result {
-        if value.contains(&['<', '>', ':', '"', '/', '\\', '|', '?', '*'][..]) {
-            return Err(garde::Error::new(
-                "may not contain the following characters: '<', '>', ':', '\"', '/', '\\', '|', '?', or '*'",
-            ));
-        }
-        if value.ends_with('.') {
-            return Err(garde::Error::new("may not end with a '.' character"));
-        }
-        Ok(())
-    }
-}
-
-impl TryFrom<String> for Filename {
-    type Error = Error;
-
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        Self::new(&value)
-    }
-}
-
-impl std::str::FromStr for Filename {
-    type Err = <Self as TryFrom<String>>::Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        <Self as TryFrom<String>>::try_from(s.to_string())
     }
 }
 
@@ -393,20 +360,17 @@ impl ToSql for Filename {
 
 impl FromSql for Filename {
     fn column_result(value: ValueRef) -> FromSqlResult<Self> {
-        String::column_result(value)
-            .map(|s| Self::try_from(s).map_err(|e| FromSqlError::Other(Box::new(e))))?
+        String::column_result(value).map(Self::from)
     }
 }
 
-#[derive(AsRef, Clone, Debug, Deserialize, Display, Into, Serialize, Validate)]
-#[serde(try_from = "String", into = "String")]
-#[garde(transparent)]
-pub struct Description(#[garde(length(chars, max = 256))] String);
+#[derive(Clone, Debug, Display, From, Serialize)]
+#[serde(transparent)]
+pub struct Description(String);
 
 impl Description {
     pub fn new(s: &str) -> Result<Self> {
         let description = Self(s.trim().to_string());
-        description.validate()?;
         Ok(description)
     }
 
@@ -419,22 +383,6 @@ impl Description {
     }
 }
 
-impl TryFrom<String> for Description {
-    type Error = Error;
-
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        Self::new(&value)
-    }
-}
-
-impl std::str::FromStr for Description {
-    type Err = <Self as TryFrom<String>>::Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        <Self as TryFrom<String>>::try_from(s.to_string())
-    }
-}
-
 impl ToSql for Description {
     fn to_sql(&self) -> Result<ToSqlOutput<'_>, rusqlite::Error> {
         self.0.to_sql()
@@ -443,37 +391,18 @@ impl ToSql for Description {
 
 impl FromSql for Description {
     fn column_result(value: ValueRef) -> FromSqlResult<Self> {
-        String::column_result(value)
-            .map(|s| Self::try_from(s).map_err(|e| FromSqlError::Other(Box::new(e))))?
+        String::column_result(value).map(Self::from)
     }
 }
 
-#[derive(AsRef, Clone, Debug, Deserialize, Display, Into, PartialEq, Serialize, Validate)]
-#[serde(try_from = "String", into = "String")]
-#[garde(transparent)]
-pub struct Body(#[garde(length(chars, min = 1))] String);
+#[derive(AsRef, Clone, Debug, Display, From, PartialEq, Serialize)]
+#[serde(transparent)]
+pub struct Body(String);
 
 impl Body {
     pub fn new(s: &str) -> Result<Self> {
         let body = Self(s.trim().to_string());
-        body.validate()?;
         Ok(body)
-    }
-}
-
-impl TryFrom<String> for Body {
-    type Error = Error;
-
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        Self::new(&value)
-    }
-}
-
-impl std::str::FromStr for Body {
-    type Err = <Self as TryFrom<String>>::Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        <Self as TryFrom<String>>::try_from(s.to_string())
     }
 }
 
@@ -485,12 +414,11 @@ impl ToSql for Body {
 
 impl FromSql for Body {
     fn column_result(value: ValueRef) -> FromSqlResult<Self> {
-        String::column_result(value)
-            .map(|s| Self::try_from(s).map_err(|e| FromSqlError::Other(Box::new(e))))?
+        String::column_result(value).map(Self::from)
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Serialize)]
 pub enum Visibility {
     #[serde(rename = "public")]
     Public,
@@ -516,6 +444,15 @@ impl FromSql for Visibility {
                 "Unrecognized value for visibility".into(),
             )),
         })
+    }
+}
+
+impl From<VisibilityParam> for Visibility {
+    fn from(value: VisibilityParam) -> Self {
+        match value {
+            VisibilityParam::Public => Self::Public,
+            VisibilityParam::Secret => Self::Secret,
+        }
     }
 }
 

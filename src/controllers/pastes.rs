@@ -1,16 +1,16 @@
 use crate::controllers::prelude::*;
 use crate::db::Database;
 use crate::helpers::pagination::{CursorPaginationParams, CursorPaginationResponse};
-use crate::models::paste::{Paste, Visibility};
+use crate::models::paste::Paste;
 use crate::models::session::Session;
+use crate::params::pastes::{CreatePasteParams, UpdatePasteParams};
+use crate::params::prelude::Validate;
 use crate::views::pastes::{
     EditPastesTemplate, IndexPastesTemplate, NewPastesTemplate, ShowPastesTemplate,
 };
 use axum::extract::{Form, Path, Query, State};
 use axum::http::{header::HeaderMap, HeaderValue, StatusCode};
 use axum::response::{IntoResponse, Redirect};
-use garde::Validate;
-use serde::Deserialize;
 use uuid::Uuid;
 
 pub async fn index(
@@ -50,25 +50,21 @@ pub async fn new(session: Session) -> NewPastesTemplate {
     NewPastesTemplate { session }
 }
 
-#[derive(Debug, Deserialize)]
-pub struct CreatePaste {
-    pub filename: String,
-    pub description: String,
-    pub body: String,
-    pub visibility: Visibility,
-}
-
 pub async fn create(
     session: Session,
     State(db): State<Database>,
-    Form(input): Form<CreatePaste>,
+    Form(params): Form<CreatePasteParams>,
 ) -> Result<impl IntoResponse> {
+    params
+        .validate()
+        .map_err(|e| Error::BadRequest(Box::new(e)))?;
+
     let paste = Paste::new(
         session.user.id,
-        input.filename,
-        input.description,
-        input.body,
-        input.visibility,
+        params.filename.into(),
+        params.description.into(),
+        params.body.into(),
+        params.visibility.into(),
     )?;
     let id = paste.id;
     paste.insert(&db).await?;
@@ -145,19 +141,16 @@ pub async fn edit(
     }
 }
 
-#[derive(Debug, Deserialize)]
-pub struct UpdatePaste {
-    pub filename: String,
-    pub description: Option<String>,
-    pub body: String,
-}
-
 pub async fn update(
     session: Session,
     State(db): State<Database>,
     Path(id): Path<Uuid>,
-    Form(input): Form<UpdatePaste>,
+    Form(params): Form<UpdatePasteParams>,
 ) -> Result<impl IntoResponse> {
+    params
+        .validate()
+        .map_err(|e| Error::BadRequest(Box::new(e)))?;
+
     let optional_paste = Paste::find(&db, id).await?;
 
     match optional_paste {
@@ -172,9 +165,9 @@ pub async fn update(
             paste
                 .update(
                     &db,
-                    Some(input.filename),
-                    input.description,
-                    Some(input.body),
+                    Some(params.filename.into()),
+                    Some(params.description.into()),
+                    Some(params.body.into()),
                 )
                 .await?;
 
