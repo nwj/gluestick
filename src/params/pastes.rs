@@ -39,7 +39,7 @@ impl Validate for FilenameParam {
         {
             report.add(
                 "filename",
-                "Filename may not contain the following characters: '<', '>', ':', '\"', '/', '\\', '|', '?', or '*'",
+                "Filename may not contain the following characters: < > : \" / \\ | ? *",
             );
         }
         if self.0.ends_with('.') {
