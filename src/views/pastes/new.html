@@ -3,16 +3,40 @@
 {% block content %}
     <section class="pastes-new">
         <form action="/pastes" method="post">
+            {% let error = error_report.get_first("filename") %}
             <div class="filename-bar">
                 {% if let Some(session) = session %}<span>{{ session.user.username }}</span><span>/</span>{% endif %}
-                <input type="text" name="filename" placeholder="Filename with extension..." />
+                <div class="validated-input filename {% if let Some(error) = error %}invalid{% endif %}">
+                    <input type="text"
+                           name="filename"
+                           placeholder="Filename with extension..."
+                           value="{{ filename }}" />
+                    <div class="error-msg">
+                        {% if let Some(error) = error %}{{ error }}{% endif %}
+                    </div>
+                </div>
             </div>
-            <div class="description-bar">
-                <input type="text"
-                       name="description"
-                       placeholder="(Optional) Paste description..." />
+            {% let error = error_report.get_first("description") %}
+            <div class="validated-input description {% if let Some(error) = error %}invalid{% endif %}">
+                <label>
+                    Description
+                    <input type="text"
+                           name="description"
+                           placeholder="(Optional) Description..."
+                           value="{{ description }}" />
+                </label>
+                <div class="error-msg">
+                    {% if let Some(error) = error %}{{ error }}{% endif %}
+                </div>
             </div>
-            <textarea class="body" name="body" placeholder="Paste body..."></textarea>
+            {% let error = error_report.get_first("body") %}
+            <div class="validated-input body {% if let Some(error) = error %}invalid{% endif %}">
+                <label for="body">Body</label>
+                <textarea id="body" name="body" placeholder="Body...">{{body}}</textarea>
+                <div class="error-msg">
+                    {% if let Some(error) = error %}{{ error }}{% endif %}
+                </div>
+            </div>
             <fieldset class="visibility">
                 <legend>Visibility:</legend>
                 <label for="visibility-secret">
@@ -20,11 +44,15 @@
                            id="visibility-secret"
                            name="visibility"
                            value="secret"
-                           checked />
+                           {% if visibility == "secret" %}checked{% endif %} />
                     Secret - visible to anyone you give the URL to
                 </label>
                 <label for="visiblitity-public">
-                    <input type="radio" id="visiblitity-public" name="visibility" value="public" />
+                    <input type="radio"
+                           id="visiblitity-public"
+                           name="visibility"
+                           value="public"
+                           {% if visibility == "public" %}checked{% endif %} />
                     Public - visible to everyone
                 </label>
             </fieldset>

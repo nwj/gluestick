@@ -282,10 +282,14 @@ async fn create_requires_session() -> Result<()> {
 }
 
 #[tokio::test]
-async fn create_responds_with_400_when_missing_required_fields() -> Result<()> {
+async fn create_does_not_persist_paste_when_missing_required_fields() -> Result<()> {
     let app = TestApp::spawn().await?;
-    let user = TestUser::builder().random()?.build().seed(&app).await?;
-    let client = TestClient::new(app.address, None)?;
+    let (user, api_key) = TestUser::builder()
+        .random()?
+        .build()
+        .seed_with_api_key(&app)
+        .await?;
+    let client = TestClient::new(app.address, Some(&api_key))?;
     client.login().post(&user).await?;
     let bad_pastes = vec![
         TestPaste::builder().filename("").build(),
@@ -294,16 +298,23 @@ async fn create_responds_with_400_when_missing_required_fields() -> Result<()> {
 
     for bad_paste in bad_pastes {
         let response = client.pastes().post(&bad_paste).await?;
-        assert_eq!(response.status(), 400);
+        assert_eq!(response.status(), 200);
+
+        let response_data = client.api_pastes().get_and_deserialize(None).await?;
+        assert_eq!(response_data.pastes.len(), 0);
     }
     Ok(())
 }
 
 #[tokio::test]
-async fn create_responds_with_400_when_invalid_fields() -> Result<()> {
+async fn create_responds_does_not_persist_paste_when_invalid_fields() -> Result<()> {
     let app = TestApp::spawn().await?;
-    let user = TestUser::builder().random()?.build().seed(&app).await?;
-    let client = TestClient::new(app.address, None)?;
+    let (user, api_key) = TestUser::builder()
+        .random()?
+        .build()
+        .seed_with_api_key(&app)
+        .await?;
+    let client = TestClient::new(app.address, Some(&api_key))?;
     client.login().post(&user).await?;
     let bad_pastes = vec![
         TestPaste::builder()
@@ -319,7 +330,10 @@ async fn create_responds_with_400_when_invalid_fields() -> Result<()> {
 
     for bad_paste in bad_pastes {
         let response = client.pastes().post(&bad_paste).await?;
-        assert_eq!(response.status(), 400)
+        assert_eq!(response.status(), 200);
+
+        let response_data = client.api_pastes().get_and_deserialize(None).await?;
+        assert_eq!(response_data.pastes.len(), 0);
     }
     Ok(())
 }
@@ -377,10 +391,14 @@ async fn update_responds_with_404_when_paste_doesnt_exist() -> Result<()> {
 }
 
 #[tokio::test]
-async fn update_responds_with_400_when_invalid_fields() -> Result<()> {
+async fn update_does_not_persist_paste_when_invalid_fields() -> Result<()> {
     let app = TestApp::spawn().await?;
-    let user = TestUser::builder().random()?.build().seed(&app).await?;
-    let client = TestClient::new(app.address, None)?;
+    let (user, api_key) = TestUser::builder()
+        .random()?
+        .build()
+        .seed_with_api_key(&app)
+        .await?;
+    let client = TestClient::new(app.address, Some(&api_key))?;
     client.login().post(&user).await?;
     let paste = TestPaste::builder()
         .random()?
@@ -404,7 +422,11 @@ async fn update_responds_with_400_when_invalid_fields() -> Result<()> {
 
     for bad_paste in bad_pastes {
         let response = client.pastes().put_by_id(&bad_paste).await?;
-        assert_eq!(response.status(), 400)
+        assert_eq!(response.status(), 200);
+
+        let response = client.api_pastes().get_by_id(&bad_paste).await?;
+        let persisted_paste: TestPaste = response.json().await?;
+        assert_eq!(persisted_paste, paste);
     }
     Ok(())
 }

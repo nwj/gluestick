@@ -226,7 +226,6 @@ main {
     label {
       font-size: var(--font-size-sm);
       color: var(--color-grey-200);
-      margin-bottom: var(--spacing-xs);
     }
 
     input[type="text"],
@@ -386,29 +385,37 @@ main {
       .filename-bar {
         display: flex;
         font-size: var(--font-size-3xl);
-        margin-bottom: var(--spacing-md);
 
         span {
           margin-right: var(--spacing-xs);
         }
 
-        input {
-          min-width: 0;
+        .filename {
+          input {
+            min-width: 0;
+            font-size: var(--font-size-3xl);
+          }
         }
       }
 
-      .description-bar {
-        font-size: var(--font-size-xl);
-        margin-bottom: var(--spacing-md);
+      .description {
+        margin-bottom: var(--spacing-xs);
 
         input {
           width: 100%;
+          font-size: var(--font-size-xl);
         }
       }
 
       .body {
-        margin-bottom: var(--spacing-md);
+        margin-bottom: var(--spacing-xs);
+        display: flex;
+        flex-direction: column;
         flex: 1;
+
+        textarea {
+          flex: 1;
+        }
       }
 
       .visibility {

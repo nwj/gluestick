@@ -47,7 +47,7 @@ pub async fn index(
 
 pub async fn new(session: Session) -> NewPastesTemplate {
     let session = Some(session);
-    NewPastesTemplate { session }
+    NewPastesTemplate::from_session(session)
 }
 
 pub async fn create(
@@ -55,12 +55,14 @@ pub async fn create(
     State(db): State<Database>,
     Form(params): Form<CreatePasteParams>,
 ) -> Result<impl IntoResponse> {
+    let user_id = session.user.id;
+    let error_template = NewPastesTemplate::from_session_and_params(Some(session), params.clone());
     params
         .validate()
-        .map_err(|e| Error::BadRequest(Box::new(e)))?;
+        .map_err(|e| handle_params_error(e, error_template))?;
 
     let paste = Paste::new(
-        session.user.id,
+        user_id,
         params.filename.into(),
         params.description.into(),
         params.body.into(),
@@ -132,7 +134,11 @@ pub async fn edit(
         Some(paste) if paste.user_id == session.user.id => {
             let response = EditPastesTemplate {
                 session: Some(session),
-                paste,
+                paste_id: paste.id,
+                filename: paste.filename.into(),
+                description: paste.description.into(),
+                body: paste.body.into(),
+                ..Default::default()
             };
             Ok(response)
         }
@@ -147,14 +153,16 @@ pub async fn update(
     Path(id): Path<Uuid>,
     Form(params): Form<UpdatePasteParams>,
 ) -> Result<impl IntoResponse> {
+    let user_id = session.user.id;
+    let error_template = EditPastesTemplate::from_session_and_params(Some(session), params.clone());
     params
         .validate()
-        .map_err(|e| Error::BadRequest(Box::new(e)))?;
+        .map_err(|e| handle_params_error(e, error_template))?;
 
     let optional_paste = Paste::find(&db, id).await?;
 
     match optional_paste {
-        Some(paste) if paste.user_id == session.user.id => {
+        Some(paste) if paste.user_id == user_id => {
             let mut response = HeaderMap::new();
             response.insert(
                 "HX-Redirect",

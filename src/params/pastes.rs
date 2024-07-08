@@ -43,7 +43,7 @@ impl Validate for FilenameParam {
             );
         }
         if self.0.ends_with('.') {
-            report.add("filename", "may not end with a '.' character");
+            report.add("filename", "Filename may not end with a '.' character");
         }
 
         if report.is_empty() {
@@ -139,6 +139,15 @@ pub enum VisibilityParam {
     Public,
     #[serde(rename = "secret")]
     Secret,
+}
+
+impl From<VisibilityParam> for String {
+    fn from(value: VisibilityParam) -> Self {
+        match value {
+            VisibilityParam::Public => "public".into(),
+            VisibilityParam::Secret => "secret".into(),
+        }
+    }
 }
 
 #[derive(Clone, Deserialize)]

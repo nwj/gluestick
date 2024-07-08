@@ -4,7 +4,7 @@ use crate::helpers::syntax_highlight;
 use crate::models::prelude::*;
 use crate::models::user::Username;
 use crate::params::pastes::VisibilityParam;
-use derive_more::{AsRef, Display, From};
+use derive_more::{AsRef, Display, From, Into};
 use rusqlite::types::{FromSql, FromSqlError, FromSqlResult, ToSql, ToSqlOutput, Type, ValueRef};
 use rusqlite::{named_params, Row, Transaction, TransactionBehavior};
 use serde::Serialize;
@@ -333,7 +333,7 @@ impl HasOrderedId for Paste {
     }
 }
 
-#[derive(Clone, Debug, Display, From, Serialize)]
+#[derive(Clone, Debug, Display, From, Into, Serialize)]
 #[serde(transparent)]
 pub struct Filename(String);
 
@@ -364,7 +364,7 @@ impl FromSql for Filename {
     }
 }
 
-#[derive(Clone, Debug, Display, From, Serialize)]
+#[derive(Clone, Debug, Display, From, Into, Serialize)]
 #[serde(transparent)]
 pub struct Description(String);
 
@@ -395,7 +395,7 @@ impl FromSql for Description {
     }
 }
 
-#[derive(AsRef, Clone, Debug, Display, From, PartialEq, Serialize)]
+#[derive(AsRef, Clone, Debug, Display, From, Into, PartialEq, Serialize)]
 #[serde(transparent)]
 pub struct Body(String);
 
