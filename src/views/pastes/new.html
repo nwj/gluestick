@@ -2,7 +2,7 @@
 {% block title %}New Paste{% endblock %}
 {% block content %}
     <section class="pastes-new">
-        <form action="/pastes" method="post">
+        <form hx-post="/pastes" hx-target="body">
             {% let error = error_report.get_first("filename") %}
             <div class="filename-bar">
                 {% if let Some(session) = session %}<span>{{ session.user.username }}</span><span>/</span>{% endif %}
