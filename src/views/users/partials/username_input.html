@@ -1,13 +1,15 @@
 {% let error = error_report.get_first("username") %}
-<div hx-target="this"
-     hx-swap="outerHTML"
-     {% if let Some(error) = error %}class="invalid"{% endif %}>
-    <label for="username">Username</label>
-    <input type="text"
-           name="username"
-           placeholder="Your username..."
-           value="{{ username }}"
-           hx-post="/signup/validate/username" />
+<div class="validated-input {% if let Some(error) = error %}invalid{% endif %}"
+     hx-target="this"
+     hx-swap="outerHTML">
+    <label>
+        Username
+        <input type="text"
+               name="username"
+               placeholder="Your username..."
+               value="{{ username }}"
+               hx-post="/signup/validate/username" />
+    </label>
     <div class="error-msg">
         {% if let Some(error) = error %}{{ error }}{% endif %}
     </div>

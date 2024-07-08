@@ -8,12 +8,14 @@
             {% include "partials/email_input.html" %}
             {% include "partials/password_input.html" %}
             {% let error = error_report.get_first("invite_code") %}
-            <div {% if let Some(error) = error %}class="invalid"{% endif %}>
-                <label for="invite_code">Invite Code</label>
-                <input type="text"
-                       name="invite_code"
-                       placeholder="Your invite code..."
-                       value="{{ invite_code }}" />
+            <div class="validated-input {% if let Some(error) = error %}invalid{% endif %}">
+                <label>
+                    Invite Code
+                    <input type="text"
+                           name="invite_code"
+                           placeholder="Your invite code..."
+                           value="{{ invite_code }}" />
+                </label>
                 <div class="error-msg">
                     {% if let Some(error) = error %}{{ error }}{% endif %}
                 </div>

@@ -222,19 +222,34 @@ main {
     box-shadow: 10px 10px 0 0 var(--color-black);
   }
 
-  .invalid {
+  .validated-input {
+    label {
+      font-size: var(--font-size-sm);
+      color: var(--color-grey-200);
+      margin-bottom: var(--spacing-xs);
+    }
+
     input[type="text"],
     input[type="email"],
-    input[type="password"] {
-      border: 1px solid var(--color-fusion-red);
-    }
-
+    input[type="password"],
     textarea {
-      border: 1px solid var(--color-fusion-red);
+      display: block;
+      margin-bottom: var(--spacing-xs);
     }
 
-    fieldset {
-      border: 1px solid var(--color-fusion-red);
+    .error-msg {
+      color: var(--color-fusion-red);
+      font-size: var(--font-size-sm);
+      height: var(--spacing-md);
+    }
+
+    &.invalid {
+      input[type="text"],
+      input[type="email"],
+      input[type="password"],
+      textarea {
+        border: 1px solid var(--color-fusion-red);
+      }
     }
   }
 
@@ -246,33 +261,14 @@ main {
     cursor: pointer;
   }
 
-  .login {
-    input {
-      display: block;
-      margin-bottom: var(--spacing-md);
-      font-size: var(--font-size-xl);
-    }
-
-    .error-msg {
-      height: var(--spacing-xs);
-      color: var(--color-fusion-red);
-      font-size: var(--font-size-sm);
-      margin-bottom: var(--spacing-md);
-    }
-  }
-
+  .login,
   .signup {
-    input {
-      display: block;
-      font-size: var(--font-size-xl);
+    .validated-input {
       margin-bottom: var(--spacing-xs);
-    }
 
-    .error-msg {
-      height: var(--spacing-xs);
-      color: var(--color-fusion-red);
-      font-size: var(--font-size-sm);
-      margin-bottom: var(--spacing-md);
+      input {
+        font-size: var(--font-size-xl);
+      }
     }
   }
 

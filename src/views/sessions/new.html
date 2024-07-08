@@ -5,22 +5,26 @@
     <section class="login">
         <form action="/login" method="post">
             {% let error = error_report.get_first("self") %}
-            <div {% if let Some(error) = error %}class="invalid"{% endif %}>
-                <label for="email">Email</label>
-                <input type="text"
-                       name="email"
-                       placeholder="Your email address..."
-                       value="{{ email }}" />
+            <div class="validated-input {% if let Some(error) = error %}invalid{% endif %}">
+                <label>
+                    Email
+                    <input type="text"
+                           name="email"
+                           placeholder="Your email address..."
+                           value="{{ email }}" />
+                </label>
             </div>
-            <div {% if let Some(error) = error %}class="invalid"{% endif %}>
-                <label for="password">Password</label>
-                <input type="password"
-                       name="password"
-                       placeholder="Your password..."
-                       value="{{ password }}" />
-            </div>
-            <div class="error-msg">
-                {% if let Some(error) = error %}{{ error }}{% endif %}
+            <div class="validated-input {% if let Some(error) = error %}invalid{% endif %}">
+                <label>
+                    Password
+                    <input type="password"
+                           name="password"
+                           placeholder="Your password..."
+                           value="{{ password }}" />
+                </label>
+                <div class="error-msg">
+                    {% if let Some(error) = error %}{{ error }}{% endif %}
+                </div>
             </div>
             <button class="primary" type="submit">Sign In</button>
         </form>
