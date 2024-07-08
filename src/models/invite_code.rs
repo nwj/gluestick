@@ -1,25 +1,21 @@
 use crate::db::Database;
 use crate::models::prelude::*;
-use rusqlite::{named_params, Row};
+use rusqlite::named_params;
+use rusqlite::types::{FromSql, FromSqlResult, ToSql, ToSqlOutput, ValueRef};
 
-pub struct InviteCode {
-    pub code: String,
-}
+#[derive(Clone, Debug)]
+pub struct InviteCode(String);
 
 impl InviteCode {
-    pub fn from_sql_row(row: &Row) -> rusqlite::Result<Self> {
-        Ok(Self { code: row.get(0)? })
-    }
-
-    pub async fn find(db: &Database, code: String) -> Result<Option<Self>> {
+    pub async fn find(db: &Database, code: impl Into<String>) -> Result<Option<Self>> {
+        let code = code.into();
         let optional_code = db
             .conn
             .call(move |conn| {
-                let mut statement =
-                    conn.prepare("SELECT code FROM invite_codes WHERE code = :code;")?;
-                let mut rows = statement.query(named_params! {":code": code})?;
+                let mut stmt = conn.prepare("SELECT code FROM invite_codes WHERE code = :code;")?;
+                let mut rows = stmt.query(named_params! {":code": code})?;
                 match rows.next()? {
-                    Some(row) => Ok(Some(Self::from_sql_row(row)?)),
+                    Some(row) => Ok(Some(row.get(0)?)),
                     None => Ok(None),
                 }
             })
@@ -32,11 +28,23 @@ impl InviteCode {
         let result = db
             .conn
             .call(move |conn| {
-                let mut statement = conn.prepare("DELETE FROM invite_codes WHERE code = :code;")?;
-                let result = statement.execute(named_params! {":code": self.code})?;
+                let mut stmt = conn.prepare("DELETE FROM invite_codes WHERE code = :code;")?;
+                let result = stmt.execute(named_params! {":code": self})?;
                 Ok(result)
             })
             .await?;
         Ok(result)
+    }
+}
+
+impl ToSql for InviteCode {
+    fn to_sql(&self) -> Result<ToSqlOutput<'_>, rusqlite::Error> {
+        self.0.to_sql()
+    }
+}
+
+impl FromSql for InviteCode {
+    fn column_result(value: ValueRef) -> FromSqlResult<Self> {
+        String::column_result(value).map(|string| Ok(Self(string)))?
     }
 }

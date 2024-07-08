@@ -11,6 +11,7 @@ use tokio_rusqlite::named_params;
 
 pub const SESSION_COOKIE_NAME: &str = "session_token";
 
+#[derive(Debug)]
 pub struct Session {
     pub token: HashedSessionToken,
     pub user: User,
@@ -81,6 +82,12 @@ impl From<&SessionToken> for HashedSessionToken {
     fn from(token: &SessionToken) -> Self {
         let hash = Sha256::digest(token.expose_secret().as_bytes()).to_vec();
         Self(Secret::new(hash))
+    }
+}
+
+impl std::fmt::Debug for HashedSessionToken {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "[REDACTED HashedSessionToken]")
     }
 }
 

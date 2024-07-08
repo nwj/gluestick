@@ -12,8 +12,12 @@ async fn signup_happy_path() -> Result<()> {
     let user = TestUser::builder().random()?.build();
 
     let response = client.signup().post(invite, &user).await?;
-
     assert_eq!(response.status(), 200);
+
+    // Since settings is session gated, we can use it to check for a session
+    let response = client.settings().get().await?;
+    assert_eq!(response.status(), 200);
+
     Ok(())
 }
 
@@ -26,6 +30,10 @@ async fn signup_requires_valid_invite_code() -> Result<()> {
 
     for bad_invite in bad_invites {
         let response = client.signup().post(bad_invite.to_string(), &user).await?;
+        assert_eq!(response.status(), 200);
+
+        // Since settings is session gated, we can use it to check for a session
+        let response = client.settings().get().await?;
         assert_eq!(response.status(), 401);
     }
 
@@ -42,9 +50,20 @@ async fn invite_codes_are_consumed_on_signup() -> Result<()> {
     let response = client.signup().post(invite.clone(), &user).await?;
     assert_eq!(response.status(), 200);
 
+    // Since settings is session gated, we can use it to check for a session
+    let response = client.settings().get().await?;
+    assert_eq!(response.status(), 200);
+
+    client.logout().delete().await?;
+
     let user2 = TestUser::builder().random()?.build();
     let response = client.signup().post(invite, &user2).await?;
+    assert_eq!(response.status(), 200);
+
+    // Since settings is session gated, we can use it to check for a session
+    let response = client.settings().get().await?;
     assert_eq!(response.status(), 401);
+
     Ok(())
 }
 
@@ -61,7 +80,11 @@ async fn signup_requires_all_fields() -> Result<()> {
     for bad_user in bad_users {
         let invite = app.seed_random_invite_code().await?;
         let response = client.signup().post(invite, &bad_user).await?;
-        assert_eq!(response.status(), 400);
+        assert_eq!(response.status(), 200);
+
+        // Since settings is session gated, we can use it to check for a session
+        let response = client.settings().get().await?;
+        assert_eq!(response.status(), 401);
     }
 
     Ok(())
@@ -86,7 +109,11 @@ async fn signup_requires_alphanumeric_username_between_3_and_32_chars() -> Resul
     for bad_user in bad_users {
         let invite = app.seed_random_invite_code().await?;
         let response = client.signup().post(invite, &bad_user).await?;
-        assert_eq!(response.status(), 400);
+        assert_eq!(response.status(), 200);
+
+        // Since settings is session gated, we can use it to check for a session
+        let response = client.settings().get().await?;
+        assert_eq!(response.status(), 401);
     }
 
     Ok(())
@@ -109,7 +136,11 @@ async fn signup_requires_valid_email_address() -> Result<()> {
     for bad_user in bad_users {
         let invite = app.seed_random_invite_code().await?;
         let response = client.signup().post(invite, &bad_user).await?;
-        assert_eq!(response.status(), 400);
+        assert_eq!(response.status(), 200);
+
+        // Since settings is session gated, we can use it to check for a session
+        let response = client.settings().get().await?;
+        assert_eq!(response.status(), 401);
     }
 
     Ok(())
@@ -131,7 +162,11 @@ async fn signup_requires_password_between_8_and_256_chars() -> Result<()> {
     for bad_user in bad_users {
         let invite = app.seed_random_invite_code().await?;
         let response = client.signup().post(invite, &bad_user).await?;
-        assert_eq!(response.status(), 400);
+        assert_eq!(response.status(), 200);
+
+        // Since settings is session gated, we can use it to check for a session
+        let response = client.settings().get().await?;
+        assert_eq!(response.status(), 401);
     }
 
     Ok(())
@@ -149,10 +184,19 @@ async fn cant_signup_twice_with_the_same_username() -> Result<()> {
     let response = client.signup().post(invite, &user).await?;
     assert_eq!(response.status(), 200);
 
+    // Since settings is session gated, we can use it to check for a session
+    let response = client.settings().get().await?;
+    assert_eq!(response.status(), 200);
+
+    client.logout().delete().await?;
+
     let invite = app.seed_random_invite_code().await?;
     let response = client.signup().post(invite, &dup_user).await?;
-    // Should change this to a 409, but for now it is correctly descibing the current behavior
-    assert_eq!(response.status(), 500);
+    assert_eq!(response.status(), 200);
+
+    // Since settings is session gated, we can use it to check for a session
+    let response = client.settings().get().await?;
+    assert_eq!(response.status(), 401);
 
     Ok(())
 }
@@ -169,10 +213,19 @@ async fn cant_signup_twice_with_the_same_email() -> Result<()> {
     let response = client.signup().post(invite, &user).await?;
     assert_eq!(response.status(), 200);
 
+    // Since settings is session gated, we can use it to check for a session
+    let response = client.settings().get().await?;
+    assert_eq!(response.status(), 200);
+
+    client.logout().delete().await?;
+
     let invite = app.seed_random_invite_code().await?;
     let response = client.signup().post(invite, &dup_user).await?;
-    // Should change this to a 409, but for now it is correctly descibing the current behavior
-    assert_eq!(response.status(), 500);
+    assert_eq!(response.status(), 200);
+
+    // Since settings is session gated, we can use it to check for a session
+    let response = client.settings().get().await?;
+    assert_eq!(response.status(), 401);
 
     Ok(())
 }
@@ -183,23 +236,8 @@ async fn settings_inaccessible_when_logged_out() -> Result<()> {
     let client = TestClient::new(app.address, None)?;
 
     let response = client.settings().get().await?;
-
     assert_eq!(response.status(), 401);
-    Ok(())
-}
 
-#[tokio::test]
-async fn has_session_after_signup() -> Result<()> {
-    let app = TestApp::spawn().await?;
-    let client = TestClient::new(app.address, None)?;
-    let invite = app.seed_random_invite_code().await?;
-    let user = TestUser::builder().random()?.build();
-
-    client.signup().post(invite, &user).await?;
-
-    // Since settings is session gated, we can use it to check for a session
-    let response = client.settings().get().await?;
-    assert_eq!(response.status(), 200);
     Ok(())
 }
 
@@ -240,6 +278,9 @@ async fn login_requires_email_and_password() -> Result<()> {
 
     for bad_user in bad_users {
         let response = client.login().post(&bad_user).await?;
+        assert_eq!(response.status(), 200);
+
+        let response = client.settings().get().await?;
         assert_eq!(response.status(), 401);
     }
     Ok(())
@@ -254,8 +295,8 @@ async fn cant_login_with_your_email_but_someone_elses_password() -> Result<()> {
     user2.password = user1.password;
 
     let response = client.login().post(&user2).await?;
+    assert_eq!(response.status(), 200);
 
-    assert_eq!(response.status(), 401);
     let response = client.settings().get().await?;
     assert_eq!(response.status(), 401);
     Ok(())
@@ -270,8 +311,8 @@ async fn cant_login_with_your_password_but_someone_elses_email() -> Result<()> {
     user2.email = user1.email;
 
     let response = client.login().post(&user2).await?;
+    assert_eq!(response.status(), 200);
 
-    assert_eq!(response.status(), 401);
     let response = client.settings().get().await?;
     assert_eq!(response.status(), 401);
     Ok(())

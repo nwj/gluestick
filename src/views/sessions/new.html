@@ -4,8 +4,28 @@
     <h1>Sign-in to Gluestick</h1>
     <section class="login">
         <form action="/login" method="post">
-            <input type="email" name="email" placeholder="Your email address..." />
-            <input type="password" name="password" placeholder="Your password..." />
+            {% let error = error_report.get_first("self") %}
+            <div class="validated-input {% if let Some(error) = error %}invalid{% endif %}">
+                <label>
+                    Email
+                    <input type="text"
+                           name="email"
+                           placeholder="Your email address..."
+                           value="{{ email }}" />
+                </label>
+            </div>
+            <div class="validated-input {% if let Some(error) = error %}invalid{% endif %}">
+                <label>
+                    Password
+                    <input type="password"
+                           name="password"
+                           placeholder="Your password..."
+                           value="{{ password }}" />
+                </label>
+                <div class="error-msg">
+                    {% if let Some(error) = error %}{{ error }}{% endif %}
+                </div>
+            </div>
             <button class="primary" type="submit">Sign In</button>
         </form>
     </section>

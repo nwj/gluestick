@@ -9,9 +9,6 @@ pub enum Error {
 
     #[error(transparent)]
     TokioRusqlite(#[from] tokio_rusqlite::Error),
-
-    #[error(transparent)]
-    Garde(#[from] garde::error::Report),
 }
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;

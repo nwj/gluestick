@@ -1,0 +1,16 @@
+{% let error = error_report.get_first("email") %}
+<div class="validated-input {% if let Some(error) = error %}invalid{% endif %}"
+     hx-target="this"
+     hx-swap="outerHTML">
+    <label>
+        Email
+        <input type="text"
+               name="email"
+               placeholder="Your email address..."
+               value="{{ email }}"
+               hx-post="/signup/validate/email" />
+    </label>
+    <div class="error-msg">
+        {% if let Some(error) = error %}{{ error }}{% endif %}
+    </div>
+</div>

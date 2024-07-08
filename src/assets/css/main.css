@@ -222,6 +222,36 @@ main {
     box-shadow: 10px 10px 0 0 var(--color-black);
   }
 
+  .validated-input {
+    label {
+      font-size: var(--font-size-sm);
+      color: var(--color-grey-200);
+    }
+
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    textarea {
+      display: block;
+      margin-bottom: var(--spacing-xs);
+    }
+
+    .error-msg {
+      color: var(--color-fusion-red);
+      font-size: var(--font-size-sm);
+      height: var(--spacing-md);
+    }
+
+    &.invalid {
+      input[type="text"],
+      input[type="email"],
+      input[type="password"],
+      textarea {
+        border: 1px solid var(--color-fusion-red);
+      }
+    }
+  }
+
   button.primary {
     border: unset;
     background-color: var(--color-celery-green);
@@ -232,10 +262,12 @@ main {
 
   .login,
   .signup {
-    input {
-      display: block;
-      margin-bottom: var(--spacing-md);
-      font-size: var(--font-size-xl);
+    .validated-input {
+      margin-bottom: var(--spacing-xs);
+
+      input {
+        font-size: var(--font-size-xl);
+      }
     }
   }
 
@@ -353,29 +385,37 @@ main {
       .filename-bar {
         display: flex;
         font-size: var(--font-size-3xl);
-        margin-bottom: var(--spacing-md);
 
         span {
           margin-right: var(--spacing-xs);
         }
 
-        input {
-          min-width: 0;
+        .filename {
+          input {
+            min-width: 0;
+            font-size: var(--font-size-3xl);
+          }
         }
       }
 
-      .description-bar {
-        font-size: var(--font-size-xl);
-        margin-bottom: var(--spacing-md);
+      .description {
+        margin-bottom: var(--spacing-xs);
 
         input {
           width: 100%;
+          font-size: var(--font-size-xl);
         }
       }
 
       .body {
-        margin-bottom: var(--spacing-md);
+        margin-bottom: var(--spacing-xs);
+        display: flex;
+        flex-direction: column;
         flex: 1;
+
+        textarea {
+          flex: 1;
+        }
       }
 
       .visibility {

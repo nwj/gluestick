@@ -1,4 +1,6 @@
 use crate::models::prelude::Error as ModelsError;
+use crate::params::prelude::Error as ParamsError;
+use crate::params::prelude::Report;
 use crate::views::{InternalServerErrorTemplate, NotFoundTemplate};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
@@ -9,6 +11,9 @@ pub type Result<T, E = Error> = std::result::Result<T, E>;
 pub enum Error {
     #[error("malformed request")]
     BadRequest(Box<dyn std::error::Error>),
+
+    #[error("failed validation or verification")]
+    Validation(Box<dyn ErrorTemplate>),
 
     #[error("invalid authentication credentials")]
     Unauthorized,
@@ -27,7 +32,7 @@ pub enum Error {
 impl From<ModelsError> for Error {
     fn from(error: ModelsError) -> Self {
         match error {
-            ModelsError::Garde(_) | ModelsError::ParseInt(_) => Self::BadRequest(Box::new(error)),
+            ModelsError::ParseInt(_) => Self::BadRequest(Box::new(error)),
             _ => Self::InternalServerError(Box::new(error)),
         }
     }
@@ -40,6 +45,18 @@ impl IntoResponse for Error {
                 tracing::error!(%err, "bad request");
                 (StatusCode::BAD_REQUEST, ()).into_response()
             }
+
+            Error::Validation(template) => match template.render_template() {
+                Ok(html) => (StatusCode::OK, html).into_response(),
+                Err(err) => {
+                    tracing::error!(%err, "template rendering error");
+                    (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        InternalServerErrorTemplate { session: None },
+                    )
+                        .into_response()
+                }
+            },
 
             Error::Unauthorized => (StatusCode::UNAUTHORIZED, ()).into_response(),
 
@@ -59,4 +76,19 @@ impl IntoResponse for Error {
             }
         }
     }
+}
+
+pub fn handle_params_error(err: ParamsError, mut template: impl ErrorTemplate + 'static) -> Error {
+    match err {
+        ParamsError::Report(report) => {
+            template.with_report(report);
+            Error::Validation(Box::new(template))
+        }
+        ParamsError::Other(err) => Error::InternalServerError(err),
+    }
+}
+
+pub trait ErrorTemplate: std::fmt::Debug {
+    fn render_template(&self) -> askama::Result<String>;
+    fn with_report(&mut self, report: Report);
 }

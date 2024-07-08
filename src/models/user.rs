@@ -2,15 +2,14 @@ use crate::db::Database;
 use crate::models::api_session::HashedApiKey;
 use crate::models::prelude::*;
 use crate::models::session::HashedSessionToken;
+use crate::params::users::CreateUserParams;
 use argon2::password_hash::{PasswordHasher, SaltString};
 use argon2::{Argon2, PasswordHash, PasswordVerifier};
-use derive_more::{AsRef, Display, From, Into};
-use garde::Validate;
+use derive_more::Display;
 use rand::rngs::OsRng;
-use rusqlite::types::{FromSql, FromSqlError, FromSqlResult, ToSql, ToSqlOutput, ValueRef};
+use rusqlite::types::{FromSql, FromSqlResult, ToSql, ToSqlOutput, ValueRef};
 use rusqlite::{named_params, Row};
 use secrecy::{ExposeSecret, Secret};
-use serde::Deserialize;
 use uuid::Uuid;
 
 #[derive(Clone, Debug)]
@@ -22,16 +21,18 @@ pub struct User {
 }
 
 impl User {
-    pub fn new(
-        username: String,
-        email: String,
-        password: impl TryInto<HashedPassword, Error = argon2::password_hash::Error>,
+    fn new(
+        username: impl Into<String>,
+        email: impl Into<String>,
+        password: Secret<String>,
     ) -> Result<Self> {
+        let username = username.into();
+        let email = email.into();
         Ok(User {
             id: Uuid::now_v7(),
-            username: Username::try_from(username)?,
-            email: EmailAddress::try_from(email)?,
-            password: password.try_into()?,
+            username: Username::new(username),
+            email: EmailAddress::new(email),
+            password: HashedPassword::new(password)?,
         })
     }
 
@@ -44,9 +45,9 @@ impl User {
         })
     }
 
-    pub fn verify_password(&self, password: &Password) -> Result<()> {
+    pub fn verify_password(&self, password: &String) -> Result<()> {
         Argon2::default().verify_password(
-            password.expose_secret().as_bytes(),
+            password.as_bytes(),
             &PasswordHash::new(self.password.expose_secret())?,
         )?;
         Ok(())
@@ -79,6 +80,24 @@ impl User {
                     "SELECT id, username, email, password FROM users WHERE email = :email;",
                 )?;
                 let mut rows = statement.query(named_params! {":email": email.to_lowercase()})?;
+                match rows.next()? {
+                    Some(row) => Ok(Some(User::from_sql_row(row)?)),
+                    None => Ok(None),
+                }
+            })
+            .await?;
+
+        Ok(optional_user)
+    }
+
+    pub async fn find_by_username(db: &Database, username: String) -> Result<Option<User>> {
+        let optional_user = db
+            .conn
+            .call(move |conn| {
+                let mut statement = conn.prepare(
+                    "SELECT id, username, email, password FROM users WHERE username = :username;",
+                )?;
+                let mut rows = statement.query(named_params! {":username": username})?;
                 match rows.next()? {
                     Some(row) => Ok(Some(User::from_sql_row(row)?)),
                     None => Ok(None),
@@ -153,31 +172,25 @@ impl User {
     }
 }
 
-#[derive(AsRef, Clone, Debug, Display, Into, Validate)]
-#[garde(transparent)]
-pub struct Username(#[garde(length(chars, min = 3, max = 32), alphanumeric)] String);
-
-impl Username {
-    pub fn new(s: String) -> Result<Self> {
-        let username = Self(s);
-        username.validate()?;
-        Ok(username)
-    }
-}
-
-impl TryFrom<String> for Username {
+impl TryFrom<CreateUserParams> for User {
     type Error = Error;
 
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        Self::new(value)
+    fn try_from(params: CreateUserParams) -> std::result::Result<Self, Self::Error> {
+        let username = params.username.into_inner();
+        let email = params.email.into_inner();
+        let password = params.password.into_inner();
+
+        Self::new(username, email, password)
     }
 }
 
-impl std::str::FromStr for Username {
-    type Err = <Self as TryFrom<String>>::Error;
+#[derive(Clone, Debug, Display)]
+pub struct Username(String);
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        <Self as TryFrom<String>>::try_from(s.to_string())
+impl Username {
+    fn new(username: impl Into<String>) -> Self {
+        let username = username.into();
+        Self(username)
     }
 }
 
@@ -189,36 +202,17 @@ impl ToSql for Username {
 
 impl FromSql for Username {
     fn column_result(value: ValueRef) -> FromSqlResult<Self> {
-        String::column_result(value)
-            .map(|s| Self::try_from(s).map_err(|e| FromSqlError::Other(Box::new(e))))?
+        String::column_result(value).map(|string| Ok(Self(string)))?
     }
 }
 
-#[derive(AsRef, Clone, Debug, Display, Into, Validate)]
-#[garde(transparent)]
-pub struct EmailAddress(#[garde(email)] String);
+#[derive(Clone, Debug, Display)]
+pub struct EmailAddress(String);
 
 impl EmailAddress {
-    pub fn new(s: &str) -> Result<Self> {
-        let email = Self(s.to_lowercase());
-        email.validate()?;
-        Ok(email)
-    }
-}
-
-impl TryFrom<String> for EmailAddress {
-    type Error = Error;
-
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        Self::new(&value)
-    }
-}
-
-impl std::str::FromStr for EmailAddress {
-    type Err = <Self as TryFrom<String>>::Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        <Self as TryFrom<String>>::try_from(s.to_string())
+    fn new(email: impl Into<String>) -> Self {
+        let email = email.into();
+        Self(email.to_lowercase())
     }
 }
 
@@ -230,45 +224,20 @@ impl ToSql for EmailAddress {
 
 impl FromSql for EmailAddress {
     fn column_result(value: ValueRef) -> FromSqlResult<Self> {
-        String::column_result(value)
-            .map(|s| Self::try_from(s).map_err(|e| FromSqlError::Other(Box::new(e))))?
+        String::column_result(value).map(|string| Ok(Self(string)))?
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Validate)]
-#[garde(transparent)]
-pub struct Password(#[garde(custom(Self::validate_inner))] Secret<String>);
-
-impl Password {
-    #[allow(clippy::trivially_copy_pass_by_ref)]
-    fn validate_inner(value: &Secret<String>, _context: &()) -> garde::Result {
-        if value.expose_secret().chars().count() < 8 {
-            return Err(garde::Error::new("length is lower than 8"));
-        }
-        if value.expose_secret().chars().count() > 256 {
-            return Err(garde::Error::new("length is greater than 256"));
-        }
-        Ok(())
-    }
-}
-
-impl ExposeSecret<String> for Password {
-    fn expose_secret(&self) -> &String {
-        self.0.expose_secret()
-    }
-}
-
-#[derive(Clone, Debug, From)]
+#[derive(Clone, Debug)]
 pub struct HashedPassword(Secret<String>);
 
-impl TryFrom<&Password> for HashedPassword {
-    type Error = argon2::password_hash::Error;
-
-    fn try_from(value: &Password) -> std::result::Result<Self, Self::Error> {
+impl HashedPassword {
+    #[allow(clippy::needless_pass_by_value)]
+    pub fn new(password: Secret<String>) -> Result<Self, argon2::password_hash::Error> {
         Ok(HashedPassword(Secret::new(
             Argon2::default()
                 .hash_password(
-                    value.expose_secret().as_bytes(),
+                    password.expose_secret().as_bytes(),
                     &SaltString::generate(&mut OsRng),
                 )?
                 .to_string(),
@@ -290,6 +259,6 @@ impl ToSql for HashedPassword {
 
 impl FromSql for HashedPassword {
     fn column_result(value: ValueRef) -> FromSqlResult<Self> {
-        String::column_result(value).map(|string| Ok(Secret::new(string).into()))?
+        String::column_result(value).map(|string| Ok(Self(Secret::new(string))))?
     }
 }

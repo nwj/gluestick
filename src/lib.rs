@@ -19,6 +19,7 @@ pub mod db;
 pub mod extractors;
 pub mod helpers;
 pub mod models;
+pub mod params;
 pub mod views;
 
 pub fn router(db: Database) -> Router {
@@ -40,6 +41,18 @@ pub fn router(db: Database) -> Router {
         .route("/health", get(controllers::health::check))
         .route("/signup", get(controllers::users::new))
         .route("/signup", post(controllers::users::create))
+        .route(
+            "/signup/validate/username",
+            post(controllers::users::validate_username),
+        )
+        .route(
+            "/signup/validate/email",
+            post(controllers::users::validate_email),
+        )
+        .route(
+            "/signup/validate/password",
+            post(controllers::users::validate_password),
+        )
         .route("/settings", get(controllers::users::show))
         .route("/login", get(controllers::sessions::new))
         .route("/login", post(controllers::sessions::create))

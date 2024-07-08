@@ -1,12 +1,13 @@
 #![allow(dead_code)]
 
-use crate::common::pagination_helper::PaginationParams;
+use crate::common::pagination_helper::{PaginationParams, PaginationResponse};
 use crate::common::paste_helper::TestPaste;
 use crate::common::user_helper::TestUser;
 use crate::prelude::*;
 use core::net::SocketAddr;
 use reqwest::header::{HeaderMap, HeaderValue};
 use reqwest::{Client, Response, Url};
+use serde::Deserialize;
 
 pub struct TestClient {
     base_url: Url,
@@ -74,6 +75,12 @@ impl TestClient {
 
 pub struct ApiPastesEndpoint<'c>(&'c TestClient);
 
+#[derive(Debug, Deserialize)]
+pub struct ApiPastesIndexResponse {
+    pub pastes: Vec<TestPaste>,
+    pub pagination: PaginationResponse,
+}
+
 impl<'c> ApiPastesEndpoint<'c> {
     fn endpoint_str(&self) -> &str {
         "api/pastes"
@@ -98,6 +105,15 @@ impl<'c> ApiPastesEndpoint<'c> {
         } else {
             Ok(self.0.client.get(self.endpoint()?).send().await?)
         }
+    }
+
+    pub async fn get_and_deserialize(
+        &self,
+        params: Option<PaginationParams>,
+    ) -> Result<ApiPastesIndexResponse> {
+        let response = self.get(params).await?;
+        let response_data: ApiPastesIndexResponse = response.json().await?;
+        Ok(response_data)
     }
 
     pub async fn post(&self, paste: &TestPaste) -> Result<Response> {
