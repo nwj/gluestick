@@ -18,13 +18,7 @@ impl Database {
 }
 
 pub fn migrations() -> AsyncMigrations {
-    AsyncMigrations::new(vec![
-        M::up(include_str!("migrations/01-init.sql")),
-        M::up(include_str!("migrations/02-syntax-highlight-cache.sql")),
-        M::up(include_str!(
-            "migrations/03-change-user-email-constraint.sql"
-        )),
-    ])
+    AsyncMigrations::new(vec![M::up(include_str!("migrations/01-init.sql"))])
 }
 
 #[async_trait]
