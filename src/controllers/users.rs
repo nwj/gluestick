@@ -1,15 +1,18 @@
 use crate::controllers::prelude::*;
 use crate::db::Database;
+use crate::helpers::pagination::{CursorPaginationParams, CursorPaginationResponse};
+use crate::models::paste::Paste;
 use crate::models::session::{Session, SessionToken, SESSION_COOKIE_NAME};
 use crate::models::user::User;
 use crate::params::prelude::{Validate, Verify};
 use crate::params::users::CreateUserParams;
 use crate::views::users::{
-    EmailAddressInputPartial, NewUsersTemplate, PasswordInputPartial, ShowUsersTemplate,
-    UsernameInputPartial,
+    EmailAddressInputPartial, NewUsersTemplate, PasswordInputPartial, SettingsTemplate,
+    ShowUsersTemplate, UsernameInputPartial,
 };
 use axum::body::Body;
 use axum::extract::{Form, State};
+use axum::extract::{Path, Query};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use secrecy::ExposeSecret;
@@ -57,9 +60,49 @@ pub async fn create(
     Ok(response)
 }
 
-pub async fn show(session: Session) -> Result<impl IntoResponse> {
+pub async fn show(
+    session: Option<Session>,
+    State(db): State<Database>,
+    Path(username): Path<String>,
+    Query(pagination_params): Query<CursorPaginationParams>,
+) -> Result<impl IntoResponse> {
+    match User::find_by_username(&db, username).await? {
+        Some(user) => {
+            pagination_params
+                .validate()
+                .map_err(|e| Error::BadRequest(Box::new(e)))?;
+
+            let mut pastes = Paste::cursor_paginated_for_user_id(
+                &db,
+                user.id,
+                pagination_params.limit_with_lookahead(),
+                pagination_params.direction(),
+                pagination_params.cursor(),
+            )
+            .await?;
+            let pagination_response =
+                CursorPaginationResponse::new_with_lookahead(&pagination_params, &mut pastes);
+            let mut pairs = Vec::new();
+            for paste in pastes {
+                let optional_html = paste
+                    .syntax_highlight(&db) // This is an n+1 query, but it's fine because our cache is SQLite.
+                    .await?;
+                pairs.push((paste, optional_html));
+            }
+            Ok(ShowUsersTemplate {
+                session,
+                user,
+                paste_html_pairs: pairs,
+                pagination: pagination_response,
+            })
+        }
+        None => Err(Error::NotFound),
+    }
+}
+
+pub async fn settings(session: Session) -> Result<impl IntoResponse> {
     let session = Some(session);
-    Ok(ShowUsersTemplate { session })
+    Ok(SettingsTemplate { session })
 }
 
 pub async fn validate_username(

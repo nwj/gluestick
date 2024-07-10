@@ -5,7 +5,9 @@
         <form hx-post="/pastes" hx-target="body">
             {% let error = error_report.get_first("filename") %}
             <div class="filename-bar">
-                {% if let Some(session) = session %}<span>{{ session.user.username }}</span><span>/</span>{% endif %}
+                {% if let Some(session) = session %}
+                    <a href="{{ session.user.username }}">{{ session.user.username }}</a><span>/</span>
+                {% endif %}
                 <div class="validated-input filename {% if let Some(error) = error %}invalid{% endif %}">
                     <input type="text"
                            name="filename"

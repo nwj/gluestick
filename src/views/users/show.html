@@ -1,9 +1,42 @@
 {% extends "base.html" %}
-{% block title %}Settings{% endblock %}
+{% block title %}{{ user.username }}'s Pastes{% endblock %}
 {% block content %}
-    <section class="settings">
-        <h1>Settings</h1>
-        <button hx-post="/api_sessions" hx-target="#new-api-key">Generate an api key</button>
-        <div id="new-api-key"></div>
+    {% if paste_html_pairs.len() > 0 %}
+        <h1>{{ user.username }}'s Pastes</h1>
+        <section class="pastes-index">
+            <ul>
+                {% for (paste, syntax_highlighted_html) in paste_html_pairs %}
+                    <li class="paste">
+                        <div class="filename-bar">
+                            <a href="/{{ user.username }}">{{ user.username }}</a> / <a href="pastes/{{ paste.id }}">{{ paste.filename }}</a>
+                        </div>
+                        {% if !paste.description.is_empty() %}<div class="description-bar">{{ paste.description }}</div>{% endif %}
+                        <div class="metadata-bar">
+                            <span title="{{ paste.updated_at }}">Updated {{ paste.updated_at|format_relative_time }}</span>,
+                            {{ paste.body|format_byte_size }}
+                        </div>
+                        {% if let Some(syntax_highlighted_html) = syntax_highlighted_html %}
+                            {{ syntax_highlighted_html|linewise_truncate_html_10|safe }}
+                        {% else %}
+                            <pre>{{ paste.body|linewise_truncate(10) }}</pre>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>No pastes</p>
+        {% endif %}
+        <div class="pagination">
+            {% if let Some(prev_page) = pagination.prev_page %}
+                <a href="/{{ user.username }}?prev_page={{ prev_page }}">Newer</a>
+            {% else %}
+                <span>Newer</span>
+            {% endif %}
+            {% if let Some(next_page) = pagination.next_page %}
+                <a href="/{{ user.username }}?next_page={{ next_page }}">Older</a>
+            {% else %}
+                <span>Older</span>
+            {% endif %}
+        </div>
     </section>
 {% endblock %}

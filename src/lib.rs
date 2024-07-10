@@ -53,7 +53,7 @@ pub fn router(db: Database) -> Router {
             "/signup/validate/password",
             post(controllers::users::validate_password),
         )
-        .route("/settings", get(controllers::users::show))
+        .route("/settings", get(controllers::users::settings))
         .route("/login", get(controllers::sessions::new))
         .route("/login", post(controllers::sessions::create))
         .route("/logout", delete(controllers::sessions::delete))
@@ -67,6 +67,7 @@ pub fn router(db: Database) -> Router {
         .route("/pastes/:id", put(controllers::pastes::update))
         .route("/pastes/:id/edit", get(controllers::pastes::edit))
         .route("/pastes/:id", delete(controllers::pastes::destroy))
+        .route("/:username", get(controllers::users::show))
         .fallback(controllers::not_found)
         .nest("/api", json_api_router)
         .nest("/assets", assets_router)
