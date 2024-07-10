@@ -95,15 +95,18 @@ async fn signup_requires_all_fields() -> Result<()> {
 }
 
 #[tokio::test]
-async fn signup_requires_alphanumeric_username_between_3_and_32_chars() -> Result<()> {
+async fn signup_requires_valid_username() -> Result<()> {
     let app = TestApp::spawn().await?;
     let client = TestClient::new(app.address, None)?;
     let bad_users = &[
-        TestUser::builder()
-            .username(rand_helper::random_alphanumeric_string(2..=2)?)
-            .build(),
+        TestUser::builder().username("").build(),
         TestUser::builder()
             .username(rand_helper::random_alphanumeric_string(33..=33)?)
+            .build(),
+        TestUser::builder().username("-starts-with-hyphen").build(),
+        TestUser::builder().username("ends-with-hyphen-").build(),
+        TestUser::builder()
+            .username("two--hyphens-in-a-row")
             .build(),
         TestUser::builder()
             .username(rand_helper::random_string(3..=32)?)

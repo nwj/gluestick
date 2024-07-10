@@ -60,7 +60,7 @@ impl TestUserBuilder {
     }
 
     pub fn random_username(self) -> Result<Self> {
-        Ok(self.username(rand_helper::random_alphanumeric_string(3..=25)?))
+        Ok(self.username(rand_helper::random_alphanumeric_string(1..=32)?.to_lowercase()))
     }
 
     pub fn random_email(self) -> Result<Self> {

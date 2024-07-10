@@ -1,7 +1,7 @@
 CREATE TABLE users (
   -- id is a UUIDv7
   id BLOB PRIMARY KEY CHECK(length(id) = 16),
-  username TEXT NOT NULL UNIQUE CHECK(length(username) BETWEEN 3 AND 32),
+  username TEXT NOT NULL UNIQUE CHECK(username = lower(username) AND length(username) BETWEEN 1 AND 32),
   email TEXT NOT NULL UNIQUE CHECK(email LIKE '%_@_%' AND email = lower(email)),
   -- password is a password hash, salted and hashed via Argon2id
   password TEXT NOT NULL CHECK(length(password) > 0)
