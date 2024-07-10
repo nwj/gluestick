@@ -1,8 +1,12 @@
 use crate::common::app::TestApp;
 use crate::common::client::TestClient;
+use crate::common::pagination_helper::PaginationParams;
+use crate::common::paste_helper::TestPaste;
 use crate::common::rand_helper;
 use crate::common::user_helper::TestUser;
 use crate::prelude::*;
+use time::OffsetDateTime;
+use uuid::{NoContext, Timestamp, Uuid};
 
 #[tokio::test]
 async fn signup_happy_path() -> Result<()> {
@@ -91,15 +95,18 @@ async fn signup_requires_all_fields() -> Result<()> {
 }
 
 #[tokio::test]
-async fn signup_requires_alphanumeric_username_between_3_and_32_chars() -> Result<()> {
+async fn signup_requires_valid_username() -> Result<()> {
     let app = TestApp::spawn().await?;
     let client = TestClient::new(app.address, None)?;
     let bad_users = &[
-        TestUser::builder()
-            .username(rand_helper::random_alphanumeric_string(2..=2)?)
-            .build(),
+        TestUser::builder().username("").build(),
         TestUser::builder()
             .username(rand_helper::random_alphanumeric_string(33..=33)?)
+            .build(),
+        TestUser::builder().username("-starts-with-hyphen").build(),
+        TestUser::builder().username("ends-with-hyphen-").build(),
+        TestUser::builder()
+            .username("two--hyphens-in-a-row")
             .build(),
         TestUser::builder()
             .username(rand_helper::random_string(3..=32)?)
@@ -315,5 +322,245 @@ async fn cant_login_with_your_password_but_someone_elses_email() -> Result<()> {
 
     let response = client.settings().get().await?;
     assert_eq!(response.status(), 401);
+    Ok(())
+}
+
+#[tokio::test]
+async fn show_happpy_path() -> Result<()> {
+    let app = TestApp::spawn().await?;
+    let user = TestUser::builder().random()?.build().seed(&app).await?;
+    let client = TestClient::new(app.address, None)?;
+    let paste1 = TestPaste::builder()
+        .random()?
+        .build()
+        .seed(&app, &user)
+        .await?;
+    let paste2 = TestPaste::builder()
+        .random()?
+        .build()
+        .seed(&app, &user)
+        .await?;
+
+    let response = client.get_by_username(&user, None).await?;
+    assert_eq!(response.status(), 200);
+    let html = response.text().await.unwrap();
+    assert!(html.contains(&paste1.filename));
+    assert!(html.contains(&paste2.filename));
+    Ok(())
+}
+
+#[tokio::test]
+async fn show_does_not_include_secret_pastes() -> Result<()> {
+    let app = TestApp::spawn().await?;
+    let user = TestUser::builder().random()?.build().seed(&app).await?;
+    let client = TestClient::new(app.address, None)?;
+    let paste1 = TestPaste::builder()
+        .random()?
+        .build()
+        .seed(&app, &user)
+        .await?;
+    let paste2 = TestPaste::builder()
+        .random()?
+        .visibility("secret")
+        .build()
+        .seed(&app, &user)
+        .await?;
+
+    let response = client.get_by_username(&user, None).await?;
+    assert_eq!(response.status(), 200);
+    let html = response.text().await.unwrap();
+    assert!(html.contains(&paste1.filename));
+    assert!(!html.contains(&paste2.filename));
+    Ok(())
+}
+
+#[tokio::test]
+async fn show_does_not_include_other_users_pastes() -> Result<()> {
+    let app = TestApp::spawn().await?;
+    let user = TestUser::builder().random()?.build().seed(&app).await?;
+    let user2 = TestUser::builder().random()?.build().seed(&app).await?;
+    let client = TestClient::new(app.address, None)?;
+    let paste1 = TestPaste::builder()
+        .random()?
+        .build()
+        .seed(&app, &user)
+        .await?;
+    let paste2 = TestPaste::builder()
+        .random()?
+        .build()
+        .seed(&app, &user2)
+        .await?;
+
+    let response = client.get_by_username(&user, None).await?;
+    assert_eq!(response.status(), 200);
+    let html = response.text().await.unwrap();
+    assert!(html.contains(&paste1.filename));
+    assert!(!html.contains(&paste2.filename));
+    Ok(())
+}
+
+#[tokio::test]
+async fn show_has_per_page_default() -> Result<()> {
+    let app = TestApp::spawn().await?;
+    let user = TestUser::builder().random()?.build().seed(&app).await?;
+    let client = TestClient::new(app.address, None)?;
+    for _ in 0..11 {
+        TestPaste::builder()
+            .random()?
+            .build()
+            .seed(&app, &user)
+            .await?;
+    }
+
+    let response = client.get_by_username(&user, None).await?;
+    assert_eq!(response.status(), 200);
+    let html = response.text().await?;
+    assert_eq!(html.matches("<li class=\"paste\">").count(), 10);
+    Ok(())
+}
+
+#[tokio::test]
+async fn show_uses_per_page_when_provided() -> Result<()> {
+    let app = TestApp::spawn().await?;
+    let user = TestUser::builder().random()?.build().seed(&app).await?;
+    let client = TestClient::new(app.address, None)?;
+    let per_page = 3;
+    for _ in 0..per_page + 1 {
+        TestPaste::builder()
+            .random()?
+            .build()
+            .seed(&app, &user)
+            .await?;
+    }
+
+    let params = PaginationParams::builder().per_page(per_page).build();
+    let response = client.get_by_username(&user, Some(params)).await?;
+    assert_eq!(response.status(), 200);
+    let html = response.text().await?;
+    assert_eq!(html.matches("<li class=\"paste\">").count(), per_page);
+    Ok(())
+}
+
+#[tokio::test]
+async fn show_400s_if_per_page_more_than_100() -> Result<()> {
+    let app = TestApp::spawn().await?;
+    let user = TestUser::builder().random()?.build().seed(&app).await?;
+    let client = TestClient::new(app.address, None)?;
+    let per_page = 101;
+    for _ in 0..11 {
+        TestPaste::builder()
+            .random()?
+            .build()
+            .seed(&app, &user)
+            .await?;
+    }
+
+    let params = PaginationParams::builder().per_page(per_page).build();
+    let response = client.get_by_username(&user, Some(params)).await?;
+    assert_eq!(response.status(), 400);
+    Ok(())
+}
+
+#[tokio::test]
+async fn show_paginates_correctly() -> Result<()> {
+    fn extract_next_cursor(html: &str) -> Result<&str> {
+        html.split("next_page=")
+            .nth(1)
+            .and_then(|s| s.split('"').next())
+            .ok_or_else(|| "Failed to find next cursor".into())
+    }
+
+    fn extract_prev_cursor(html: &str) -> Result<&str> {
+        html.split("prev_page=")
+            .nth(1)
+            .and_then(|s| s.split('"').next())
+            .ok_or_else(|| "Failed to find prev cursor".into())
+    }
+
+    let app = TestApp::spawn().await?;
+    let user = TestUser::builder().random()?.build().seed(&app).await?;
+    let client = TestClient::new(app.address, None)?;
+    let now = (OffsetDateTime::now_utc().unix_timestamp() * 1000) as u64;
+
+    let mut pastes = Vec::new();
+    for i in 0..8 {
+        let paste = TestPaste::builder()
+            .random()?
+            // This is necessary because we assert below on the order of items within and across pages.
+            // That order is based on uuid v7 ordering, which has millisecond precision. Our tests are
+            // so fast at creating these pastes that without this sleep, we can get multiple pastes
+            // with the same millisecond of creation, which then fails the ordering assertions.
+            .id(Uuid::new_v7(Timestamp::from_unix(NoContext, now + i, 0)))
+            .build()
+            .seed(&app, &user)
+            .await?;
+        pastes.push(paste);
+    }
+
+    // First page
+    let params = PaginationParams::builder().per_page(3).build();
+    let response = client.get_by_username(&user, Some(params)).await?;
+    let html = response.text().await?;
+    for paste in &pastes[5..8] {
+        assert!(html.contains(&paste.filename));
+    }
+    assert!(html.contains("<span>Newer</span>"));
+    assert!(html.contains("Older</a>"));
+
+    // Second page (forward)
+    let next_cursor = extract_next_cursor(&html)?;
+    let params = PaginationParams::builder()
+        .per_page(3)
+        .next_page(next_cursor)
+        .build();
+    let response = client.get_by_username(&user, Some(params)).await?;
+    let html = response.text().await?;
+    for paste in &pastes[2..5] {
+        assert!(html.contains(&paste.filename));
+    }
+    assert!(html.contains("Newer</a>"));
+    assert!(html.contains("Older</a>"));
+
+    // Third page (forward)
+    let next_cursor = extract_next_cursor(&html)?;
+    let params = PaginationParams::builder()
+        .per_page(3)
+        .next_page(next_cursor)
+        .build();
+    let response = client.get_by_username(&user, Some(params)).await?;
+    let html = response.text().await?;
+    for paste in &pastes[0..2] {
+        assert!(html.contains(&paste.filename));
+    }
+    assert!(html.contains("Newer</a>"));
+    assert!(html.contains("<span>Older</span>"));
+
+    // Second page (backward)
+    let prev_cursor = extract_prev_cursor(&html)?;
+    let params = PaginationParams::builder()
+        .per_page(3)
+        .prev_page(prev_cursor)
+        .build();
+    let response = client.get_by_username(&user, Some(params)).await?;
+    let html = response.text().await?;
+    for paste in &pastes[2..5] {
+        assert!(html.contains(&paste.filename));
+    }
+    assert!(html.contains("Newer</a>"));
+    assert!(html.contains("Older</a>"));
+
+    // First page (backward)
+    let prev_cursor = extract_prev_cursor(&html)?;
+    let params = PaginationParams::builder()
+        .per_page(3)
+        .prev_page(prev_cursor)
+        .build();
+    let response = client.get_by_username(&user, Some(params)).await?;
+    let html = response.text().await?;
+    for paste in &pastes[5..8] {
+        assert!(html.contains(&paste.filename));
+    }
+    assert!(html.contains("<span>Newer</span>"));
+    assert!(html.contains("Older</a>"));
     Ok(())
 }

@@ -67,6 +67,19 @@ impl TestClient {
         Ok(self.client.get(self.base_url.clone()).send().await?)
     }
 
+    pub async fn get_by_username(
+        &self,
+        user: &TestUser,
+        params: Option<PaginationParams>,
+    ) -> Result<Response> {
+        let username = user.username.clone();
+        let mut url = self.base_url.join(&username)?;
+        if let Some(params) = params {
+            url = Url::parse_with_params(&url.to_string(), params.to_query_params())?;
+        }
+        Ok(self.client.get(url).send().await?)
+    }
+
     pub async fn get_arbitrary(&self, endpoint: &str) -> Result<Response> {
         let url = self.base_url.join(endpoint)?;
         Ok(self.client.get(url).send().await?)

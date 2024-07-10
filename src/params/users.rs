@@ -31,17 +31,51 @@ impl Validate for UsernameParam {
     fn validate(&self) -> Result<()> {
         let mut report = Report::new();
 
-        if self.0.chars().count() < 3 {
-            report.add("username", "Username must be at least 3 characters long");
-        }
-        if self.0.chars().count() > 32 {
-            report.add("username", "Username may not be longer than 32 characters");
-        }
-        if !self.0.chars().all(char::is_alphanumeric) {
+        if self.0.chars().count() < 1 {
             report.add(
                 "username",
-                "Username may only include alphanumeric characters",
+                "Username is too short (minimum is 1 character).",
             );
+        }
+        if self.0.chars().count() > 32 {
+            report.add(
+                "username",
+                "Username is too long (maximum is 32 characters)",
+            );
+        }
+        if !self.0.chars().all(|c| c.is_alphanumeric() || c == '-') {
+            report.add(
+                "username",
+                "Username may only contain alphanumeric characters or single hyphens, and cannot begin or end with a hyphen."
+            );
+        }
+        if self.0.starts_with('-') || self.0.ends_with('-') {
+            report.add(
+                "username",
+                "Username may only contain alphanumeric characters or single hyphens, and cannot begin or end with a hyphen."
+            );
+        }
+        if self.0.contains("--") {
+            report.add(
+                "username",
+                "Username may only contain alphanumeric characters or single hyphens, and cannot begin or end with a hyphen."
+            );
+        }
+        if [
+            "api",
+            "api_sessions",
+            "assets",
+            "health",
+            "login",
+            "logout",
+            "pastes",
+            "settings",
+            "signup",
+        ]
+        .into_iter()
+        .any(|reserved_name| reserved_name == self.0)
+        {
+            report.add("username", "Username is unavailable");
         }
 
         if report.is_empty() {
@@ -161,10 +195,16 @@ impl Validate for PasswordParam {
         let mut report = Report::new();
 
         if self.expose_secret().chars().count() < 8 {
-            report.add("password", "Password must be at least 8 characters long");
+            report.add(
+                "password",
+                "Password is too short (minimum is 8 characters)",
+            );
         }
         if self.expose_secret().chars().count() > 256 {
-            report.add("password", "Password may not be longer than 256 characters");
+            report.add(
+                "password",
+                "Password is too long (maximum is 256 characters)",
+            );
         }
 
         if report.is_empty() {

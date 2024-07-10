@@ -97,7 +97,8 @@ impl User {
                 let mut statement = conn.prepare(
                     "SELECT id, username, email, password FROM users WHERE username = :username;",
                 )?;
-                let mut rows = statement.query(named_params! {":username": username})?;
+                let mut rows =
+                    statement.query(named_params! {":username": username.to_lowercase()})?;
                 match rows.next()? {
                     Some(row) => Ok(Some(User::from_sql_row(row)?)),
                     None => Ok(None),
@@ -190,7 +191,7 @@ pub struct Username(String);
 impl Username {
     fn new(username: impl Into<String>) -> Self {
         let username = username.into();
-        Self(username)
+        Self(username.to_lowercase())
     }
 }
 

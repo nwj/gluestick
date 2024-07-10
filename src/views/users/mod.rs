@@ -1,7 +1,11 @@
 use crate::controllers::prelude::ErrorTemplate;
+use crate::helpers::pagination::CursorPaginationResponse;
+use crate::models::paste::Paste;
 use crate::models::session::Session;
+use crate::models::user::User;
 use crate::params::prelude::Report;
 use crate::params::users::CreateUserParams;
+use crate::views::filters;
 use askama_axum::Template;
 use secrecy::ExposeSecret;
 
@@ -42,6 +46,15 @@ impl ErrorTemplate for NewUsersTemplate {
 #[derive(Template)]
 #[template(path = "users/show.html")]
 pub struct ShowUsersTemplate {
+    pub session: Option<Session>,
+    pub user: User,
+    pub paste_html_pairs: Vec<(Paste, Option<String>)>,
+    pub pagination: CursorPaginationResponse,
+}
+
+#[derive(Template)]
+#[template(path = "users/settings.html")]
+pub struct SettingsTemplate {
     pub session: Option<Session>,
 }
 
