@@ -5,9 +5,6 @@ pub enum Error {
     Argon2(#[from] argon2::password_hash::Error),
 
     #[error(transparent)]
-    ParseInt(#[from] std::num::ParseIntError),
-
-    #[error(transparent)]
     TokioRusqlite(#[from] tokio_rusqlite::Error),
 }
 

@@ -1,6 +1,7 @@
 use crate::db::Database;
 use crate::models::user::User;
 use crate::params::prelude::*;
+use derive_more::{From, Into};
 use secrecy::{ExposeSecret, Secret};
 use serde::Deserialize;
 
@@ -10,27 +11,9 @@ use serde::Deserialize;
 // authentication.
 const AUTH_FAILURE_MESSAGE: &str = "Incorrect email or password";
 
-#[derive(Clone, Deserialize)]
+#[derive(Clone, Deserialize, From, Into)]
 #[serde(transparent)]
 pub struct EmailAddressParam(String);
-
-impl EmailAddressParam {
-    pub fn into_inner(self) -> String {
-        self.0
-    }
-}
-
-impl From<String> for EmailAddressParam {
-    fn from(value: String) -> Self {
-        Self(value)
-    }
-}
-
-impl From<EmailAddressParam> for String {
-    fn from(value: EmailAddressParam) -> Self {
-        value.0
-    }
-}
 
 impl Validate for EmailAddressParam {
     fn validate(&self) -> Result<()> {
@@ -54,15 +37,9 @@ impl Validate for EmailAddressParam {
     }
 }
 
-#[derive(Clone, Deserialize)]
+#[derive(Clone, Deserialize, From, Into)]
 #[serde(transparent)]
 pub struct PasswordParam(Secret<String>);
-
-impl PasswordParam {
-    pub fn into_inner(self) -> Secret<String> {
-        self.0
-    }
-}
 
 impl Validate for PasswordParam {
     fn validate(&self) -> Result<()> {
@@ -125,7 +102,7 @@ impl Verify for CreateSessionParams {
         let mut report = Report::new();
         report.add("self", AUTH_FAILURE_MESSAGE);
 
-        let user = User::find_by_email(db, self.email.into_inner())
+        let user = User::find_by_email(db, self.email.into())
             .await
             .map_err(|e| Error::Other(Box::new(e)))?;
 

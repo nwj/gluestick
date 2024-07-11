@@ -1,27 +1,10 @@
 use crate::params::prelude::*;
+use derive_more::{From, Into};
 use serde::Deserialize;
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, From, Into)]
 #[serde(transparent)]
 pub struct FilenameParam(String);
-
-impl FilenameParam {
-    pub fn into_inner(self) -> String {
-        self.0
-    }
-}
-
-impl From<String> for FilenameParam {
-    fn from(value: String) -> Self {
-        FilenameParam(value)
-    }
-}
-
-impl From<FilenameParam> for String {
-    fn from(value: FilenameParam) -> Self {
-        value.0
-    }
-}
 
 impl Validate for FilenameParam {
     fn validate(&self) -> Result<()> {
@@ -54,27 +37,9 @@ impl Validate for FilenameParam {
     }
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, From, Into)]
 #[serde(transparent)]
 pub struct DescriptionParam(String);
-
-impl DescriptionParam {
-    pub fn into_inner(self) -> String {
-        self.0
-    }
-}
-
-impl From<String> for DescriptionParam {
-    fn from(value: String) -> Self {
-        DescriptionParam(value)
-    }
-}
-
-impl From<DescriptionParam> for String {
-    fn from(value: DescriptionParam) -> Self {
-        value.0
-    }
-}
 
 impl Validate for DescriptionParam {
     fn validate(&self) -> Result<()> {
@@ -95,25 +60,13 @@ impl Validate for DescriptionParam {
     }
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, From, Into)]
 #[serde(transparent)]
 pub struct BodyParam(String);
 
 impl BodyParam {
     pub fn into_inner(self) -> String {
         self.0
-    }
-}
-
-impl From<String> for BodyParam {
-    fn from(value: String) -> Self {
-        BodyParam(value)
-    }
-}
-
-impl From<BodyParam> for String {
-    fn from(value: BodyParam) -> Self {
-        value.0
     }
 }
 
