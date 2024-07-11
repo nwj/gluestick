@@ -2,30 +2,13 @@ use crate::db::Database;
 use crate::models::invite_code::InviteCode;
 use crate::models::user::User;
 use crate::params::prelude::*;
+use derive_more::{From, Into};
 use secrecy::{ExposeSecret, Secret};
 use serde::Deserialize;
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, From, Into)]
 #[serde(transparent)]
 pub struct UsernameParam(String);
-
-impl UsernameParam {
-    pub fn into_inner(self) -> String {
-        self.0
-    }
-}
-
-impl From<String> for UsernameParam {
-    fn from(value: String) -> Self {
-        UsernameParam(value)
-    }
-}
-
-impl From<UsernameParam> for String {
-    fn from(value: UsernameParam) -> Self {
-        value.0
-    }
-}
 
 impl Validate for UsernameParam {
     fn validate(&self) -> Result<()> {
@@ -90,7 +73,7 @@ impl Verify for UsernameParam {
     type Output = ();
 
     async fn verify(self, db: &Database) -> Result<Self::Output> {
-        match User::find_by_username(db, self.into_inner()).await {
+        match User::find_by_username(db, self.into()).await {
             Ok(None) => Ok(()),
             Ok(Some(_)) => {
                 let mut report = Report::new();
@@ -102,27 +85,9 @@ impl Verify for UsernameParam {
     }
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, From, Into)]
 #[serde(transparent)]
 pub struct EmailAddressParam(String);
-
-impl EmailAddressParam {
-    pub fn into_inner(self) -> String {
-        self.0
-    }
-}
-
-impl From<String> for EmailAddressParam {
-    fn from(value: String) -> Self {
-        EmailAddressParam(value)
-    }
-}
-
-impl From<EmailAddressParam> for String {
-    fn from(value: EmailAddressParam) -> Self {
-        value.0
-    }
-}
 
 impl Validate for EmailAddressParam {
     fn validate(&self) -> Result<()> {
@@ -156,7 +121,7 @@ impl Verify for EmailAddressParam {
     type Output = ();
 
     async fn verify(self, db: &Database) -> Result<Self::Output> {
-        match User::find_by_email(db, self.into_inner()).await {
+        match User::find_by_email(db, self.into()).await {
             Ok(None) => Ok(()),
             Ok(Some(_)) => {
                 let mut report = Report::new();
@@ -168,27 +133,9 @@ impl Verify for EmailAddressParam {
     }
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, From, Into)]
 #[serde(transparent)]
 pub struct PasswordParam(Secret<String>);
-
-impl PasswordParam {
-    pub fn into_inner(self) -> Secret<String> {
-        self.0
-    }
-}
-
-impl From<Secret<String>> for PasswordParam {
-    fn from(value: Secret<String>) -> Self {
-        PasswordParam(value)
-    }
-}
-
-impl From<PasswordParam> for Secret<String> {
-    fn from(value: PasswordParam) -> Self {
-        value.0
-    }
-}
 
 impl Validate for PasswordParam {
     fn validate(&self) -> Result<()> {
@@ -221,31 +168,13 @@ impl ExposeSecret<String> for PasswordParam {
     }
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, From, Into)]
 #[serde(transparent)]
 pub struct InviteCodeParam(pub String);
-
-impl InviteCodeParam {
-    pub fn into_inner(self) -> String {
-        self.0
-    }
-}
 
 impl Validate for InviteCodeParam {
     fn validate(&self) -> Result<()> {
         Ok(())
-    }
-}
-
-impl From<String> for InviteCodeParam {
-    fn from(value: String) -> Self {
-        InviteCodeParam(value)
-    }
-}
-
-impl From<InviteCodeParam> for String {
-    fn from(value: InviteCodeParam) -> Self {
-        value.0
     }
 }
 
@@ -255,7 +184,7 @@ impl Verify for InviteCodeParam {
     async fn verify(self, db: &Database) -> Result<Self::Output> {
         let mut report = Report::new();
 
-        if let Some(invite_code) = InviteCode::find(db, self.into_inner())
+        if let Some(invite_code) = InviteCode::find(db, self)
             .await
             .map_err(|e| Error::Other(Box::new(e)))?
         {

@@ -24,10 +24,8 @@ impl User {
     fn new(
         username: impl Into<String>,
         email: impl Into<String>,
-        password: Secret<String>,
+        password: impl Into<Secret<String>>,
     ) -> Result<Self> {
-        let username = username.into();
-        let email = email.into();
         Ok(User {
             id: Uuid::now_v7(),
             username: Username::new(username),
@@ -177,11 +175,7 @@ impl TryFrom<CreateUserParams> for User {
     type Error = Error;
 
     fn try_from(params: CreateUserParams) -> std::result::Result<Self, Self::Error> {
-        let username = params.username.into_inner();
-        let email = params.email.into_inner();
-        let password = params.password.into_inner();
-
-        Self::new(username, email, password)
+        Self::new(params.username, params.email, params.password)
     }
 }
 
@@ -190,8 +184,7 @@ pub struct Username(String);
 
 impl Username {
     fn new(username: impl Into<String>) -> Self {
-        let username = username.into();
-        Self(username.to_lowercase())
+        Self(username.into().to_lowercase())
     }
 }
 
@@ -212,8 +205,7 @@ pub struct EmailAddress(String);
 
 impl EmailAddress {
     fn new(email: impl Into<String>) -> Self {
-        let email = email.into();
-        Self(email.to_lowercase())
+        Self(email.into().to_lowercase())
     }
 }
 
@@ -234,11 +226,11 @@ pub struct HashedPassword(Secret<String>);
 
 impl HashedPassword {
     #[allow(clippy::needless_pass_by_value)]
-    pub fn new(password: Secret<String>) -> Result<Self, argon2::password_hash::Error> {
+    pub fn new(password: impl Into<Secret<String>>) -> Result<Self, argon2::password_hash::Error> {
         Ok(HashedPassword(Secret::new(
             Argon2::default()
                 .hash_password(
-                    password.expose_secret().as_bytes(),
+                    password.into().expose_secret().as_bytes(),
                     &SaltString::generate(&mut OsRng),
                 )?
                 .to_string(),

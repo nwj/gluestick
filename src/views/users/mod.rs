@@ -26,7 +26,7 @@ impl From<CreateUserParams> for NewUsersTemplate {
             session: None,
             username: params.username.into(),
             email: params.email.into(),
-            password: params.password.into_inner().expose_secret().to_string(),
+            password: params.password.expose_secret().to_string(),
             invite_code: params.invite_code.into(),
             error_report: Report::default(),
         }
