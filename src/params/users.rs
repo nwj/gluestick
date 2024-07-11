@@ -6,6 +6,8 @@ use derive_more::{From, Into};
 use secrecy::{ExposeSecret, Secret};
 use serde::Deserialize;
 
+const USERNAME_CHAR_VALIDATION_FAILURE_MESSAGE: &str = "Username may only contain alphanumeric characters or single hyphens, and cannot begin or end with a hyphen";
+
 #[derive(Clone, Debug, Deserialize, From, Into)]
 #[serde(transparent)]
 pub struct UsernameParam(String);
@@ -15,10 +17,7 @@ impl Validate for UsernameParam {
         let mut report = Report::new();
 
         if self.0.chars().count() < 1 {
-            report.add(
-                "username",
-                "Username is too short (minimum is 1 character).",
-            );
+            report.add("username", "Username is too short (minimum is 1 character)");
         }
         if self.0.chars().count() > 32 {
             report.add(
@@ -27,22 +26,13 @@ impl Validate for UsernameParam {
             );
         }
         if !self.0.chars().all(|c| c.is_alphanumeric() || c == '-') {
-            report.add(
-                "username",
-                "Username may only contain alphanumeric characters or single hyphens, and cannot begin or end with a hyphen."
-            );
+            report.add("username", USERNAME_CHAR_VALIDATION_FAILURE_MESSAGE);
         }
         if self.0.starts_with('-') || self.0.ends_with('-') {
-            report.add(
-                "username",
-                "Username may only contain alphanumeric characters or single hyphens, and cannot begin or end with a hyphen."
-            );
+            report.add("username", USERNAME_CHAR_VALIDATION_FAILURE_MESSAGE);
         }
         if self.0.contains("--") {
-            report.add(
-                "username",
-                "Username may only contain alphanumeric characters or single hyphens, and cannot begin or end with a hyphen."
-            );
+            report.add("username", USERNAME_CHAR_VALIDATION_FAILURE_MESSAGE);
         }
         if [
             "api",
