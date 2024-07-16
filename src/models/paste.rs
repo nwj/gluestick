@@ -272,36 +272,30 @@ impl Paste {
         }
     }
 
-    pub async fn find_with_username(db: &Database, id: Uuid) -> Result<Option<(Paste, Username)>> {
-        let optional_pair = db
+    pub async fn find_scoped_by_user_id(
+        db: &Database,
+        id: Uuid,
+        user_id: Uuid,
+    ) -> Result<Option<Paste>> {
+        let optional_paste = db
             .conn
             .call(move |conn| {
                 let mut stmt = conn.prepare(
-                    r"SELECT
-                          pastes.id,
-                          pastes.user_id,
-                          pastes.filename,
-                          pastes.description,
-                          pastes.body,
-                          pastes.visibility,
-                          pastes.created_at,
-                          pastes.updated_at,
-                          users.username
-                        FROM pastes JOIN users ON pastes.user_id = users.id
-                        WHERE pastes.id = :id;",
+                    r"SELECT id, user_id, filename, description, body, visibility, created_at, updated_at
+                    FROM pastes
+                    WHERE id = :id AND user_id = :user_id;",
                 )?;
-                let mut rows = stmt.query(named_params! {":id": id})?;
+                let mut rows = stmt.query(named_params! {":id": id, ":user_id": user_id})?;
                 match rows.next()? {
-                    Some(row) => Ok(Some((
-                        Paste::from_sql_row(row)?,
-                        row.get::<usize, Username>(8)?,
-                    ))),
+                    Some(row) => Ok(Some(
+                        Paste::from_sql_row(row)?
+                    )),
                     None => Ok(None),
                 }
             })
             .await?;
 
-        Ok(optional_pair)
+        Ok(optional_paste)
     }
 
     pub async fn update(

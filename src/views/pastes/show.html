@@ -2,7 +2,7 @@
 {% block title %}{{ username }} / {{ paste.filename }}{% endblock %}
 {% block content %}
     <h1>
-        <a href="/{{ username }}">{{ username }}</a> / <a href="/pastes/{{ paste.id }}">{{ paste.filename }}</a>
+        <a href="/{{ username }}">{{ username }}</a> / <a href="/{{ username }}/{{ paste.id }}">{{ paste.filename }}</a>
     </h1>
     <section class="pastes-show">
         {% if !paste.description.is_empty() %}<div class="description-bar">{{ paste.description }}</div>{% endif %}
@@ -12,7 +12,7 @@
                 {{ paste.body|format_byte_size }}
             </div>
             <div class="actions">
-                <a hx-boost="false" href="/pastes/{{ paste.id }}/raw">
+                <a hx-boost="false" href="/{{ username }}/{{ paste.id }}/raw">
                     <svg class="icon">
                         <use href="/assets/images/vendor/feather-sprite-subset.v4.29.0.svg#code" />
                     </svg>
@@ -24,7 +24,7 @@
                     </svg>
                     Copy
                 </button>
-                <a hx-boost="false" href="/pastes/{{ paste.id }}/download">
+                <a hx-boost="false" href="/{{ username }}/{{ paste.id }}/download">
                     <svg class="icon">
                         <use href="/assets/images/vendor/feather-sprite-subset.v4.29.0.svg#download" />
                     </svg>
@@ -32,14 +32,14 @@
                 </a>
                 {% if let Some(session) = session %}
                     {% if session.user.id == paste.user_id %}
-                        <a href="/pastes/{{ paste.id }}/edit">
+                        <a href="/{{ username }}/{{ paste.id }}/edit">
                             <svg class="icon">
                                 <use href="/assets/images/vendor/feather-sprite-subset.v4.29.0.svg#edit" />
                             </svg>
                             Edit
                         </a>
                         <button hx-confirm="Are you sure you want to delete this paste?"
-                                hx-delete="/pastes/{{ paste.id }}">
+                                hx-delete="/{{ username }}/{{ paste.id }}">
                             <svg class="icon">
                                 <use href="/assets/images/vendor/feather-sprite-subset.v4.29.0.svg#trash-2" />
                             </svg>

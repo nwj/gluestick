@@ -63,21 +63,15 @@ impl TestClient {
         SignupEndpoint(self)
     }
 
-    pub async fn get(&self) -> Result<Response> {
-        Ok(self.client.get(self.base_url.clone()).send().await?)
+    pub fn username(&self, username: &String) -> UsernameEndpoint {
+        UsernameEndpoint {
+            client: self,
+            username: username.to_string(),
+        }
     }
 
-    pub async fn get_by_username(
-        &self,
-        user: &TestUser,
-        params: Option<PaginationParams>,
-    ) -> Result<Response> {
-        let username = user.username.clone();
-        let mut url = self.base_url.join(&username)?;
-        if let Some(params) = params {
-            url = Url::parse_with_params(&url.to_string(), params.to_query_params())?;
-        }
-        Ok(self.client.get(url).send().await?)
+    pub async fn get(&self) -> Result<Response> {
+        Ok(self.client.get(self.base_url.clone()).send().await?)
     }
 
     pub async fn get_arbitrary(&self, endpoint: &str) -> Result<Response> {
@@ -96,7 +90,7 @@ pub struct ApiPastesIndexResponse {
 
 impl<'c> ApiPastesEndpoint<'c> {
     fn endpoint_str(&self) -> &str {
-        "api/pastes"
+        "api/v1/pastes"
     }
     fn endpoint(&self) -> Result<Url> {
         Ok(self.0.base_url.join(self.endpoint_str())?)
@@ -230,6 +224,7 @@ impl<'c> PastesEndpoint<'c> {
     fn endpoint_str(&self) -> &str {
         "pastes"
     }
+
     fn endpoint(&self) -> Result<Url> {
         Ok(self.0.base_url.join(self.endpoint_str())?)
     }
@@ -264,52 +259,6 @@ impl<'c> PastesEndpoint<'c> {
     pub async fn get_new(&self) -> Result<Response> {
         let endpoint = self.endpoint_with_trailing_slash()?.join("new")?;
         Ok(self.0.client.get(endpoint).send().await?)
-    }
-
-    pub async fn get_by_id(&self, paste: &TestPaste) -> Result<Response> {
-        let id = paste.id.clone().unwrap_or_default();
-        let endpoint = self.endpoint_with_trailing_slash()?.join(&id)?;
-        Ok(self.0.client.get(endpoint).send().await?)
-    }
-
-    pub async fn get_raw_by_id(&self, paste: &TestPaste) -> Result<Response> {
-        let id = paste.id.clone().unwrap_or_default();
-        let endpoint = self
-            .endpoint_with_trailing_slash()?
-            .join(&format!("{id}/raw"))?;
-        Ok(self.0.client.get(endpoint).send().await?)
-    }
-
-    pub async fn get_download_by_id(&self, paste: &TestPaste) -> Result<Response> {
-        let id = paste.id.clone().unwrap_or_default();
-        let endpoint = self
-            .endpoint_with_trailing_slash()?
-            .join(&format!("{id}/download"))?;
-        Ok(self.0.client.get(endpoint).send().await?)
-    }
-
-    pub async fn get_edit_by_id(&self, paste: &TestPaste) -> Result<Response> {
-        let id = paste.id.clone().unwrap_or_default();
-        let endpoint = self
-            .endpoint_with_trailing_slash()?
-            .join(&format!("{id}/edit"))?;
-        Ok(self.0.client.get(endpoint).send().await?)
-    }
-
-    pub async fn put_by_id(&self, paste: &TestPaste) -> Result<Response> {
-        let id = paste.id.clone().unwrap_or_default();
-        let endpoint = self.endpoint_with_trailing_slash()?.join(&id)?;
-        Ok(self
-            .0
-            .client
-            .put(endpoint)
-            .form(&[
-                ("filename", &paste.filename),
-                ("description", &paste.description),
-                ("body", &paste.body),
-            ])
-            .send()
-            .await?)
     }
 
     pub async fn delete_by_id(&self, paste: &TestPaste) -> Result<Response> {
@@ -355,5 +304,80 @@ impl<'c> SignupEndpoint<'c> {
             ])
             .send()
             .await?)
+    }
+}
+
+pub struct UsernameEndpoint<'c> {
+    client: &'c TestClient,
+    username: String,
+}
+
+impl<'c> UsernameEndpoint<'c> {
+    fn endpoint(&self) -> Result<Url> {
+        Ok(self.client.base_url.join(&self.username)?)
+    }
+
+    fn endpoint_with_trailing_slash(&self) -> Result<Url> {
+        Ok(self.client.base_url.join(&format!("{}/", &self.username))?)
+    }
+
+    pub async fn get(&self, params: Option<PaginationParams>) -> Result<Response> {
+        let mut url = self.endpoint()?;
+        if let Some(params) = params {
+            url = Url::parse_with_params(&url.to_string(), params.to_query_params())?;
+        }
+        Ok(self.client.client.get(url).send().await?)
+    }
+
+    pub async fn get_by_paste_id(&self, paste: &TestPaste) -> Result<Response> {
+        let id = paste.id.clone().unwrap_or_default();
+        let endpoint = self.endpoint_with_trailing_slash()?.join(&id)?;
+        Ok(self.client.client.get(endpoint).send().await?)
+    }
+
+    pub async fn get_raw_by_paste_id(&self, paste: &TestPaste) -> Result<Response> {
+        let id = paste.id.clone().unwrap_or_default();
+        let endpoint = self
+            .endpoint_with_trailing_slash()?
+            .join(&format!("{id}/raw"))?;
+        Ok(self.client.client.get(endpoint).send().await?)
+    }
+
+    pub async fn get_download_by_paste_id(&self, paste: &TestPaste) -> Result<Response> {
+        let id = paste.id.clone().unwrap_or_default();
+        let endpoint = self
+            .endpoint_with_trailing_slash()?
+            .join(&format!("{id}/download"))?;
+        Ok(self.client.client.get(endpoint).send().await?)
+    }
+
+    pub async fn get_edit_by_paste_id(&self, paste: &TestPaste) -> Result<Response> {
+        let id = paste.id.clone().unwrap_or_default();
+        let endpoint = self
+            .endpoint_with_trailing_slash()?
+            .join(&format!("{id}/edit"))?;
+        Ok(self.client.client.get(endpoint).send().await?)
+    }
+
+    pub async fn put_by_paste_id(&self, paste: &TestPaste) -> Result<Response> {
+        let id = paste.id.clone().unwrap_or_default();
+        let endpoint = self.endpoint_with_trailing_slash()?.join(&id)?;
+        Ok(self
+            .client
+            .client
+            .put(endpoint)
+            .form(&[
+                ("filename", &paste.filename),
+                ("description", &paste.description),
+                ("body", &paste.body),
+            ])
+            .send()
+            .await?)
+    }
+
+    pub async fn delete_by_paste_id(&self, paste: &TestPaste) -> Result<Response> {
+        let id = paste.id.clone().unwrap_or_default();
+        let endpoint = self.endpoint_with_trailing_slash()?.join(&id)?;
+        Ok(self.client.client.delete(endpoint).send().await?)
     }
 }

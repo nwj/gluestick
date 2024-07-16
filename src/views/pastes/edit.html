@@ -2,44 +2,44 @@
 {% block title %}Edit {{ filename }}{% endblock %}
 {% block content %}
     <section class="pastes-edit">
-        <form hx-put="/pastes/{{ paste_id }}" hx-target="body">
-            {% let error = error_report.get_first("filename") %}
-            <div class="filename-bar">
-                {% if let Some(session) = session %}
+        {% if let Some(session) = session %}
+            <form hx-put="/{{ session.user.username }}/{{ paste_id }}" hx-target="body">
+                {% let error = error_report.get_first("filename") %}
+                <div class="filename-bar">
                     <a href="{{ session.user.username }}">{{ session.user.username }}</a><span>/</span>
-                {% endif %}
-                <div class="validated-input filename {% if let Some(error) = error %}invalid{% endif %}">
-                    <input type="text"
-                           name="filename"
-                           placeholder="Filename with extension..."
-                           value="{{ filename }}" />
+                    <div class="validated-input filename {% if let Some(error) = error %}invalid{% endif %}">
+                        <input type="text"
+                               name="filename"
+                               placeholder="Filename with extension..."
+                               value="{{ filename }}" />
+                        <div class="error-msg">
+                            {% if let Some(error) = error %}{{ error }}{% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% let error = error_report.get_first("description") %}
+                <div class="validated-input description {% if let Some(error) = error %}invalid{% endif %}">
+                    <label>
+                        Description
+                        <input type="text"
+                               name="description"
+                               placeholder="(Optional) Description..."
+                               value="{{ description }}" />
+                    </label>
                     <div class="error-msg">
                         {% if let Some(error) = error %}{{ error }}{% endif %}
                     </div>
                 </div>
-            </div>
-            {% let error = error_report.get_first("description") %}
-            <div class="validated-input description {% if let Some(error) = error %}invalid{% endif %}">
-                <label>
-                    Description
-                    <input type="text"
-                           name="description"
-                           placeholder="(Optional) Description..."
-                           value="{{ description }}" />
-                </label>
-                <div class="error-msg">
-                    {% if let Some(error) = error %}{{ error }}{% endif %}
+                {% let error = error_report.get_first("body") %}
+                <div class="validated-input body {% if let Some(error) = error %}invalid{% endif %}">
+                    <label for="body">Body</label>
+                    <textarea id="body" name="body" placeholder="Body...">{{body}}</textarea>
+                    <div class="error-msg">
+                        {% if let Some(error) = error %}{{ error }}{% endif %}
+                    </div>
                 </div>
-            </div>
-            {% let error = error_report.get_first("body") %}
-            <div class="validated-input body {% if let Some(error) = error %}invalid{% endif %}">
-                <label for="body">Body</label>
-                <textarea id="body" name="body" placeholder="Body...">{{body}}</textarea>
-                <div class="error-msg">
-                    {% if let Some(error) = error %}{{ error }}{% endif %}
-                </div>
-            </div>
-            <button class="primary" type="submit">Save</button>
-        </form>
+                <button class="primary" type="submit">Save</button>
+            </form>
+        {% endif %}
     </section>
 {% endblock %}

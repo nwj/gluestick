@@ -5,7 +5,7 @@ use crate::models::paste::Paste;
 use crate::models::session::{Session, SessionToken, SESSION_COOKIE_NAME};
 use crate::models::user::User;
 use crate::params::prelude::{Validate, Verify};
-use crate::params::users::CreateUserParams;
+use crate::params::users::{CreateUserParams, UsernameParam};
 use crate::views::users::{
     EmailAddressInputPartial, NewUsersTemplate, PasswordInputPartial, SettingsTemplate,
     ShowUsersTemplate, UsernameInputPartial,
@@ -63,9 +63,11 @@ pub async fn create(
 pub async fn show(
     session: Option<Session>,
     State(db): State<Database>,
-    Path(username): Path<String>,
+    Path(username): Path<UsernameParam>,
     Query(pagination_params): Query<CursorPaginationParams>,
 ) -> Result<impl IntoResponse> {
+    username.validate().map_err(|_| Error::NotFound)?;
+
     match User::find_by_username(&db, username).await? {
         Some(user) => {
             pagination_params
