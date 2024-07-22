@@ -47,8 +47,7 @@ pub async fn index(
     })
 }
 
-pub async fn new(session: Session) -> NewPastesTemplate {
-    let session = Some(session);
+pub async fn new(session: Option<Session>) -> NewPastesTemplate {
     NewPastesTemplate::from_session(session)
 }
 
