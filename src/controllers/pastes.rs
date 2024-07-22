@@ -90,12 +90,21 @@ pub async fn show(
         .ok_or(Error::NotFound)?;
     let syntax_highlighted_html = paste.syntax_highlight(&db).await?;
 
-    Ok(ShowPastesTemplate {
-        session,
-        paste,
-        username: user.username,
-        syntax_highlighted_html,
-    })
+    let mut headers = HeaderMap::new();
+    if paste.visibility.is_secret() {
+        headers.insert("X-Robots-Tag", HeaderValue::from_static("noindex"));
+    }
+
+    Ok((
+        StatusCode::OK,
+        headers,
+        ShowPastesTemplate {
+            session,
+            paste,
+            username: user.username,
+            syntax_highlighted_html,
+        },
+    ))
 }
 
 pub async fn show_raw(
@@ -110,7 +119,12 @@ pub async fn show_raw(
         .await?
         .ok_or(Error::NotFound)?;
 
-    Ok((StatusCode::OK, paste.body.to_string()))
+    let mut headers = HeaderMap::new();
+    if paste.visibility.is_secret() {
+        headers.insert("X-Robots-Tag", HeaderValue::from_static("noindex"));
+    }
+
+    Ok((StatusCode::OK, headers, paste.body.to_string()))
 }
 
 pub async fn download(
@@ -125,14 +139,17 @@ pub async fn download(
         .await?
         .ok_or(Error::NotFound)?;
 
-    Ok((
-        StatusCode::OK,
-        [(
-            "Content-Disposition",
-            format!("attachment; filename=\"{}\"", paste.filename),
-        )],
-        paste.body.to_string(),
-    ))
+    let mut headers = HeaderMap::new();
+    headers.insert(
+        "Content-Disposition",
+        HeaderValue::from_str(&format!("attachment; filename=\"{}\"", paste.filename))
+            .map_err(|e| Error::InternalServerError(Box::new(e)))?,
+    );
+    if paste.visibility.is_secret() {
+        headers.insert("X-Robots-Tag", HeaderValue::from_static("noindex"));
+    }
+
+    Ok((StatusCode::OK, headers, paste.body.to_string()))
 }
 
 pub async fn edit(
@@ -151,14 +168,23 @@ pub async fn edit(
         .await?
         .ok_or(Error::NotFound)?;
 
-    Ok(EditPastesTemplate {
-        session: Some(session),
-        paste_id: paste.id,
-        filename: paste.filename.into(),
-        description: paste.description.into(),
-        body: paste.body.into(),
-        ..Default::default()
-    })
+    let mut headers = HeaderMap::new();
+    if paste.visibility.is_secret() {
+        headers.insert("X-Robots-Tag", HeaderValue::from_static("noindex"));
+    }
+
+    Ok((
+        StatusCode::OK,
+        headers,
+        EditPastesTemplate {
+            session: Some(session),
+            paste_id: paste.id,
+            filename: paste.filename.into(),
+            description: paste.description.into(),
+            body: paste.body.into(),
+            ..Default::default()
+        },
+    ))
 }
 
 pub async fn update(
