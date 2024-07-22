@@ -5,6 +5,7 @@ use crate::common::paste_helper::TestPaste;
 use crate::common::rand_helper::{random_alphanumeric_string, random_filename, random_string};
 use crate::common::user_helper::TestUser;
 use crate::prelude::*;
+use reqwest::header::HeaderValue;
 use time::OffsetDateTime;
 use uuid::{NoContext, Timestamp, Uuid};
 
@@ -365,6 +366,106 @@ async fn show_responds_with_404_when_paste_doesnt_exist() -> Result<()> {
         .get_by_paste_id(&unpersisted_paste)
         .await?;
     assert_eq!(response.status(), 404);
+    Ok(())
+}
+
+#[tokio::test]
+async fn show_and_edit_include_no_index_header_when_paste_is_secret() -> Result<()> {
+    let app = TestApp::spawn().await?;
+    let user = TestUser::builder().random()?.build().seed(&app).await?;
+    let client = TestClient::new(app.address, None)?;
+    client.login().post(&user).await?;
+    let paste = TestPaste::builder()
+        .random()?
+        .visibility("secret")
+        .build()
+        .seed(&app, &user)
+        .await?;
+
+    let response = client
+        .username(&user.username)
+        .get_by_paste_id(&paste)
+        .await?;
+    let maybe_x_robots_tag = response.headers().get("X-Robots-Tag");
+    assert!(maybe_x_robots_tag.is_some(),);
+    if let Some(x_robots_tag) = maybe_x_robots_tag {
+        assert_eq!(x_robots_tag, HeaderValue::from_static("noindex"),);
+    }
+
+    let response = client
+        .username(&user.username)
+        .get_raw_by_paste_id(&paste)
+        .await?;
+    let maybe_x_robots_tag = response.headers().get("X-Robots-Tag");
+    assert!(maybe_x_robots_tag.is_some(),);
+    if let Some(x_robots_tag) = maybe_x_robots_tag {
+        assert_eq!(x_robots_tag, HeaderValue::from_static("noindex"),);
+    }
+
+    let response = client
+        .username(&user.username)
+        .get_download_by_paste_id(&paste)
+        .await?;
+    let maybe_x_robots_tag = response.headers().get("X-Robots-Tag");
+    assert!(maybe_x_robots_tag.is_some(),);
+    if let Some(x_robots_tag) = maybe_x_robots_tag {
+        assert_eq!(x_robots_tag, HeaderValue::from_static("noindex"),);
+    }
+
+    let response = client
+        .username(&user.username)
+        .get_edit_by_paste_id(&paste)
+        .await?;
+    let maybe_x_robots_tag = response.headers().get("X-Robots-Tag");
+    assert!(maybe_x_robots_tag.is_some(),);
+    if let Some(x_robots_tag) = maybe_x_robots_tag {
+        assert_eq!(x_robots_tag, HeaderValue::from_static("noindex"),);
+    }
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn show_and_edit_do_not_include_no_index_header_when_paste_is_public() -> Result<()> {
+    let app = TestApp::spawn().await?;
+    let user = TestUser::builder().random()?.build().seed(&app).await?;
+    let client = TestClient::new(app.address, None)?;
+    client.login().post(&user).await?;
+    let paste = TestPaste::builder()
+        .random()?
+        .visibility("public")
+        .build()
+        .seed(&app, &user)
+        .await?;
+
+    let response = client
+        .username(&user.username)
+        .get_by_paste_id(&paste)
+        .await?;
+    let maybe_x_robots_tag = response.headers().get("X-Robots-Tag");
+    assert!(maybe_x_robots_tag.is_none(),);
+
+    let response = client
+        .username(&user.username)
+        .get_raw_by_paste_id(&paste)
+        .await?;
+    let maybe_x_robots_tag = response.headers().get("X-Robots-Tag");
+    assert!(maybe_x_robots_tag.is_none(),);
+
+    let response = client
+        .username(&user.username)
+        .get_download_by_paste_id(&paste)
+        .await?;
+    let maybe_x_robots_tag = response.headers().get("X-Robots-Tag");
+    assert!(maybe_x_robots_tag.is_none(),);
+
+    let response = client
+        .username(&user.username)
+        .get_edit_by_paste_id(&paste)
+        .await?;
+    let maybe_x_robots_tag = response.headers().get("X-Robots-Tag");
+    assert!(maybe_x_robots_tag.is_none(),);
+
     Ok(())
 }
 

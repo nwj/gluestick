@@ -462,6 +462,12 @@ pub enum Visibility {
     Secret,
 }
 
+impl Visibility {
+    pub fn is_secret(&self) -> bool {
+        matches!(self, Visibility::Secret)
+    }
+}
+
 impl ToSql for Visibility {
     fn to_sql(&self) -> Result<ToSqlOutput<'_>, rusqlite::Error> {
         match self {
