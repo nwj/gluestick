@@ -386,7 +386,8 @@ main {
         display: flex;
         font-size: var(--font-size-3xl);
 
-        a, span {
+        a,
+        span {
           margin-right: var(--spacing-xs);
         }
 

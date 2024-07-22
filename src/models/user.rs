@@ -12,7 +12,7 @@ use rusqlite::{named_params, Row};
 use secrecy::{ExposeSecret, Secret};
 use uuid::Uuid;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct User {
     pub id: Uuid,
     pub username: Username,
@@ -88,7 +88,11 @@ impl User {
         Ok(optional_user)
     }
 
-    pub async fn find_by_username(db: &Database, username: String) -> Result<Option<User>> {
+    pub async fn find_by_username(
+        db: &Database,
+        username: impl Into<String>,
+    ) -> Result<Option<User>> {
+        let username = username.into();
         let optional_user = db
             .conn
             .call(move |conn| {
@@ -179,7 +183,7 @@ impl TryFrom<CreateUserParams> for User {
     }
 }
 
-#[derive(Clone, Debug, Display)]
+#[derive(Clone, Debug, Display, PartialEq)]
 pub struct Username(String);
 
 impl Username {
@@ -200,7 +204,7 @@ impl FromSql for Username {
     }
 }
 
-#[derive(Clone, Debug, Display)]
+#[derive(Clone, Debug, Display, PartialEq)]
 pub struct EmailAddress(String);
 
 impl EmailAddress {
@@ -253,5 +257,11 @@ impl ToSql for HashedPassword {
 impl FromSql for HashedPassword {
     fn column_result(value: ValueRef) -> FromSqlResult<Self> {
         String::column_result(value).map(|string| Ok(Self(Secret::new(string))))?
+    }
+}
+
+impl PartialEq for HashedPassword {
+    fn eq(&self, other: &HashedPassword) -> bool {
+        self.expose_secret() == other.expose_secret()
     }
 }

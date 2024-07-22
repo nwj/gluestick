@@ -40,7 +40,7 @@ impl IntoResponse for Error {
         match self {
             Error::BadRequest(err) => {
                 tracing::error!(%err, "bad request");
-                (StatusCode::BAD_REQUEST, ()).into_response()
+                (StatusCode::BAD_REQUEST, err.to_string()).into_response()
             }
 
             Error::Validation(template) => match template.render_template() {

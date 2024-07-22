@@ -237,7 +237,10 @@ async fn create_show_update_destroy_happy_path() -> Result<()> {
     paste.id = response.url().path().split("/").nth(2).map(String::from);
 
     // Show
-    let response = client.pastes().get_by_id(&paste).await?;
+    let response = client
+        .username(&user.username)
+        .get_by_paste_id(&paste)
+        .await?;
     assert_eq!(response.status(), 200);
     let html = response.text().await?;
     assert!(html.contains(&paste.filename));
@@ -248,11 +251,17 @@ async fn create_show_update_destroy_happy_path() -> Result<()> {
     paste.filename = random_filename(1..=30)?;
     paste.description = random_string(1..=30)?;
     paste.body = random_string(1..=30)?;
-    let response = client.pastes().put_by_id(&paste).await?;
+    let response = client
+        .username(&user.username)
+        .put_by_paste_id(&paste)
+        .await?;
     assert_eq!(response.status(), 200);
 
     // Show
-    let response = client.pastes().get_by_id(&paste).await?;
+    let response = client
+        .username(&user.username)
+        .get_by_paste_id(&paste)
+        .await?;
     assert_eq!(response.status(), 200);
     let html = response.text().await?;
     assert!(html.contains(&paste.filename));
@@ -260,11 +269,17 @@ async fn create_show_update_destroy_happy_path() -> Result<()> {
     assert!(html.contains(&paste.body));
 
     // Delete
-    let response = client.pastes().delete_by_id(&paste).await?;
+    let response = client
+        .username(&user.username)
+        .delete_by_paste_id(&paste)
+        .await?;
     assert_eq!(response.status(), 200);
 
     // Show
-    let response = client.pastes().get_by_id(&paste).await?;
+    let response = client
+        .username(&user.username)
+        .get_by_paste_id(&paste)
+        .await?;
     assert_eq!(response.status(), 404);
     Ok(())
 }
@@ -307,7 +322,7 @@ async fn create_does_not_persist_paste_when_missing_required_fields() -> Result<
 }
 
 #[tokio::test]
-async fn create_responds_does_not_persist_paste_when_invalid_fields() -> Result<()> {
+async fn create_does_not_persist_paste_when_invalid_fields() -> Result<()> {
     let app = TestApp::spawn().await?;
     let (user, api_key) = TestUser::builder()
         .random()?
@@ -341,12 +356,42 @@ async fn create_responds_does_not_persist_paste_when_invalid_fields() -> Result<
 #[tokio::test]
 async fn show_responds_with_404_when_paste_doesnt_exist() -> Result<()> {
     let app = TestApp::spawn().await?;
-    let _user = TestUser::builder().random()?.build().seed(&app).await?;
+    let user = TestUser::builder().random()?.build().seed(&app).await?;
     let client = TestClient::new(app.address, None)?;
-    let paste = TestPaste::builder().random()?.random_id().build();
+    let unpersisted_paste = TestPaste::builder().random()?.random_id().build();
 
-    let response = client.pastes().get_by_id(&paste).await?;
+    let response = client
+        .username(&user.username)
+        .get_by_paste_id(&unpersisted_paste)
+        .await?;
     assert_eq!(response.status(), 404);
+    Ok(())
+}
+
+#[tokio::test]
+async fn show_responds_with_404_when_paste_exists_but_username_is_wrong() -> Result<()> {
+    let app = TestApp::spawn().await?;
+    let user1 = TestUser::builder().random()?.build().seed(&app).await?;
+    let user2 = TestUser::builder().random()?.build().seed(&app).await?;
+    let client = TestClient::new(app.address, None)?;
+    let paste = TestPaste::builder()
+        .random()?
+        .build()
+        .seed(&app, &user2)
+        .await?;
+
+    let response = client
+        .username(&String::from("garbage"))
+        .get_by_paste_id(&paste)
+        .await?;
+    assert_eq!(response.status(), 404);
+
+    let response = client
+        .username(&user1.username)
+        .get_by_paste_id(&paste)
+        .await?;
+    assert_eq!(response.status(), 404);
+
     Ok(())
 }
 
@@ -367,7 +412,10 @@ async fn update_requires_a_session() -> Result<()> {
     let mut modified_paste = paste.clone();
     modified_paste.filename = random_filename(1..=30)?;
 
-    let response = client.pastes().put_by_id(&modified_paste).await?;
+    let response = client
+        .username(&user.username)
+        .put_by_paste_id(&modified_paste)
+        .await?;
     assert_eq!(response.status(), 401);
 
     let response = client.api_pastes().get_by_id(&paste).await?;
@@ -385,7 +433,10 @@ async fn update_responds_with_404_when_paste_doesnt_exist() -> Result<()> {
     client.login().post(&user).await?;
     let paste = TestPaste::builder().random()?.random_id().build();
 
-    let response = client.pastes().put_by_id(&paste).await?;
+    let response = client
+        .username(&user.username)
+        .put_by_paste_id(&paste)
+        .await?;
     assert_eq!(response.status(), 404);
     Ok(())
 }
@@ -421,7 +472,10 @@ async fn update_does_not_persist_paste_when_invalid_fields() -> Result<()> {
     ];
 
     for bad_paste in bad_pastes {
-        let response = client.pastes().put_by_id(&bad_paste).await?;
+        let response = client
+            .username(&user.username)
+            .put_by_paste_id(&bad_paste)
+            .await?;
         assert_eq!(response.status(), 200);
 
         let response = client.api_pastes().get_by_id(&bad_paste).await?;
@@ -455,7 +509,10 @@ async fn cannot_update_other_users_pastes() -> Result<()> {
     let mut modified_paste = paste.clone();
     modified_paste.filename = random_filename(1..=30)?;
 
-    let response = client2.pastes().put_by_id(&modified_paste).await?;
+    let response = client2
+        .username(&user1.username)
+        .put_by_paste_id(&modified_paste)
+        .await?;
     assert_eq!(response.status(), 403);
 
     let response = client1.api_pastes().get_by_id(&paste).await?;
@@ -480,7 +537,10 @@ async fn destroy_requires_a_session() -> Result<()> {
         .seed(&app, &user)
         .await?;
 
-    let response = client.pastes().delete_by_id(&paste).await?;
+    let response = client
+        .username(&user.username)
+        .delete_by_paste_id(&paste)
+        .await?;
     assert_eq!(response.status(), 401);
 
     let response = client.api_pastes().get_by_id(&paste).await?;
@@ -496,7 +556,10 @@ async fn destroy_responds_with_404_when_paste_doesnt_exist() -> Result<()> {
     client.login().post(&user).await?;
     let paste = TestPaste::builder().random()?.random_id().build();
 
-    let response = client.pastes().delete_by_id(&paste).await?;
+    let response = client
+        .username(&user.username)
+        .delete_by_paste_id(&paste)
+        .await?;
     assert_eq!(response.status(), 404);
     Ok(())
 }
@@ -523,7 +586,10 @@ async fn cannot_destroy_other_users_pastes() -> Result<()> {
         .seed(&app, &user1)
         .await?;
 
-    let response = client2.pastes().delete_by_id(&paste).await?;
+    let response = client2
+        .username(&user1.username)
+        .delete_by_paste_id(&paste)
+        .await?;
     assert_eq!(response.status(), 403);
 
     let response = client1.api_pastes().get_by_id(&paste).await?;

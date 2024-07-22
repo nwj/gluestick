@@ -341,7 +341,7 @@ async fn show_happpy_path() -> Result<()> {
         .seed(&app, &user)
         .await?;
 
-    let response = client.get_by_username(&user, None).await?;
+    let response = client.username(&user.username).get(None).await?;
     assert_eq!(response.status(), 200);
     let html = response.text().await.unwrap();
     assert!(html.contains(&paste1.filename));
@@ -366,7 +366,7 @@ async fn show_does_not_include_secret_pastes() -> Result<()> {
         .seed(&app, &user)
         .await?;
 
-    let response = client.get_by_username(&user, None).await?;
+    let response = client.username(&user.username).get(None).await?;
     assert_eq!(response.status(), 200);
     let html = response.text().await.unwrap();
     assert!(html.contains(&paste1.filename));
@@ -391,7 +391,7 @@ async fn show_does_not_include_other_users_pastes() -> Result<()> {
         .seed(&app, &user2)
         .await?;
 
-    let response = client.get_by_username(&user, None).await?;
+    let response = client.username(&user.username).get(None).await?;
     assert_eq!(response.status(), 200);
     let html = response.text().await.unwrap();
     assert!(html.contains(&paste1.filename));
@@ -412,7 +412,7 @@ async fn show_has_per_page_default() -> Result<()> {
             .await?;
     }
 
-    let response = client.get_by_username(&user, None).await?;
+    let response = client.username(&user.username).get(None).await?;
     assert_eq!(response.status(), 200);
     let html = response.text().await?;
     assert_eq!(html.matches("<li class=\"paste\">").count(), 10);
@@ -434,7 +434,7 @@ async fn show_uses_per_page_when_provided() -> Result<()> {
     }
 
     let params = PaginationParams::builder().per_page(per_page).build();
-    let response = client.get_by_username(&user, Some(params)).await?;
+    let response = client.username(&user.username).get(Some(params)).await?;
     assert_eq!(response.status(), 200);
     let html = response.text().await?;
     assert_eq!(html.matches("<li class=\"paste\">").count(), per_page);
@@ -456,7 +456,7 @@ async fn show_400s_if_per_page_more_than_100() -> Result<()> {
     }
 
     let params = PaginationParams::builder().per_page(per_page).build();
-    let response = client.get_by_username(&user, Some(params)).await?;
+    let response = client.username(&user.username).get(Some(params)).await?;
     assert_eq!(response.status(), 400);
     Ok(())
 }
@@ -499,7 +499,7 @@ async fn show_paginates_correctly() -> Result<()> {
 
     // First page
     let params = PaginationParams::builder().per_page(3).build();
-    let response = client.get_by_username(&user, Some(params)).await?;
+    let response = client.username(&user.username).get(Some(params)).await?;
     let html = response.text().await?;
     for paste in &pastes[5..8] {
         assert!(html.contains(&paste.filename));
@@ -513,7 +513,7 @@ async fn show_paginates_correctly() -> Result<()> {
         .per_page(3)
         .next_page(next_cursor)
         .build();
-    let response = client.get_by_username(&user, Some(params)).await?;
+    let response = client.username(&user.username).get(Some(params)).await?;
     let html = response.text().await?;
     for paste in &pastes[2..5] {
         assert!(html.contains(&paste.filename));
@@ -527,7 +527,7 @@ async fn show_paginates_correctly() -> Result<()> {
         .per_page(3)
         .next_page(next_cursor)
         .build();
-    let response = client.get_by_username(&user, Some(params)).await?;
+    let response = client.username(&user.username).get(Some(params)).await?;
     let html = response.text().await?;
     for paste in &pastes[0..2] {
         assert!(html.contains(&paste.filename));
@@ -541,7 +541,7 @@ async fn show_paginates_correctly() -> Result<()> {
         .per_page(3)
         .prev_page(prev_cursor)
         .build();
-    let response = client.get_by_username(&user, Some(params)).await?;
+    let response = client.username(&user.username).get(Some(params)).await?;
     let html = response.text().await?;
     for paste in &pastes[2..5] {
         assert!(html.contains(&paste.filename));
@@ -555,7 +555,7 @@ async fn show_paginates_correctly() -> Result<()> {
         .per_page(3)
         .prev_page(prev_cursor)
         .build();
-    let response = client.get_by_username(&user, Some(params)).await?;
+    let response = client.username(&user.username).get(Some(params)).await?;
     let html = response.text().await?;
     for paste in &pastes[5..8] {
         assert!(html.contains(&paste.filename));

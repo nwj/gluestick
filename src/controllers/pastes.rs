@@ -3,8 +3,10 @@ use crate::db::Database;
 use crate::helpers::pagination::{CursorPaginationParams, CursorPaginationResponse};
 use crate::models::paste::Paste;
 use crate::models::session::Session;
+use crate::models::user::User;
 use crate::params::pastes::{CreatePasteParams, UpdatePasteParams};
 use crate::params::prelude::Validate;
+use crate::params::users::UsernameParam;
 use crate::views::pastes::{
     EditPastesTemplate, IndexPastesTemplate, NewPastesTemplate, ShowPastesTemplate,
 };
@@ -45,8 +47,7 @@ pub async fn index(
     })
 }
 
-pub async fn new(session: Session) -> NewPastesTemplate {
-    let session = Some(session);
+pub async fn new(session: Option<Session>) -> NewPastesTemplate {
     NewPastesTemplate::from_session(session)
 }
 
@@ -56,6 +57,7 @@ pub async fn create(
     Form(params): Form<CreatePasteParams>,
 ) -> Result<impl IntoResponse> {
     let user_id = session.user.id;
+    let username = session.user.username.clone();
     let error_template = NewPastesTemplate::from_session_and_params(Some(session), params.clone());
     params
         .validate()
@@ -71,137 +73,157 @@ pub async fn create(
     let id = paste.id;
     paste.insert(&db).await?;
 
-    Ok(Redirect::to(format!("/pastes/{id}").as_str()).into_response())
+    Ok(Redirect::to(format!("/{username}/{id}").as_str()).into_response())
 }
 
 pub async fn show(
     session: Option<Session>,
     State(db): State<Database>,
-    Path(id): Path<Uuid>,
+    Path((username, id)): Path<(UsernameParam, Uuid)>,
 ) -> Result<impl IntoResponse> {
-    match Paste::find_with_username(&db, id).await? {
-        Some((paste, username)) => {
-            let syntax_highlighted_html = paste.syntax_highlight(&db).await?;
-            Ok((
-                StatusCode::OK,
-                ShowPastesTemplate {
-                    session,
-                    paste,
-                    username,
-                    syntax_highlighted_html,
-                },
-            ))
-        }
-        None => Err(Error::NotFound),
-    }
+    username.validate().map_err(|_| Error::NotFound)?;
+    let user = User::find_by_username(&db, username)
+        .await?
+        .ok_or(Error::NotFound)?;
+    let paste = Paste::find_scoped_by_user_id(&db, id, user.id)
+        .await?
+        .ok_or(Error::NotFound)?;
+    let syntax_highlighted_html = paste.syntax_highlight(&db).await?;
+
+    Ok(ShowPastesTemplate {
+        session,
+        paste,
+        username: user.username,
+        syntax_highlighted_html,
+    })
 }
 
 pub async fn show_raw(
     State(db): State<Database>,
-    Path(id): Path<Uuid>,
+    Path((username, id)): Path<(UsernameParam, Uuid)>,
 ) -> Result<impl IntoResponse> {
-    match Paste::find(&db, id).await? {
-        Some(paste) => Ok((StatusCode::OK, paste.body.to_string())),
-        None => Err(Error::NotFound),
-    }
+    username.validate().map_err(|_| Error::NotFound)?;
+    let user = User::find_by_username(&db, username)
+        .await?
+        .ok_or(Error::NotFound)?;
+    let paste = Paste::find_scoped_by_user_id(&db, id, user.id)
+        .await?
+        .ok_or(Error::NotFound)?;
+
+    Ok((StatusCode::OK, paste.body.to_string()))
 }
 
 pub async fn download(
     State(db): State<Database>,
-    Path(id): Path<Uuid>,
+    Path((username, id)): Path<(UsernameParam, Uuid)>,
 ) -> Result<impl IntoResponse> {
-    match Paste::find(&db, id).await? {
-        Some(paste) => Ok((
-            StatusCode::OK,
-            [(
-                "Content-Disposition",
-                format!("attachment; filename=\"{}\"", paste.filename),
-            )],
-            paste.body.to_string(),
-        )),
-        None => Err(Error::NotFound),
-    }
+    username.validate().map_err(|_| Error::NotFound)?;
+    let user = User::find_by_username(&db, username)
+        .await?
+        .ok_or(Error::NotFound)?;
+    let paste = Paste::find_scoped_by_user_id(&db, id, user.id)
+        .await?
+        .ok_or(Error::NotFound)?;
+
+    Ok((
+        StatusCode::OK,
+        [(
+            "Content-Disposition",
+            format!("attachment; filename=\"{}\"", paste.filename),
+        )],
+        paste.body.to_string(),
+    ))
 }
 
 pub async fn edit(
     session: Session,
     State(db): State<Database>,
-    Path(id): Path<Uuid>,
+    Path((username, id)): Path<(UsernameParam, Uuid)>,
 ) -> Result<impl IntoResponse> {
-    let optional_paste = Paste::find(&db, id).await?;
-
-    match optional_paste {
-        Some(paste) if paste.user_id == session.user.id => {
-            let response = EditPastesTemplate {
-                session: Some(session),
-                paste_id: paste.id,
-                filename: paste.filename.into(),
-                description: paste.description.into(),
-                body: paste.body.into(),
-                ..Default::default()
-            };
-            Ok(response)
-        }
-        Some(_) => Err(Error::Forbidden),
-        None => Err(Error::NotFound),
+    username.validate().map_err(|_| Error::NotFound)?;
+    let user = User::find_by_username(&db, username)
+        .await?
+        .ok_or(Error::NotFound)?;
+    if session.user != user {
+        return Err(Error::Forbidden);
     }
+    let paste = Paste::find_scoped_by_user_id(&db, id, session.user.id)
+        .await?
+        .ok_or(Error::NotFound)?;
+
+    Ok(EditPastesTemplate {
+        session: Some(session),
+        paste_id: paste.id,
+        filename: paste.filename.into(),
+        description: paste.description.into(),
+        body: paste.body.into(),
+        ..Default::default()
+    })
 }
 
 pub async fn update(
     session: Session,
     State(db): State<Database>,
-    Path(id): Path<Uuid>,
+    Path((username, id)): Path<(UsernameParam, Uuid)>,
     Form(params): Form<UpdatePasteParams>,
 ) -> Result<impl IntoResponse> {
+    username.validate().map_err(|_| Error::NotFound)?;
+    let user = User::find_by_username(&db, username)
+        .await?
+        .ok_or(Error::NotFound)?;
+    if session.user != user {
+        return Err(Error::Forbidden);
+    }
+    let username = session.user.username.clone();
     let user_id = session.user.id;
+
     let error_template = EditPastesTemplate::from_session_and_params(Some(session), params.clone());
     params
         .validate()
         .map_err(|e| handle_params_error(e, error_template))?;
 
-    let optional_paste = Paste::find(&db, id).await?;
+    let paste = Paste::find_scoped_by_user_id(&db, id, user_id)
+        .await?
+        .ok_or(Error::NotFound)?;
 
-    match optional_paste {
-        Some(paste) if paste.user_id == user_id => {
-            let mut response = HeaderMap::new();
-            response.insert(
-                "HX-Redirect",
-                HeaderValue::from_str(&format!("/pastes/{}", &paste.id))
-                    .map_err(|e| Error::InternalServerError(Box::new(e)))?,
-            );
+    let mut response = HeaderMap::new();
+    response.insert(
+        "HX-Redirect",
+        HeaderValue::from_str(&format!("/{username}/{}", &paste.id))
+            .map_err(|e| Error::InternalServerError(Box::new(e)))?,
+    );
 
-            paste
-                .update(
-                    &db,
-                    Some(params.filename.into()),
-                    Some(params.description.into()),
-                    Some(params.body.into()),
-                )
-                .await?;
+    paste
+        .update(
+            &db,
+            Some(params.filename.into()),
+            Some(params.description.into()),
+            Some(params.body.into()),
+        )
+        .await?;
 
-            Ok(response)
-        }
-        Some(_) => Err(Error::Forbidden),
-        None => Err(Error::NotFound),
-    }
+    Ok(response)
 }
 
 pub async fn destroy(
     session: Session,
     State(db): State<Database>,
-    Path(id): Path<Uuid>,
+    Path((username, id)): Path<(UsernameParam, Uuid)>,
 ) -> Result<impl IntoResponse> {
-    let optional_paste = Paste::find(&db, id).await?;
-
-    match optional_paste {
-        Some(paste) if paste.user_id == session.user.id => {
-            paste.delete(&db).await?;
-
-            let mut response = HeaderMap::new();
-            response.insert("HX-Redirect", HeaderValue::from_static("/pastes"));
-            Ok(response)
-        }
-        Some(_) => Err(Error::Forbidden),
-        None => Err(Error::NotFound),
+    username.validate().map_err(|_| Error::NotFound)?;
+    let user = User::find_by_username(&db, username)
+        .await?
+        .ok_or(Error::NotFound)?;
+    if session.user != user {
+        return Err(Error::Forbidden);
     }
+
+    let paste = Paste::find_scoped_by_user_id(&db, id, session.user.id)
+        .await?
+        .ok_or(Error::NotFound)?;
+    paste.delete(&db).await?;
+
+    let mut response = HeaderMap::new();
+    response.insert("HX-Redirect", HeaderValue::from_static("/pastes"));
+    Ok(response)
 }

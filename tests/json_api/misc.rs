@@ -13,7 +13,7 @@ async fn fallback_responds_with_404() -> Result<()> {
         .await?;
     let client = TestClient::new(app.address, Some(&api_key))?;
 
-    let response = client.get_arbitrary("api/doesnt_exist").await?;
+    let response = client.get_arbitrary("api/v1/doesnt_exist").await?;
 
     assert_eq!(response.status(), 404);
     Ok(())

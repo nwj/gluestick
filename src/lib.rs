@@ -37,7 +37,9 @@ pub fn router(db: Database) -> Router {
         .fallback(controllers::api::not_found);
 
     Router::new()
-        .route("/", get(controllers::index))
+        .nest("/api/v1", json_api_router)
+        .nest("/assets", assets_router)
+        .route("/", get(controllers::pastes::new))
         .route("/health", get(controllers::health::check))
         .route("/signup", get(controllers::users::new))
         .route("/signup", post(controllers::users::create))
@@ -60,17 +62,20 @@ pub fn router(db: Database) -> Router {
         .route("/api_sessions", post(controllers::api_sessions::create))
         .route("/pastes", get(controllers::pastes::index))
         .route("/pastes", post(controllers::pastes::create))
-        .route("/pastes/new", get(controllers::pastes::new))
-        .route("/pastes/:id", get(controllers::pastes::show))
-        .route("/pastes/:id/raw", get(controllers::pastes::show_raw))
-        .route("/pastes/:id/download", get(controllers::pastes::download))
-        .route("/pastes/:id", put(controllers::pastes::update))
-        .route("/pastes/:id/edit", get(controllers::pastes::edit))
-        .route("/pastes/:id", delete(controllers::pastes::destroy))
         .route("/:username", get(controllers::users::show))
+        .route("/:username/:paste_id", get(controllers::pastes::show))
+        .route(
+            "/:username/:paste_id/raw",
+            get(controllers::pastes::show_raw),
+        )
+        .route(
+            "/:username/:paste_id/download",
+            get(controllers::pastes::download),
+        )
+        .route("/:username/:paste_id", put(controllers::pastes::update))
+        .route("/:username/:paste_id/edit", get(controllers::pastes::edit))
+        .route("/:username/:paste_id", delete(controllers::pastes::destroy))
         .fallback(controllers::not_found)
-        .nest("/api", json_api_router)
-        .nest("/assets", assets_router)
         .layer(
             TraceLayer::new_for_http()
                 .make_span_with(|request: &Request<_>| {

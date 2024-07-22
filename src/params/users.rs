@@ -8,7 +8,7 @@ use serde::Deserialize;
 
 const USERNAME_CHAR_VALIDATION_FAILURE_MESSAGE: &str = "Username may only contain alphanumeric characters or single hyphens, and cannot begin or end with a hyphen";
 
-#[derive(Clone, Debug, Deserialize, From, Into)]
+#[derive(Clone, Debug, Deserialize, From, Into, PartialEq)]
 #[serde(transparent)]
 pub struct UsernameParam(String);
 
@@ -63,7 +63,7 @@ impl Verify for UsernameParam {
     type Output = ();
 
     async fn verify(self, db: &Database) -> Result<Self::Output> {
-        match User::find_by_username(db, self.into()).await {
+        match User::find_by_username(db, self).await {
             Ok(None) => Ok(()),
             Ok(Some(_)) => {
                 let mut report = Report::new();
