@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Edit {{ filename }}{% endblock %}
-{% block content %}
-    <section class="pastes-edit">
+{% block main %}
+    <main class="pastes-edit">
         {% if let Some(session) = session %}
             <form hx-put="/{{ session.user.username }}/{{ paste_id }}" hx-target="body">
                 {% let error = error_report.get_first("filename") %}
@@ -41,5 +41,5 @@
                 <button class="primary" type="submit">Save</button>
             </form>
         {% endif %}
-    </section>
+    </main>
 {% endblock %}

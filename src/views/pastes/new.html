@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 {% block title %}New Paste{% endblock %}
-{% block content %}
+{% block main %}
     {% if let Some(session) = session %}
-        <section class="pastes-new">
+        <main class="pastes-new">
             <form hx-post="/pastes" hx-target="body">
                 {% let error = error_report.get_first("filename") %}
                 <div class="filename-bar">
@@ -59,9 +59,8 @@
                 </fieldset>
                 <button class="primary" type="submit">Create Paste</button>
             </form>
-        </section>
+        </main>
     {% else %}
-        <h1>Welcome to Gluestick</h1>
-        <p>A personal pastebin.</p>
+        {% include "partials/about.html" %}
     {% endif %}
 {% endblock %}

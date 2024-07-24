@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 {% block title %}Login{% endblock %}
-{% block content %}
-    <h1>Sign-in to Gluestick</h1>
-    <section class="login">
+{% block main %}
+    <main class="login">
+        <h1>Sign-in to Gluestick</h1>
         <form action="/login" method="post">
             {% let error = error_report.get_first("self") %}
             <div class="validated-input {% if let Some(error) = error %}invalid{% endif %}">
@@ -28,5 +28,5 @@
             </div>
             <button class="primary" type="submit">Sign In</button>
         </form>
-    </section>
+    </main>
 {% endblock %}

@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 {% block title %}{{ username }} / {{ paste.filename }}{% endblock %}
-{% block content %}
-    <h1>
-        <a href="/{{ username }}">{{ username }}</a> / <a href="/{{ username }}/{{ paste.id }}">{{ paste.filename }}</a>
-    </h1>
-    <section class="pastes-show">
+{% block main %}
+    <main class="pastes-show">
+        <h1>
+            <a href="/{{ username }}">{{ username }}</a> / <a href="/{{ username }}/{{ paste.id }}">{{ paste.filename }}</a>
+        </h1>
         {% if !paste.description.is_empty() %}<div class="description-bar">{{ paste.description }}</div>{% endif %}
         <div class="metadata-bar">
             <div class="metadata">
@@ -49,12 +49,11 @@
                 {% endif %}
             </div>
         </div>
-    </div>
-    {% if let Some(syntax_highlighted_html) = syntax_highlighted_html %}
-        {{ syntax_highlighted_html|safe }}
-        <pre id="body" class="hidden">{{ paste.body }}</pre>
-    {% else %}
-        <pre id="body">{{ paste.body }}</pre>
-    {% endif %}
-</section>
+        {% if let Some(syntax_highlighted_html) = syntax_highlighted_html %}
+            {{ syntax_highlighted_html|safe }}
+            <pre id="body" class="hidden">{{ paste.body }}</pre>
+        {% else %}
+            <pre id="body">{{ paste.body }}</pre>
+        {% endif %}
+    </main>
 {% endblock %}

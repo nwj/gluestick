@@ -96,6 +96,7 @@ svg.icon {
   --spacing-lg: 2rem;
   --spacing-xl: 3.25rem;
   --spacing-2xl: 5.25rem;
+  --spacing-3xl: 7rem;
 
   --content-width: 960px;
 }
@@ -168,11 +169,19 @@ main {
   flex-direction: column;
   flex: 1;
 
+  h1,
+  h2 {
+    line-height: var(--line-height-heading);
+    font-weight: normal;
+  }
+
   h1 {
     margin-bottom: var(--spacing-lg);
     font-size: var(--font-size-3xl);
-    line-height: var(--line-height-heading);
-    font-weight: normal;
+  }
+
+  h2 {
+    font-size: var(--font-size-2xl);
   }
 
   a {
@@ -252,73 +261,105 @@ main {
     }
   }
 
-  button.primary {
-    border: unset;
-    background-color: var(--color-celery-green);
+  a.button {
+    text-decoration: none;
+  }
+
+  button,
+  a.button {
+    &.primary {
+      border: unset;
+      color: var(--color-black);
+      background-color: var(--color-celery-green);
+      box-shadow: 10px 10px 0 0 var(--color-black);
+      line-height: var(--line-height-text);
+      padding: var(--spacing-2xs) var(--spacing-sm);
+      cursor: pointer;
+    }
+  }
+}
+
+.login,
+.signup {
+  .validated-input {
+    margin-bottom: var(--spacing-xs);
+
+    input {
+      font-size: var(--font-size-xl);
+    }
+  }
+}
+
+.about {
+  section {
+    margin-bottom: var(--spacing-xl);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: var(--spacing-xl);
+  }
+
+  .hero {
+    margin-bottom: var(--spacing-3xl);
+
+    h1 {
+      font-size: var(--font-size-4xl);
+    }
+
+    .logo {
+      font-family:
+        Madimi One,
+        sans-serif;
+      color: var(--color-feather-yellow);
+    }
+
+    .button {
+      font-size: var(--font-size-2xl);
+      padding: var(--spacing-sm) var(--spacing-md);
+    }
+  }
+
+  .github-banner {
+    flex-direction: column;
+    background-color: var(--color-space-cadet-blue);
     box-shadow: 10px 10px 0 0 var(--color-black);
-    padding: var(--spacing-2xs) var(--spacing-sm);
-    cursor: pointer;
+    padding: var(--spacing-lg);
+    gap: var(--spacing-md);
+
+    svg {
+      height: 50px;
+    }
   }
 
-  .login,
-  .signup {
-    .validated-input {
+  .pair {
+    flex-direction: row-reverse;
+
+    h2 {
+      font-size: var(--font-size-3xl);
+      margin-bottom: var(--spacing-md);
+    }
+
+    p {
+      font-size: var(--font-size-lg);
+    }
+  }
+
+  .pair:nth-of-type(2n) {
+    flex-direction: row;
+  }
+}
+
+.pastes-index,
+.users-show {
+  .paste {
+    margin-bottom: var(--spacing-xl);
+
+    .filename-bar {
       margin-bottom: var(--spacing-xs);
-
-      input {
-        font-size: var(--font-size-xl);
-      }
-    }
-  }
-
-  .pastes-index {
-    .paste {
-      margin-bottom: var(--spacing-xl);
-
-      .filename-bar {
-        margin-bottom: var(--spacing-xs);
-        font-size: var(--font-size-lg);
-        line-height: var(--line-height-heading);
-      }
-
-      .description-bar,
-      .metadata-bar {
-        color: var(--color-grey-200);
-        line-height: var(--line-height-text);
-      }
-
-      .description-bar {
-        font-size: var(--font-size-sm);
-      }
-
-      .metadata-bar {
-        flex-wrap: wrap;
-        margin-bottom: var(--spacing-xs);
-        font-size: var(--font-size-xs);
-      }
-
-      pre {
-        font-size: var(--font-size-sm);
-      }
+      font-size: var(--font-size-lg);
+      line-height: var(--line-height-heading);
     }
 
-    .pagination {
-      display: flex;
-      justify-content: center;
-
-      span,
-      a {
-        margin-right: var(--spacing-sm);
-      }
-
-      span {
-        color: var(--color-grey-500);
-        cursor: default;
-      }
-    }
-  }
-
-  .pastes-show {
     .description-bar,
     .metadata-bar {
       color: var(--color-grey-200);
@@ -326,110 +367,147 @@ main {
     }
 
     .description-bar {
-      font-size: var(--font-size-xl);
+      font-size: var(--font-size-sm);
     }
 
     .metadata-bar {
-      --metadata-bar-font-size: var(--font-size-sm);
-      display: flex;
-      justify-content: space-between;
-      font-size: var(--metadata-bar-font-size);
-      margin-bottom: var(--spacing-sm);
-
-      .actions {
-        display: flex;
-
-        a,
-        button {
-          display: flex;
-          align-items: center;
-          background: unset;
-          border: unset;
-          padding: unset;
-          margin: 0 var(--spacing-sm) 0 0;
-          text-decoration: unset;
-          color: var(--color-grey-200);
-          cursor: pointer;
-
-          svg {
-            height: var(--metadata-bar-font-size);
-            width: var(--metadata-bar-font-size);
-            margin-right: var(--spacing-2xs);
-          }
-
-          &:hover {
-            color: var(--color-jigglypuff-pink);
-          }
-        }
-      }
+      flex-wrap: wrap;
+      margin-bottom: var(--spacing-xs);
+      font-size: var(--font-size-xs);
     }
 
-    #body.hidden {
-      visibility: hidden;
-      height: 0;
-      width: 0;
+    pre {
+      font-size: var(--font-size-sm);
     }
   }
 
-  .pastes-new,
-  .pastes-edit {
+  .pagination {
+    display: flex;
+    justify-content: center;
+
+    span,
+    a {
+      margin-right: var(--spacing-sm);
+    }
+
+    span {
+      color: var(--color-grey-500);
+      cursor: default;
+    }
+  }
+}
+
+.pastes-show {
+  .description-bar,
+  .metadata-bar {
+    color: var(--color-grey-200);
+    line-height: var(--line-height-text);
+  }
+
+  .description-bar {
+    font-size: var(--font-size-xl);
+  }
+
+  .metadata-bar {
+    --metadata-bar-font-size: var(--font-size-sm);
+    display: flex;
+    justify-content: space-between;
+    font-size: var(--metadata-bar-font-size);
+    margin-bottom: var(--spacing-sm);
+
+    .actions {
+      display: flex;
+
+      a,
+      button {
+        display: flex;
+        align-items: center;
+        background: unset;
+        border: unset;
+        padding: unset;
+        margin: 0 var(--spacing-sm) 0 0;
+        text-decoration: unset;
+        color: var(--color-grey-200);
+        cursor: pointer;
+
+        svg {
+          height: var(--metadata-bar-font-size);
+          width: var(--metadata-bar-font-size);
+          margin-right: var(--spacing-2xs);
+        }
+
+        &:hover {
+          color: var(--color-jigglypuff-pink);
+        }
+      }
+    }
+  }
+
+  #body.hidden {
+    visibility: hidden;
+    height: 0;
+    width: 0;
+  }
+}
+
+.pastes-new,
+.pastes-edit {
+  display: flex;
+  flex: 1;
+
+  form {
     display: flex;
     flex: 1;
+    flex-direction: column;
+    min-width: 0;
 
-    form {
+    .filename-bar {
       display: flex;
-      flex: 1;
-      flex-direction: column;
-      min-width: 0;
+      font-size: var(--font-size-3xl);
 
-      .filename-bar {
-        display: flex;
-        font-size: var(--font-size-3xl);
-
-        a,
-        span {
-          margin-right: var(--spacing-xs);
-        }
-
-        .filename {
-          input {
-            min-width: 0;
-            font-size: var(--font-size-3xl);
-          }
-        }
+      a,
+      span {
+        margin-right: var(--spacing-xs);
       }
 
-      .description {
-        margin-bottom: var(--spacing-xs);
-
+      .filename {
         input {
-          width: 100%;
-          font-size: var(--font-size-xl);
+          min-width: 0;
+          font-size: var(--font-size-3xl);
         }
       }
+    }
 
-      .body {
-        margin-bottom: var(--spacing-xs);
-        display: flex;
-        flex-direction: column;
+    .description {
+      margin-bottom: var(--spacing-xs);
+
+      input {
+        width: 100%;
+        font-size: var(--font-size-xl);
+      }
+    }
+
+    .body {
+      margin-bottom: var(--spacing-xs);
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+
+      textarea {
         flex: 1;
-
-        textarea {
-          flex: 1;
-        }
       }
+    }
 
-      .visibility {
-        margin-bottom: var(--spacing-md);
+    .visibility {
+      margin-bottom: var(--spacing-md);
 
-        label {
-          display: block;
-        }
+      label {
+        display: block;
       }
+    }
 
-      button.primary {
-        align-self: flex-start;
-      }
+    button.primary {
+      align-self: flex-start;
     }
   }
 }
