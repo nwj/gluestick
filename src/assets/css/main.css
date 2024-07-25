@@ -292,7 +292,7 @@ main {
 
 .about {
   section {
-    margin-bottom: var(--spacing-xl);
+    margin-bottom: var(--spacing-md);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -316,18 +316,6 @@ main {
     .button {
       font-size: var(--font-size-2xl);
       padding: var(--spacing-sm) var(--spacing-md);
-    }
-  }
-
-  .github-banner {
-    flex-direction: column;
-    background-color: var(--color-space-cadet-blue);
-    box-shadow: 10px 10px 0 0 var(--color-black);
-    padding: var(--spacing-lg);
-    gap: var(--spacing-md);
-
-    svg {
-      height: 50px;
     }
   }
 
