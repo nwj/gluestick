@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 {% block title %}Sign Up{% endblock %}
-{% block content %}
-    <h1>Sign-up for Gluestick</h1>
-    <section class="signup">
+{% block main %}
+    <main class="signup">
+        <h1>Sign-up for Gluestick</h1>
         <form action="/signup" method="post">
             {% include "partials/username_input.html" %}
             {% include "partials/email_input.html" %}
@@ -22,5 +22,5 @@
             </div>
             <button class="primary" type="submit">Sign Up</button>
         </form>
-    </section>
+    </main>
 {% endblock %}

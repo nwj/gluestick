@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 {% block title %}Settings{% endblock %}
-{% block content %}
-    <section class="settings">
+{% block main %}
+    <main class="settings">
         <h1>Settings</h1>
         <button hx-post="/api_sessions" hx-target="#new-api-key">Generate an api key</button>
         <div id="new-api-key"></div>
-    </section>
+    </main>
 {% endblock %}

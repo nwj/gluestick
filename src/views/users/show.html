@@ -1,14 +1,14 @@
 {% extends "base.html" %}
 {% block title %}{{ user.username }}'s Pastes{% endblock %}
-{% block content %}
-    {% if paste_html_pairs.len() > 0 %}
-        <h1>{{ user.username }}'s Pastes</h1>
-        <section class="pastes-index">
+{% block main %}
+    <main class="users-show">
+        {% if paste_html_pairs.len() > 0 %}
+            <h1>{{ user.username }}'s Pastes</h1>
             <ul>
                 {% for (paste, syntax_highlighted_html) in paste_html_pairs %}
                     <li class="paste">
                         <div class="filename-bar">
-				<a href="/{{ user.username }}">{{ user.username }}</a> / <a href="{{ user.username }}/{{ paste.id }}">{{ paste.filename }}</a>
+                            <a href="/{{ user.username }}">{{ user.username }}</a> / <a href="{{ user.username }}/{{ paste.id }}">{{ paste.filename }}</a>
                         </div>
                         {% if !paste.description.is_empty() %}<div class="description-bar">{{ paste.description }}</div>{% endif %}
                         <div class="metadata-bar">
@@ -38,5 +38,5 @@
                 <span>Older</span>
             {% endif %}
         </div>
-    </section>
+    </main>
 {% endblock %}
