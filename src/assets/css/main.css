@@ -301,6 +301,10 @@ main {
     gap: var(--spacing-xl);
   }
 
+  picture {
+    flex-basis: 100%;
+  }
+
   .hero {
     margin-bottom: var(--spacing-3xl);
 
