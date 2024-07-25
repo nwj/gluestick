@@ -56,6 +56,8 @@ svg.icon {
   stroke-linecap: round;
   stroke-linejoin: round;
   fill: none;
+  display: inline-block;
+  vertical-align: middle;
 }
 
 :root {
@@ -314,6 +316,9 @@ main {
     }
 
     .button {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--spacing-xs);
       font-size: var(--font-size-2xl);
       padding: var(--spacing-sm) var(--spacing-md);
     }
