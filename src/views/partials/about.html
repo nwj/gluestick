@@ -1,15 +1,27 @@
 <main class="about">
   <section class="hero">
-    <picture>
-      <source type="image/avif" srcset="/assets/images/james.avif" />
-      <img
-        src="/assets/images/james.png"
-        alt="die-cut sticker of an adorable glue monster named James, vector, line art, icon"
-        width="300"
-        height="357"
-        loading="lazy"
-      />
-    </picture>
+    <div class="progressive-image-container" id="james">
+      <picture class="preview-image">
+        <source type="image/avif" srcset="/assets/images/james-preview.avif" />
+        <img
+          src="/assets/images/james-preview.png"
+          alt="die-cut sticker of an adorable glue monster named James, vector, line art, icon"
+          width="300"
+          height="357"
+        />
+      </picture>
+      <picture class="main-image">
+        <source type="image/avif" srcset="/assets/images/james.avif" />
+        <img
+          src="/assets/images/james.png"
+          alt="die-cut sticker of an adorable glue monster named James, vector, line art, icon"
+          width="300"
+          height="357"
+          loading="lazy"
+          onload="this.parentElement.style.opacity = 1; this.parentElement.previousElementSibling.style.opacity = 0;"
+        />
+      </picture>
+    </div>
     <div>
       <h1>
         <span class="logo">Gluestick</span> is a self-hosted pastebin that makes
@@ -35,16 +47,31 @@
         cheapest, bottom-of-the-barrel cloud servers in the world.
       </p>
     </div>
-    <picture>
-      <source type="image/avif" srcset="/assets/images/monstera-plant.avif" />
-      <img
-        src="/assets/images/monstera-plant.png"
-        alt="die-cut sticker of a monstera house plant in a blue pot, vector, icon"
-        width="275"
-        height="325"
-        loading="lazy"
-      />
-    </picture>
+    <div class="progressive-image-container" id="monstera">
+      <picture class="preview-image">
+        <source
+          type="image/avif"
+          srcset="/assets/images/monstera-preview.avif"
+        />
+        <img
+          src="/assets/images/monstera-preview.png"
+          alt="die-cut sticker of a monstera house plant in a blue pot, vector, icon"
+          width="275"
+          height="325"
+        />
+      </picture>
+      <picture class="main-image">
+        <source type="image/avif" srcset="/assets/images/monstera.avif" />
+        <img
+          src="/assets/images/monstera.png"
+          alt="die-cut sticker of a monstera house plant in a blue pot, vector, icon"
+          width="275"
+          height="325"
+          loading="lazy"
+          onload="this.parentElement.style.opacity = 1; this.parentElement.previousElementSibling.style.opacity = 0;"
+        />
+      </picture>
+    </div>
   </section>
   <section class="pair">
     <div>
@@ -58,16 +85,31 @@
         colorscheme.
       </p>
     </div>
-    <picture>
-      <source type="image/avif" srcset="/assets/images/tennis-shoe.avif" />
-      <img
-        src="/assets/images/tennis-shoe.png"
-        alt="cute tennis shoe sticker on a white background, vector, icon"
-        width="300"
-        height="267"
-        loading="lazy"
-      />
-    </picture>
+    <div class="progressive-image-container" id="sneaker">
+      <picture class="preview-image">
+        <source
+          type="image/avif"
+          srcset="/assets/images/sneaker-preview.avif"
+        />
+        <img
+          src="/assets/images/sneaker-preview.png"
+          alt="cute tennis shoe sticker on a white background, vector, icon"
+          width="300"
+          height="268"
+        />
+      </picture>
+      <picture class="main-image">
+        <source type="image/avif" srcset="/assets/images/sneaker.avif" />
+        <img
+          src="/assets/images/sneaker.png"
+          alt="cute tennis shoe sticker on a white background, vector, icon"
+          width="300"
+          height="268"
+          loading="lazy"
+          onload="this.parentElement.style.opacity = 1; this.parentElement.previousElementSibling.style.opacity = 0;"
+        />
+      </picture>
+    </div>
   </section>
   <section class="pair">
     <div>
@@ -77,15 +119,30 @@
         programmatically create, read, and manage pastes with ease.
       </p>
     </div>
-    <picture>
-      <source type="image/avif" srcset="/assets/images/retro-console.avif" />
-      <img
-        src="/assets/images/retro-console.png"
-        alt="die-cut sticker of an old style computer, isometric, line art, icon"
-        width="325"
-        height="281"
-        loading="lazy"
-      />
-    </picture>
+    <div class="progressive-image-container" id="console">
+      <picture class="preview-image">
+        <source
+          type="image/avif"
+          srcset="/assets/images/console-preview.avif"
+        />
+        <img
+          src="/assets/images/console-preview.png"
+          alt="die-cut sticker of an old style computer, isometric, line art, icon"
+          width="325"
+          height="281"
+        />
+      </picture>
+      <picture class="main-image">
+        <source type="image/avif" srcset="/assets/images/console.avif" />
+        <img
+          src="/assets/images/console.png"
+          alt="die-cut sticker of an old style computer, isometric, line art, icon"
+          width="325"
+          height="281"
+          loading="lazy"
+          onload="this.parentElement.style.opacity = 1; this.parentElement.previousElementSibling.style.opacity = 0;"
+        />
+      </picture>
+    </div>
   </section>
 </main>

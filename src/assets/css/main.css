@@ -305,6 +305,26 @@ main {
     flex-basis: 100%;
   }
 
+  .progressive-image-container {
+    flex-shrink: 0;
+    position: relative;
+
+    .preview-image,
+    .main-image {
+      position: absolute;
+      transition: all 25ms 25ms;
+    }
+
+    .preview-image {
+      image-rendering: pixelated;
+      opacity: 1;
+    }
+
+    .main-image {
+      opacity: 0;
+    }
+  }
+
   .hero {
     margin-bottom: var(--spacing-3xl);
 
@@ -343,6 +363,30 @@ main {
 
   .pair:nth-of-type(2n) {
     flex-direction: row;
+  }
+
+  #james {
+    flex-basis: 300px;
+    width: 300px;
+    height: 357px;
+  }
+
+  #monstera {
+    flex-basis: 275px;
+    width: 275px;
+    height: 325px;
+  }
+
+  #sneaker {
+    flex-basis: 300px;
+    width: 300px;
+    height: 268px;
+  }
+
+  #console {
+    flex-basis: 325px;
+    width: 325px;
+    height: 281px;
   }
 }
 
