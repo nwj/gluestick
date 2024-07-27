@@ -1,5 +1,11 @@
 {% extends "base.html" %}
-{% block title %}New Paste{% endblock %}
+{% block title %}
+    {% if session.is_some() %}
+        New Paste
+    {% else %}
+        About Gluestick
+    {% endif %}
+{% endblock %}
 {% block main %}
     {% if let Some(session) = session %}
         <main class="pastes-new">
