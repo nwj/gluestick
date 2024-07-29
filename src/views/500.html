@@ -1,7 +1,32 @@
 {% extends "base.html" %}
 {% block title %}Internal Server Error{% endblock %}
 {% block main %}
-    <main>
-        <h1>500 Internal Server Error</h1>
+    <main class="internal-server-error">
+        <section>
+            <div class="progressive-image-container" id="exploding-console">
+                <picture class="preview-image">
+                    <source type="image/avif"
+                            srcset="/assets/images/exploding-console-preview.avif" />
+                    <img src="/assets/images/exploding-console-preview.png"
+                         alt="die-cut sticker of an exploding, retro computer console, pixelated preview"
+                         width="350"
+                         height="324" />
+                </picture>
+                <picture class="main-image">
+                    <source type="image/avif" srcset="/assets/images/exploding-console.avif" />
+                    <img src="/assets/images/exploding-console.png"
+                         alt="die-cut sticker of an exploding, retro computer console"
+                         width="350"
+                         height="324"
+                         loading="lazy"
+                         onload="this.parentElement.style.opacity = 1; this.parentElement.previousElementSibling.style.opacity = 0;" />
+                </picture>
+            </div>
+            <div>
+                <h1>500 Internal Server Error</h1>
+                <p>Oops...Something went wrong on our side.</p>
+                <a href="/" class="button primary">Back to homepage</a>
+            </div>
+        </section>
     </main>
 {% endblock %}
