@@ -279,31 +279,6 @@ main {
       cursor: pointer;
     }
   }
-}
-
-.login,
-.signup {
-  .validated-input {
-    margin-bottom: var(--spacing-xs);
-
-    input {
-      font-size: var(--font-size-xl);
-    }
-  }
-}
-
-.about {
-  section {
-    margin-bottom: var(--spacing-md);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: var(--spacing-xl);
-  }
-
-  picture {
-    flex-basis: 100%;
-  }
 
   .progressive-image-container {
     flex-shrink: 0;
@@ -323,6 +298,66 @@ main {
     .main-image {
       opacity: 0;
     }
+  }
+}
+
+.login,
+.signup {
+  .validated-input {
+    margin-bottom: var(--spacing-xs);
+
+    input {
+      font-size: var(--font-size-xl);
+    }
+  }
+}
+
+.not-found,
+.internal-server-error {
+  section {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: var(--spacing-xl);
+
+    h1 {
+      font-size: var(--font-size-4xl);
+    }
+
+    p {
+      font-size: var(--font-size-xl);
+      margin-bottom: var(--spacing-md);
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--spacing-xs);
+      font-size: var(--font-size-xl);
+      padding: var(--spacing-sm) var(--spacing-md);
+    }
+
+    #lost-james {
+      flex-basis: 350px;
+      width: 350px;
+      height: 408px;
+    }
+
+    #exploding-console {
+      flex-basis: 350px;
+      width: 350px;
+      height: 324px;
+    }
+  }
+}
+
+.about {
+  section {
+    margin-bottom: var(--spacing-md);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: var(--spacing-xl);
   }
 
   .hero {
