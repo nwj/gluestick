@@ -4,13 +4,13 @@ use crate::common::user_helper::TestUser;
 use crate::prelude::*;
 use core::net::SocketAddr;
 use gluestick::{db::migrations, db::Database, router};
-use once_cell::sync::Lazy;
+use std::sync::LazyLock;
 use tokio::net::TcpListener;
 use tokio_rusqlite::{named_params, Connection};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use uuid::Uuid;
 
-static INIT_TRACING: Lazy<()> = Lazy::new(|| {
+static INIT_TRACING: LazyLock<()> = LazyLock::new(|| {
     if std::env::var("GLUESTICK_TEST_LOG").is_ok() {
         tracing_subscriber::registry()
             .with(
@@ -29,7 +29,7 @@ pub struct TestApp {
 
 impl TestApp {
     pub async fn spawn() -> Result<Self> {
-        Lazy::force(&INIT_TRACING);
+        LazyLock::force(&INIT_TRACING);
 
         let mut db = Database {
             conn: Connection::open_in_memory().await?,

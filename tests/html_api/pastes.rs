@@ -40,11 +40,13 @@ async fn index_does_not_include_secret_pastes() -> Result<()> {
     let client = TestClient::new(app.address, None)?;
     let paste1 = TestPaste::builder()
         .random()?
+        .filename(random_filename(64..=64)?)
         .build()
         .seed(&app, &user)
         .await?;
     let paste2 = TestPaste::builder()
         .random()?
+        .filename(random_filename(64..=64)?)
         .visibility("secret")
         .build()
         .seed(&app, &user)
