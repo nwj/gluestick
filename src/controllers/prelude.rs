@@ -1,7 +1,9 @@
 use crate::models::prelude::Error as ModelsError;
 use crate::params::prelude::Error as ParamsError;
 use crate::params::prelude::Report;
-use crate::views::{InternalServerErrorTemplate, NotFoundTemplate};
+use crate::views::{
+    ForbiddenTemplate, InternalServerErrorTemplate, NotFoundTemplate, UnauthorizedTemplate,
+};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 
@@ -55,9 +57,15 @@ impl IntoResponse for Error {
                 }
             },
 
-            Error::Unauthorized => (StatusCode::UNAUTHORIZED, ()).into_response(),
+            Error::Unauthorized => (
+                StatusCode::UNAUTHORIZED,
+                UnauthorizedTemplate { session: None },
+            )
+                .into_response(),
 
-            Error::Forbidden => (StatusCode::FORBIDDEN, ()).into_response(),
+            Error::Forbidden => {
+                (StatusCode::FORBIDDEN, ForbiddenTemplate { session: None }).into_response()
+            }
 
             Error::NotFound => {
                 (StatusCode::NOT_FOUND, NotFoundTemplate { session: None }).into_response()

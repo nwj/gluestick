@@ -6,6 +6,18 @@ pub mod sessions;
 pub mod users;
 
 #[derive(Template)]
+#[template(path = "401.html")]
+pub struct UnauthorizedTemplate {
+    pub session: Option<()>,
+}
+
+#[derive(Template)]
+#[template(path = "403.html")]
+pub struct ForbiddenTemplate {
+    pub session: Option<()>,
+}
+
+#[derive(Template)]
 #[template(path = "404.html")]
 pub struct NotFoundTemplate {
     pub session: Option<()>,
