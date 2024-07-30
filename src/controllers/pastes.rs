@@ -79,9 +79,13 @@ pub async fn create(
 pub async fn show(
     session: Option<Session>,
     State(db): State<Database>,
-    Path((username, id)): Path<(UsernameParam, Uuid)>,
+    Path((username, id)): Path<(UsernameParam, String)>,
 ) -> Result<impl IntoResponse> {
+    // Manually parse id here so that we can render NotFound (rather than BadRequest if we let
+    // Axum + Serde automatically deserialize to Uuid)
+    let id = Uuid::try_parse(&id).map_err(|_| Error::NotFound)?;
     username.validate().map_err(|_| Error::NotFound)?;
+
     let user = User::find_by_username(&db, username)
         .await?
         .ok_or(Error::NotFound)?;
@@ -109,9 +113,13 @@ pub async fn show(
 
 pub async fn show_raw(
     State(db): State<Database>,
-    Path((username, id)): Path<(UsernameParam, Uuid)>,
+    Path((username, id)): Path<(UsernameParam, String)>,
 ) -> Result<impl IntoResponse> {
+    // Manually parse id here so that we can render NotFound (rather than BadRequest if we let
+    // Axum + Serde automatically deserialize to Uuid)
+    let id = Uuid::try_parse(&id).map_err(|_| Error::NotFound)?;
     username.validate().map_err(|_| Error::NotFound)?;
+
     let user = User::find_by_username(&db, username)
         .await?
         .ok_or(Error::NotFound)?;
@@ -129,9 +137,13 @@ pub async fn show_raw(
 
 pub async fn download(
     State(db): State<Database>,
-    Path((username, id)): Path<(UsernameParam, Uuid)>,
+    Path((username, id)): Path<(UsernameParam, String)>,
 ) -> Result<impl IntoResponse> {
+    // Manually parse id here so that we can render NotFound (rather than BadRequest if we let
+    // Axum + Serde automatically deserialize to Uuid)
+    let id = Uuid::try_parse(&id).map_err(|_| Error::NotFound)?;
     username.validate().map_err(|_| Error::NotFound)?;
+
     let user = User::find_by_username(&db, username)
         .await?
         .ok_or(Error::NotFound)?;
@@ -155,9 +167,13 @@ pub async fn download(
 pub async fn edit(
     session: Session,
     State(db): State<Database>,
-    Path((username, id)): Path<(UsernameParam, Uuid)>,
+    Path((username, id)): Path<(UsernameParam, String)>,
 ) -> Result<impl IntoResponse> {
+    // Manually parse id here so that we can render NotFound (rather than BadRequest if we let
+    // Axum + Serde automatically deserialize to Uuid)
+    let id = Uuid::try_parse(&id).map_err(|_| Error::NotFound)?;
     username.validate().map_err(|_| Error::NotFound)?;
+
     let user = User::find_by_username(&db, username)
         .await?
         .ok_or(Error::NotFound)?;
@@ -190,10 +206,14 @@ pub async fn edit(
 pub async fn update(
     session: Session,
     State(db): State<Database>,
-    Path((username, id)): Path<(UsernameParam, Uuid)>,
+    Path((username, id)): Path<(UsernameParam, String)>,
     Form(params): Form<UpdatePasteParams>,
 ) -> Result<impl IntoResponse> {
+    // Manually parse id here so that we can render NotFound (rather than BadRequest if we let
+    // Axum + Serde automatically deserialize to Uuid)
+    let id = Uuid::try_parse(&id).map_err(|_| Error::NotFound)?;
     username.validate().map_err(|_| Error::NotFound)?;
+
     let user = User::find_by_username(&db, username)
         .await?
         .ok_or(Error::NotFound)?;
@@ -234,9 +254,13 @@ pub async fn update(
 pub async fn destroy(
     session: Session,
     State(db): State<Database>,
-    Path((username, id)): Path<(UsernameParam, Uuid)>,
+    Path((username, id)): Path<(UsernameParam, String)>,
 ) -> Result<impl IntoResponse> {
+    // Manually parse id here so that we can render NotFound (rather than BadRequest if we let
+    // Axum + Serde automatically deserialize to Uuid)
+    let id = Uuid::try_parse(&id).map_err(|_| Error::NotFound)?;
     username.validate().map_err(|_| Error::NotFound)?;
+
     let user = User::find_by_username(&db, username)
         .await?
         .ok_or(Error::NotFound)?;
