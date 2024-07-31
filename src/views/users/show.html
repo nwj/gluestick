@@ -23,20 +23,41 @@
                     </li>
                 {% endfor %}
             </ul>
+            <div class="pagination">
+                {% if let Some(prev_page) = pagination.prev_page %}
+                    <a href="/{{ user.username }}?prev_page={{ prev_page }}">Newer</a>
+                {% else %}
+                    <span>Newer</span>
+                {% endif %}
+                {% if let Some(next_page) = pagination.next_page %}
+                    <a href="/{{ user.username }}?next_page={{ next_page }}">Older</a>
+                {% else %}
+                    <span>Older</span>
+                {% endif %}
+            </div>
         {% else %}
-            <p>No pastes</p>
+            <section class="empty-state">
+                <div class="progressive-image-container" id="desert-skull">
+                    <picture class="preview-image">
+                        <source type="image/avif" srcset="/assets/images/desert-skull-preview.avif" />
+                        <img src="/assets/images/desert-skull-preview.png"
+                             alt="die-cut sticker of an animal skull lying in the desert, pixelated preview"
+                             width="350"
+                             height="268" />
+                    </picture>
+                    <picture class="main-image">
+                        <source type="image/avif" srcset="/assets/images/desert-skull.avif" />
+                        <img src="/assets/images/desert-skull.png"
+                             alt="die-cut sticker of an animal skull lying in the desert"
+                             width="350"
+                             height="268"
+                             loading="lazy"
+                             onload="this.parentElement.style.opacity = 1; this.parentElement.previousElementSibling.style.opacity = 0;" />
+                    </picture>
+                </div>
+                <p>There doesn't appear to be anything out here yet.</p>
+                <a href="/" class="button primary">Back to homepage</a>
+            </section>
         {% endif %}
-        <div class="pagination">
-            {% if let Some(prev_page) = pagination.prev_page %}
-                <a href="/{{ user.username }}?prev_page={{ prev_page }}">Newer</a>
-            {% else %}
-                <span>Newer</span>
-            {% endif %}
-            {% if let Some(next_page) = pagination.next_page %}
-                <a href="/{{ user.username }}?next_page={{ next_page }}">Older</a>
-            {% else %}
-                <span>Older</span>
-            {% endif %}
-        </div>
     </main>
 {% endblock %}

@@ -1,5 +1,5 @@
 <main class="about">
-  <section class="hero">
+  <section class="image-content-pair" id="hero">
     <div class="progressive-image-container" id="james">
       <picture class="preview-image">
         <source type="image/avif" srcset="/assets/images/james-preview.avif" />
@@ -38,16 +38,7 @@
       </a>
     </div>
   </section>
-  <section class="pair">
-    <div>
-      <h2>Grow Your Own Digital Garden</h2>
-      <p>
-        By compiling to a single executable and storing all its data in a single
-        file, Gluestick is designed for easy self-hosting. And it runs at over
-        1,500 requests per second with sub-200ms P95 latencies on some of the
-        cheapest, bottom-of-the-barrel cloud servers in the world.
-      </p>
-    </div>
+  <section class="image-content-pair">
     <div class="progressive-image-container" id="monstera">
       <picture class="preview-image">
         <source
@@ -57,8 +48,8 @@
         <img
           src="/assets/images/monstera-preview.png"
           alt="die-cut sticker of a monstera house plant in a blue pot, pixelated preview image"
-          width="275"
-          height="325"
+          width="211"
+          height="250"
         />
       </picture>
       <picture class="main-image">
@@ -66,15 +57,49 @@
         <img
           src="/assets/images/monstera.png"
           alt="die-cut sticker of a monstera house plant in a blue pot"
-          width="275"
-          height="325"
+          width="211"
+          height="250"
           loading="lazy"
           onload="this.parentElement.style.opacity = 1; this.parentElement.previousElementSibling.style.opacity = 0;"
         />
       </picture>
     </div>
+    <div>
+      <h2>Grow Your Own Digital Garden</h2>
+      <p>
+        By compiling to a single executable and storing all its data in a single
+        file, Gluestick is designed for easy self-hosting. And it runs at over
+        1,500 requests per second with sub-200ms P95 latencies on some of the
+        cheapest, bottom-of-the-barrel cloud servers in the world.
+      </p>
+    </div>
   </section>
-  <section class="pair">
+  <section class="image-content-pair">
+    <div class="progressive-image-container" id="sneaker">
+      <picture class="preview-image">
+        <source
+          type="image/avif"
+          srcset="/assets/images/sneaker-preview.avif"
+        />
+        <img
+          src="/assets/images/sneaker-preview.png"
+          alt="die-cut sticker of a tennis shoe, pixelated preview image"
+          width="235"
+          height="209"
+        />
+      </picture>
+      <picture class="main-image">
+        <source type="image/avif" srcset="/assets/images/sneaker.avif" />
+        <img
+          src="/assets/images/sneaker.png"
+          alt="die-cut sticker of a tennis shoe"
+          width="235"
+          height="209"
+          loading="lazy"
+          onload="this.parentElement.style.opacity = 1; this.parentElement.previousElementSibling.style.opacity = 0;"
+        />
+      </picture>
+    </div>
     <div>
       <h2>Put Your Code's Best Foot Forward</h2>
       <p>
@@ -86,40 +111,8 @@
         colorscheme.
       </p>
     </div>
-    <div class="progressive-image-container" id="sneaker">
-      <picture class="preview-image">
-        <source
-          type="image/avif"
-          srcset="/assets/images/sneaker-preview.avif"
-        />
-        <img
-          src="/assets/images/sneaker-preview.png"
-          alt="die-cut sticker of a tennis shoe, pixelated preview image"
-          width="300"
-          height="268"
-        />
-      </picture>
-      <picture class="main-image">
-        <source type="image/avif" srcset="/assets/images/sneaker.avif" />
-        <img
-          src="/assets/images/sneaker.png"
-          alt="die-cut sticker of a tennis shoe"
-          width="300"
-          height="268"
-          loading="lazy"
-          onload="this.parentElement.style.opacity = 1; this.parentElement.previousElementSibling.style.opacity = 0;"
-        />
-      </picture>
-    </div>
   </section>
-  <section class="pair">
-    <div>
-      <h2>Outrageously Scriptable</h2>
-      <p>
-        Gluestick ships with a full-featured JSON API so you can
-        programmatically create, read, and manage pastes with ease.
-      </p>
-    </div>
+  <section class="image-content-pair">
     <div class="progressive-image-container" id="console">
       <picture class="preview-image">
         <source
@@ -129,8 +122,8 @@
         <img
           src="/assets/images/console-preview.png"
           alt="die-cut sticker of retro computer console, pixelated preview image"
-          width="325"
-          height="281"
+          width="250"
+          height="217"
         />
       </picture>
       <picture class="main-image">
@@ -138,12 +131,19 @@
         <img
           src="/assets/images/console.png"
           alt="die-cut sticker of retro computer console"
-          width="325"
-          height="281"
+          width="250"
+          height="217"
           loading="lazy"
           onload="this.parentElement.style.opacity = 1; this.parentElement.previousElementSibling.style.opacity = 0;"
         />
       </picture>
+    </div>
+    <div>
+      <h2>Outrageously Scriptable</h2>
+      <p>
+        Gluestick ships with a full-featured JSON API so you can
+        programmatically create, read, and manage pastes with ease.
+      </p>
     </div>
   </section>
 </main>
