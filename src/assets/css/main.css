@@ -175,10 +175,10 @@ main {
   h2 {
     line-height: var(--line-height-heading);
     font-weight: normal;
+    margin-bottom: var(--spacing-md);
   }
 
   h1 {
-    margin-bottom: var(--spacing-lg);
     font-size: var(--font-size-3xl);
   }
 
@@ -280,31 +280,40 @@ main {
     }
   }
 
+  .image-content-pair {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: var(--spacing-xl);
+
+    p {
+      font-size: var(--font-size-lg);
+      margin-bottom: var(--spacing-md);
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--spacing-xs);
+      font-size: var(--font-size-lg);
+      padding: var(--spacing-sm) var(--spacing-md);
+    }
+  }
+
   .progressive-image-container {
     flex-shrink: 0;
     position: relative;
 
-    .preview-image,
-    .main-image {
-      position: absolute;
-      transition: all 25ms 25ms;
-    }
-
     .preview-image {
+      position: absolute;
       image-rendering: pixelated;
       opacity: 1;
     }
 
     .main-image {
+      position: absolute;
       opacity: 0;
     }
-  }
-
-  section {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: var(--spacing-xl);
   }
 }
 
@@ -323,54 +332,29 @@ main {
 .forbidden,
 .not-found,
 .internal-server-error {
-  section {
-    h1 {
-      font-size: var(--font-size-4xl);
-    }
+  #padlock {
+    flex-basis: 250px;
+    height: 381px;
+  }
 
-    p {
-      font-size: var(--font-size-xl);
-      margin-bottom: var(--spacing-md);
-    }
+  #lost-james {
+    flex-basis: 275px;
+    height: 321px;
+  }
 
-    .button {
-      display: inline-flex;
-      align-items: center;
-      gap: var(--spacing-xs);
-      font-size: var(--font-size-xl);
-      padding: var(--spacing-sm) var(--spacing-md);
-    }
-
-    #padlock {
-      flex-basis: 300px;
-      width: 300px;
-      height: 457px;
-    }
-
-    #lost-james {
-      flex-basis: 350px;
-      width: 350px;
-      height: 408px;
-    }
-
-    #exploding-console {
-      flex-basis: 350px;
-      width: 350px;
-      height: 324px;
-    }
+  #exploding-console {
+    flex-basis: 325px;
+    height: 301px;
   }
 }
 
 .about {
-  section {
-    margin-bottom: var(--spacing-md);
-  }
-
-  .hero {
+  #hero {
     margin-bottom: var(--spacing-3xl);
 
     h1 {
       font-size: var(--font-size-4xl);
+      margin-bottom: var(--spacing-lg);
     }
 
     .logo {
@@ -381,53 +365,36 @@ main {
     }
 
     .button {
-      display: inline-flex;
-      align-items: center;
-      gap: var(--spacing-xs);
       font-size: var(--font-size-2xl);
-      padding: var(--spacing-sm) var(--spacing-md);
     }
   }
 
-  .pair {
+  .image-content-pair {
+    margin-bottom: var(--spacing-md);
+  }
+
+  .image-content-pair:nth-of-type(even) {
     flex-direction: row-reverse;
-
-    h2 {
-      font-size: var(--font-size-3xl);
-      margin-bottom: var(--spacing-md);
-    }
-
-    p {
-      font-size: var(--font-size-lg);
-    }
-  }
-
-  .pair:nth-of-type(2n) {
-    flex-direction: row;
   }
 
   #james {
     flex-basis: 300px;
-    width: 300px;
     height: 357px;
   }
 
   #monstera {
-    flex-basis: 275px;
-    width: 275px;
-    height: 325px;
+    flex-basis: 211px;
+    height: 250px;
   }
 
   #sneaker {
-    flex-basis: 300px;
-    width: 300px;
-    height: 268px;
+    flex-basis: 235px;
+    height: 209px;
   }
 
   #console {
-    flex-basis: 325px;
-    width: 325px;
-    height: 281px;
+    flex-basis: 250px;
+    height: 217px;
   }
 }
 
@@ -464,18 +431,20 @@ main {
   }
 
   .empty-state {
+    display: flex;
     flex-direction: column;
+    justify-content: center;
+    align-items: center;
     gap: var(--spacing-md);
     margin: var(--spacing-xl) 0 var(--spacing-2xl);
 
     p {
-      font-size: var(--font-size-2xl);
+      font-size: var(--font-size-lg);
     }
 
     #desert-skull {
       flex-basis: 268px;
       width: 350px;
-      height: 268px;
     }
   }
 

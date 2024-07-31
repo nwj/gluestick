@@ -2,21 +2,21 @@
 {% block title %}Not Found{% endblock %}
 {% block main %}
     <main class="not-found">
-        <section>
+        <div class="image-content-pair">
             <div class="progressive-image-container" id="lost-james">
                 <picture class="preview-image">
                     <source type="image/avif" srcset="/assets/images/lost-james-preview.avif" />
                     <img src="/assets/images/lost-james-preview.png"
                          alt="die-cut sticker of James, a glue monster, looking lost pixelated preview image"
-                         width="350"
-                         height="408" />
+                         width="275"
+                         height="321" />
                 </picture>
                 <picture class="main-image">
                     <source type="image/avif" srcset="/assets/images/lost-james.avif" />
                     <img src="/assets/images/lost-james.png"
                          alt="die-cut sticker of James, a glue monster, looking lost"
-                         width="350"
-                         height="408"
+                         width="275"
+                         height="321"
                          loading="lazy"
                          onload="this.parentElement.style.opacity = 1; this.parentElement.previousElementSibling.style.opacity = 0;" />
                 </picture>
@@ -26,6 +26,6 @@
                 <p>Oops...This page doesn't exist.</p>
                 <a href="/" class="button primary">Back to homepage</a>
             </div>
-        </section>
+        </div>
     </main>
 {% endblock %}
