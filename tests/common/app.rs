@@ -5,6 +5,7 @@ use crate::prelude::*;
 use core::net::SocketAddr;
 use gluestick::{db::migrations, db::Database, router};
 use std::sync::LazyLock;
+use time::OffsetDateTime;
 use tokio::net::TcpListener;
 use tokio_rusqlite::{named_params, Connection};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -92,12 +93,14 @@ impl TestApp {
             .conn
             .call(move |conn| {
                 let mut stmt =
-                    conn.prepare("INSERT INTO users VALUES(:id, :username, :email, :password);")?;
+                    conn.prepare("INSERT INTO users VALUES(:id, :username, :email, :password, :created_at, :updated_at);")?;
                 stmt.execute(named_params! {
                     ":id": id,
                     ":username": user.username,
                     ":email": user.email.to_lowercase(),
-                    ":password": hashed_password
+                    ":password": hashed_password,
+                    ":created_at": OffsetDateTime::now_utc().unix_timestamp(),
+                    ":updated_at": OffsetDateTime::now_utc().unix_timestamp(),
                 })?;
                 Ok(())
             })

@@ -7,9 +7,10 @@ use argon2::password_hash::{PasswordHasher, SaltString};
 use argon2::{Argon2, PasswordHash, PasswordVerifier};
 use derive_more::Display;
 use rand::rngs::OsRng;
-use rusqlite::types::{FromSql, FromSqlResult, ToSql, ToSqlOutput, ValueRef};
+use rusqlite::types::{FromSql, FromSqlResult, ToSql, ToSqlOutput, Type, ValueRef};
 use rusqlite::{named_params, Row};
 use secrecy::{ExposeSecret, Secret};
+use time::OffsetDateTime;
 use uuid::Uuid;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -18,6 +19,8 @@ pub struct User {
     pub username: Username,
     pub email: EmailAddress,
     pub password: HashedPassword,
+    pub created_at: OffsetDateTime,
+    pub updated_at: OffsetDateTime,
 }
 
 impl User {
@@ -31,6 +34,8 @@ impl User {
             username: Username::new(username),
             email: EmailAddress::new(email),
             password: HashedPassword::new(password)?,
+            created_at: OffsetDateTime::now_utc(),
+            updated_at: OffsetDateTime::now_utc(),
         })
     }
 
@@ -40,6 +45,12 @@ impl User {
             username: row.get(1)?,
             email: row.get(2)?,
             password: row.get(3)?,
+            created_at: OffsetDateTime::from_unix_timestamp(row.get(4)?).map_err(|e| {
+                rusqlite::Error::FromSqlConversionFailure(4, Type::Integer, Box::new(e))
+            })?,
+            updated_at: OffsetDateTime::from_unix_timestamp(row.get(5)?).map_err(|e| {
+                rusqlite::Error::FromSqlConversionFailure(5, Type::Integer, Box::new(e))
+            })?,
         })
     }
 
@@ -56,12 +67,14 @@ impl User {
             .conn
             .call(move |conn| {
                 let mut statement =
-                    conn.prepare("INSERT INTO users VALUES (:id, :username, :email, :password);")?;
+                    conn.prepare("INSERT INTO users VALUES (:id, :username, :email, :password, :created_at, :updated_at);")?;
                 let result = statement.execute(named_params! {
                     ":id": self.id,
                     ":username": self.username,
                     ":email": self.email,
-                    ":password": self.password.expose_secret()
+                    ":password": self.password.expose_secret(),
+                    ":created_at": self.created_at.unix_timestamp(),
+                    ":updated_at": self.updated_at.unix_timestamp(),
                 })?;
                 Ok(result)
             })
@@ -75,7 +88,7 @@ impl User {
             .conn
             .call(move |conn| {
                 let mut statement = conn.prepare(
-                    "SELECT id, username, email, password FROM users WHERE email = :email;",
+                    "SELECT id, username, email, password, created_at, updated_at FROM users WHERE email = :email;",
                 )?;
                 let mut rows = statement.query(named_params! {":email": email.to_lowercase()})?;
                 match rows.next()? {
@@ -97,7 +110,7 @@ impl User {
             .conn
             .call(move |conn| {
                 let mut statement = conn.prepare(
-                    "SELECT id, username, email, password FROM users WHERE username = :username;",
+                    "SELECT id, username, email, password, created_at, updated_at FROM users WHERE username = :username;",
                 )?;
                 let mut rows =
                     statement.query(named_params! {":username": username.to_lowercase()})?;
@@ -120,7 +133,7 @@ impl User {
             .conn
             .call(move |conn| {
                 let mut statement = conn.prepare(
-                    r"SELECT users.id, users.username, users.email, users.password
+                    r"SELECT users.id, users.username, users.email, users.password, users.created_at, users.updated_at
                     FROM users JOIN sessions ON users.id = sessions.user_id
                     WHERE sessions.session_token = :token;",
                 )?;
@@ -159,7 +172,7 @@ impl User {
             .conn
             .call(move |conn| {
                 let mut statement = conn.prepare(
-                    r"SELECT users.id, users.username, users.email, users.password
+                    r"SELECT users.id, users.username, users.email, users.password, users.created_at, users.updated_at
                     FROM users JOIN api_sessions ON users.id = api_sessions.user_id
                     WHERE api_sessions.api_key = :key;",
                 )?;

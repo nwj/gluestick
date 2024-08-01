@@ -7,6 +7,7 @@ use rand_chacha::ChaCha20Rng;
 use rusqlite::types::{FromSql, FromSqlResult, ToSql, ToSqlOutput, ValueRef};
 use secrecy::{ExposeSecret, Secret};
 use sha2::{Digest, Sha256};
+use time::OffsetDateTime;
 use tokio_rusqlite::named_params;
 
 pub const SESSION_COOKIE_NAME: &str = "session_token";
@@ -15,6 +16,7 @@ pub const SESSION_COOKIE_NAME: &str = "session_token";
 pub struct Session {
     pub token: HashedSessionToken,
     pub user: User,
+    pub created_at: OffsetDateTime,
 }
 
 impl Session {
@@ -22,6 +24,7 @@ impl Session {
         Self {
             token: token.into(),
             user,
+            created_at: OffsetDateTime::now_utc(),
         }
     }
 
@@ -29,11 +32,13 @@ impl Session {
         let result = db
             .conn
             .call(move |conn| {
-                let mut statement =
-                    conn.prepare("INSERT INTO sessions VALUES (:session_token, :user_id);")?;
+                let mut statement = conn.prepare(
+                    "INSERT INTO sessions VALUES (:session_token, :user_id, :created_at);",
+                )?;
                 let result = statement.execute(named_params! {
                     ":session_token": self.token,
                     ":user_id": self.user.id,
+                    ":created_at": self.created_at.unix_timestamp(),
                 })?;
                 Ok(result)
             })
