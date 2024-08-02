@@ -5,9 +5,9 @@ use crate::common::paste_helper::TestPaste;
 use crate::common::rand_helper::{random_alphanumeric_string, random_filename, random_string};
 use crate::common::user_helper::TestUser;
 use crate::prelude::*;
+use jiff::Timestamp as JiffTimestamp;
 use serde::Deserialize;
 use std::collections::HashSet;
-use time::OffsetDateTime;
 use uuid::{NoContext, Timestamp, Uuid};
 
 #[derive(Debug, Deserialize)]
@@ -165,7 +165,7 @@ async fn index_paginates_correctly() -> Result<()> {
         .seed_with_api_key(&app)
         .await?;
     let client = TestClient::new(app.address, Some(&api_key))?;
-    let now = (OffsetDateTime::now_utc().unix_timestamp() * 1000) as u64;
+    let now = (JiffTimestamp::now().as_millisecond()) as u64;
 
     let mut pastes = Vec::new();
     for i in 0..8 {

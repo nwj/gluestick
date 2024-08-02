@@ -6,11 +6,11 @@ use crate::params::users::CreateUserParams;
 use argon2::password_hash::{PasswordHasher, SaltString};
 use argon2::{Argon2, PasswordHash, PasswordVerifier};
 use derive_more::Display;
+use jiff::Timestamp;
 use rand::rngs::OsRng;
 use rusqlite::types::{FromSql, FromSqlResult, ToSql, ToSqlOutput, Type, ValueRef};
 use rusqlite::{named_params, Row};
 use secrecy::{ExposeSecret, Secret};
-use time::OffsetDateTime;
 use uuid::Uuid;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -19,8 +19,8 @@ pub struct User {
     pub username: Username,
     pub email: EmailAddress,
     pub password: HashedPassword,
-    pub created_at: OffsetDateTime,
-    pub updated_at: OffsetDateTime,
+    pub created_at: Timestamp,
+    pub updated_at: Timestamp,
 }
 
 impl User {
@@ -34,8 +34,8 @@ impl User {
             username: Username::new(username),
             email: EmailAddress::new(email),
             password: HashedPassword::new(password)?,
-            created_at: OffsetDateTime::now_utc(),
-            updated_at: OffsetDateTime::now_utc(),
+            created_at: Timestamp::now(),
+            updated_at: Timestamp::now(),
         })
     }
 
@@ -45,10 +45,10 @@ impl User {
             username: row.get(1)?,
             email: row.get(2)?,
             password: row.get(3)?,
-            created_at: OffsetDateTime::from_unix_timestamp(row.get(4)?).map_err(|e| {
+            created_at: Timestamp::from_millisecond(row.get(4)?).map_err(|e| {
                 rusqlite::Error::FromSqlConversionFailure(4, Type::Integer, Box::new(e))
             })?,
-            updated_at: OffsetDateTime::from_unix_timestamp(row.get(5)?).map_err(|e| {
+            updated_at: Timestamp::from_millisecond(row.get(5)?).map_err(|e| {
                 rusqlite::Error::FromSqlConversionFailure(5, Type::Integer, Box::new(e))
             })?,
         })
@@ -73,8 +73,8 @@ impl User {
                     ":username": self.username,
                     ":email": self.email,
                     ":password": self.password.expose_secret(),
-                    ":created_at": self.created_at.unix_timestamp(),
-                    ":updated_at": self.updated_at.unix_timestamp(),
+                    ":created_at": self.created_at.as_millisecond(),
+                    ":updated_at": self.updated_at.as_millisecond(),
                 })?;
                 Ok(result)
             })

@@ -5,7 +5,7 @@ use crate::common::paste_helper::TestPaste;
 use crate::common::rand_helper;
 use crate::common::user_helper::TestUser;
 use crate::prelude::*;
-use time::OffsetDateTime;
+use jiff::Timestamp as JiffTimestamp;
 use uuid::{NoContext, Timestamp, Uuid};
 
 #[tokio::test]
@@ -480,7 +480,7 @@ async fn show_paginates_correctly() -> Result<()> {
     let app = TestApp::spawn().await?;
     let user = TestUser::builder().random()?.build().seed(&app).await?;
     let client = TestClient::new(app.address, None)?;
-    let now = (OffsetDateTime::now_utc().unix_timestamp() * 1000) as u64;
+    let now = (JiffTimestamp::now().as_millisecond()) as u64;
 
     let mut pastes = Vec::new();
     for i in 0..8 {

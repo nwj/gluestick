@@ -31,8 +31,8 @@ pub struct InternalServerErrorTemplate {
 
 #[allow(clippy::unnecessary_wraps)]
 pub mod filters {
+    use jiff::{tz::TimeZone, SpanRound, Timestamp, Unit, Zoned};
     use std::fmt::Write;
-    use time::{Duration, OffsetDateTime};
 
     pub fn linewise_truncate<T: std::fmt::Display>(s: T, n: usize) -> askama::Result<String> {
         let s = s.to_string();
@@ -136,22 +136,69 @@ pub mod filters {
         Ok([&result, SUFFIX[base.floor() as usize]].join(" "))
     }
 
-    pub fn format_relative_time(datetime: &OffsetDateTime) -> askama::Result<String> {
-        let now = OffsetDateTime::now_utc();
-        let diff = now - *datetime;
+    pub fn format_time(ts: &Timestamp) -> askama::Result<String> {
+        let datetime = Zoned::new(*ts, TimeZone::UTC);
+        Ok(datetime
+            .strftime("%A, %B %d, %Y at %-I:%M%P %Z")
+            .to_string())
+    }
 
-        let (value, unit) = if diff < Duration::minutes(1) {
-            (diff.whole_seconds(), "second")
-        } else if diff < Duration::hours(1) {
-            (diff.whole_minutes(), "minute")
-        } else if diff < Duration::days(1) {
-            (diff.whole_hours(), "hour")
-        } else if diff < Duration::days(30) {
-            (diff.whole_days(), "day")
-        } else if diff < Duration::days(365) {
-            (diff.whole_days() / 30, "month")
+    #[allow(clippy::cast_lossless)]
+    pub fn format_time_relative(ts: &Timestamp) -> askama::Result<String> {
+        let now = Zoned::new(Timestamp::now(), TimeZone::UTC);
+        let then = Zoned::new(*ts, TimeZone::UTC);
+        let timespan = then
+            .until((Unit::Year, &now))
+            .map_err(|e| askama::Error::Custom(Box::new(e)))?;
+
+        let (value, unit) = if timespan.get_years() > 0 {
+            (
+                timespan
+                    .round(SpanRound::new().smallest(Unit::Year).relative(&now))
+                    .map_err(|e| askama::Error::Custom(Box::new(e)))?
+                    .get_years() as i64,
+                "year",
+            )
+        } else if timespan.get_months() > 0 {
+            (
+                timespan
+                    .round(SpanRound::new().smallest(Unit::Month).relative(&then))
+                    .map_err(|e| askama::Error::Custom(Box::new(e)))?
+                    .get_months() as i64,
+                "month",
+            )
+        } else if timespan.get_days() > 0 {
+            (
+                timespan
+                    .round(SpanRound::new().smallest(Unit::Day).relative(&now))
+                    .map_err(|e| askama::Error::Custom(Box::new(e)))?
+                    .get_days() as i64,
+                "day",
+            )
+        } else if timespan.get_hours() > 0 {
+            (
+                timespan
+                    .round(Unit::Hour)
+                    .map_err(|e| askama::Error::Custom(Box::new(e)))?
+                    .get_hours() as i64,
+                "hour",
+            )
+        } else if timespan.get_minutes() > 0 {
+            (
+                timespan
+                    .round(Unit::Minute)
+                    .map_err(|e| askama::Error::Custom(Box::new(e)))?
+                    .get_minutes(),
+                "minute",
+            )
         } else {
-            (diff.whole_days() / 365, "year")
+            (
+                timespan
+                    .round(Unit::Second)
+                    .map_err(|e| askama::Error::Custom(Box::new(e)))?
+                    .get_seconds(),
+                "second",
+            )
         };
 
         Ok(format!(
@@ -163,5 +210,102 @@ pub mod filters {
                 unit.to_string() + "s"
             }
         ))
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        mod format_time_relative {
+            use super::*;
+            use jiff::Span;
+
+            #[test]
+            fn exact_timespans() {
+                let now = Zoned::new(Timestamp::now(), TimeZone::UTC);
+
+                let ts = now.checked_sub(Span::new().years(2)).unwrap().timestamp();
+                assert_eq!(format_time_relative(&ts).unwrap(), "2 years ago");
+
+                let ts = now.checked_sub(Span::new().months(5)).unwrap().timestamp();
+                assert_eq!(format_time_relative(&ts).unwrap(), "5 months ago");
+
+                let ts = now.checked_sub(Span::new().days(17)).unwrap().timestamp();
+                assert_eq!(format_time_relative(&ts).unwrap(), "17 days ago");
+
+                let ts = now.checked_sub(Span::new().hours(12)).unwrap().timestamp();
+                assert_eq!(format_time_relative(&ts).unwrap(), "12 hours ago");
+
+                let ts = now
+                    .checked_sub(Span::new().minutes(42))
+                    .unwrap()
+                    .timestamp();
+                assert_eq!(format_time_relative(&ts).unwrap(), "42 minutes ago");
+
+                let ts = now
+                    .checked_sub(Span::new().seconds(53))
+                    .unwrap()
+                    .timestamp();
+                assert_eq!(format_time_relative(&ts).unwrap(), "53 seconds ago");
+            }
+
+            #[test]
+            fn singular_timespans() {
+                let now = Zoned::new(Timestamp::now(), TimeZone::UTC);
+
+                let ts = now.checked_sub(Span::new().years(1)).unwrap().timestamp();
+                assert_eq!(format_time_relative(&ts).unwrap(), "1 year ago");
+
+                let ts = now.checked_sub(Span::new().months(1)).unwrap().timestamp();
+                assert_eq!(format_time_relative(&ts).unwrap(), "1 month ago");
+
+                let ts = now.checked_sub(Span::new().days(1)).unwrap().timestamp();
+                assert_eq!(format_time_relative(&ts).unwrap(), "1 day ago");
+
+                let ts = now.checked_sub(Span::new().hours(1)).unwrap().timestamp();
+                assert_eq!(format_time_relative(&ts).unwrap(), "1 hour ago");
+
+                let ts = now.checked_sub(Span::new().minutes(1)).unwrap().timestamp();
+                assert_eq!(format_time_relative(&ts).unwrap(), "1 minute ago");
+
+                let ts = now.checked_sub(Span::new().seconds(1)).unwrap().timestamp();
+                assert_eq!(format_time_relative(&ts).unwrap(), "1 second ago");
+            }
+
+            #[test]
+            fn rounded_timespans() {
+                let now = Zoned::new(Timestamp::now(), TimeZone::UTC);
+
+                let ts = now
+                    .checked_sub(Span::new().years(3).months(2).days(18))
+                    .unwrap()
+                    .timestamp();
+                assert_eq!(format_time_relative(&ts).unwrap(), "3 years ago");
+
+                let ts = now
+                    .checked_sub(Span::new().months(1).days(24).hours(7))
+                    .unwrap()
+                    .timestamp();
+                assert_eq!(format_time_relative(&ts).unwrap(), "2 months ago");
+
+                let ts = now
+                    .checked_sub(Span::new().days(5).hours(7).minutes(22).seconds(18))
+                    .unwrap()
+                    .timestamp();
+                assert_eq!(format_time_relative(&ts).unwrap(), "5 days ago");
+
+                let ts = now
+                    .checked_sub(Span::new().hours(7).minutes(33).seconds(18))
+                    .unwrap()
+                    .timestamp();
+                assert_eq!(format_time_relative(&ts).unwrap(), "8 hours ago");
+
+                let ts = now
+                    .checked_sub(Span::new().minutes(39).seconds(18))
+                    .unwrap()
+                    .timestamp();
+                assert_eq!(format_time_relative(&ts).unwrap(), "39 minutes ago");
+            }
+        }
     }
 }

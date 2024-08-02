@@ -2,6 +2,7 @@ use crate::db::Database;
 use crate::models::prelude::*;
 use crate::models::user::User;
 use derive_more::From;
+use jiff::Timestamp;
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use rusqlite::types::{FromSql, FromSqlResult, ToSql, ToSqlOutput, ValueRef};
@@ -29,11 +30,12 @@ impl ApiSession {
             .conn
             .call(move |conn| {
                 let mut statement = conn.prepare(
-                    "INSERT INTO api_sessions VALUES (:api_key, :user_id, unixepoch());",
+                    "INSERT INTO api_sessions VALUES (:api_key, :user_id, :created_at);",
                 )?;
                 let result = statement.execute(named_params! {
                     ":api_key": self.api_key,
                     ":user_id": self.user.id,
+                    ":created_at": Timestamp::now().as_millisecond(),
                 })?;
                 Ok(result)
             })
