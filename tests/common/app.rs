@@ -4,6 +4,7 @@ use crate::common::user_helper::TestUser;
 use crate::prelude::*;
 use core::net::SocketAddr;
 use gluestick::{db::migrations, db::Database, router};
+use jiff::Timestamp;
 use std::sync::LazyLock;
 use tokio::net::TcpListener;
 use tokio_rusqlite::{named_params, Connection};
@@ -92,12 +93,14 @@ impl TestApp {
             .conn
             .call(move |conn| {
                 let mut stmt =
-                    conn.prepare("INSERT INTO users VALUES(:id, :username, :email, :password);")?;
+                    conn.prepare("INSERT INTO users VALUES(:id, :username, :email, :password, :created_at, :updated_at);")?;
                 stmt.execute(named_params! {
                     ":id": id,
                     ":username": user.username,
                     ":email": user.email.to_lowercase(),
-                    ":password": hashed_password
+                    ":password": hashed_password,
+                    ":created_at": Timestamp::now().as_millisecond(),
+                    ":updated_at": Timestamp::now().as_millisecond(),
                 })?;
                 Ok(())
             })
@@ -117,8 +120,12 @@ impl TestApp {
             .conn
             .call(move |conn| {
                 let mut stmt = conn
-                    .prepare("INSERT INTO api_sessions VALUES(:api_key, :user_id, unixepoch());")?;
-                stmt.execute(named_params! {":api_key": hashed_api_key, ":user_id": user_id})?;
+                    .prepare("INSERT INTO api_sessions VALUES(:api_key, :user_id, :created_at);")?;
+                stmt.execute(named_params! {
+                    ":api_key": hashed_api_key,
+                    ":user_id": user_id,
+                    ":created_at": Timestamp::now().as_millisecond()
+                })?;
                 Ok(())
             })
             .await?;
@@ -142,7 +149,7 @@ impl TestApp {
             .conn
             .call(move |conn| {
                 let mut stmt = conn
-                    .prepare("INSERT INTO pastes VALUES(:id, :user_id, :filename, :description, :body, :visibility, unixepoch(), unixepoch());")?;
+                    .prepare("INSERT INTO pastes VALUES(:id, :user_id, :filename, :description, :body, :visibility, :created_at, :updated_at);")?;
                 stmt.execute(named_params! {
                     ":id": id,
                     ":user_id": user_id,
@@ -150,6 +157,8 @@ impl TestApp {
                     ":description": paste.description,
                     ":body": paste.body,
                     ":visibility": paste.visibility,
+                    ":created_at": Timestamp::now().as_millisecond(),
+                    ":updated_at": Timestamp::now().as_millisecond(),
                 })?;
                 Ok(())
             })

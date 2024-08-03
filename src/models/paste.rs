@@ -5,10 +5,10 @@ use crate::models::prelude::*;
 use crate::models::user::Username;
 use crate::params::pastes::VisibilityParam;
 use derive_more::{AsRef, Display, From, Into};
+use jiff::Timestamp;
 use rusqlite::types::{FromSql, FromSqlError, FromSqlResult, ToSql, ToSqlOutput, Type, ValueRef};
 use rusqlite::{named_params, Row, Transaction, TransactionBehavior};
 use serde::Serialize;
-use time::OffsetDateTime;
 use uuid::Uuid;
 
 #[derive(Clone, Debug, Serialize)]
@@ -19,8 +19,8 @@ pub struct Paste {
     pub description: Description,
     pub body: Body,
     pub visibility: Visibility,
-    pub created_at: OffsetDateTime,
-    pub updated_at: OffsetDateTime,
+    pub created_at: Timestamp,
+    pub updated_at: Timestamp,
 }
 
 impl Paste {
@@ -38,8 +38,8 @@ impl Paste {
             description: description.into(),
             body: body.into(),
             visibility,
-            created_at: OffsetDateTime::now_utc(),
-            updated_at: OffsetDateTime::now_utc(),
+            created_at: Timestamp::now(),
+            updated_at: Timestamp::now(),
         })
     }
 
@@ -51,10 +51,10 @@ impl Paste {
             description: row.get(3)?,
             body: row.get(4)?,
             visibility: row.get(5)?,
-            created_at: OffsetDateTime::from_unix_timestamp(row.get(6)?).map_err(|e| {
+            created_at: Timestamp::from_millisecond(row.get(6)?).map_err(|e| {
                 rusqlite::Error::FromSqlConversionFailure(6, Type::Integer, Box::new(e))
             })?,
-            updated_at: OffsetDateTime::from_unix_timestamp(row.get(7)?).map_err(|e| {
+            updated_at: Timestamp::from_millisecond(row.get(7)?).map_err(|e| {
                 rusqlite::Error::FromSqlConversionFailure(7, Type::Integer, Box::new(e))
             })?,
         })
@@ -226,8 +226,8 @@ impl Paste {
                             ":description": self.description,
                             ":body": self.body,
                             ":visibility": self.visibility,
-                            ":created_at": self.created_at.unix_timestamp(),
-                            ":updated_at": self.updated_at.unix_timestamp(),
+                            ":created_at": self.created_at.as_millisecond(),
+                            ":updated_at": self.updated_at.as_millisecond(),
                         }
                     )?;
 
@@ -331,10 +331,16 @@ impl Paste {
             {
                 let mut pastes_stmt = tx.prepare(
                     r"UPDATE pastes
-                    SET filename = :filename, description = :desc, body = :body, updated_at = unixepoch()
+                    SET filename = :filename, description = :desc, body = :body, updated_at = :updated_at
                     WHERE id = :id;"
                 )?;
-                pastes_stmt.execute(named_params! {":filename": self.filename, ":desc": self.description, ":body": self.body, ":id": self.id})?;
+                pastes_stmt.execute(named_params! {
+                    ":filename": self.filename,
+                    ":desc": self.description,
+                    ":body": self.body,
+                    ":updated_at": Timestamp::now().as_millisecond(),
+                    ":id": self.id,
+                })?;
 
                 if body_changed || extension_changed {
                     if let Some(html) = optional_html {

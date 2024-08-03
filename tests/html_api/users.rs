@@ -2,10 +2,10 @@ use crate::common::app::TestApp;
 use crate::common::client::TestClient;
 use crate::common::pagination_helper::PaginationParams;
 use crate::common::paste_helper::TestPaste;
-use crate::common::rand_helper;
+use crate::common::rand_helper::{random_alphanumeric_string, random_filename, random_string};
 use crate::common::user_helper::TestUser;
 use crate::prelude::*;
-use time::OffsetDateTime;
+use jiff::Timestamp as JiffTimestamp;
 use uuid::{NoContext, Timestamp, Uuid};
 
 #[tokio::test]
@@ -101,16 +101,14 @@ async fn signup_requires_valid_username() -> Result<()> {
     let bad_users = &[
         TestUser::builder().username("").build(),
         TestUser::builder()
-            .username(rand_helper::random_alphanumeric_string(33..=33)?)
+            .username(random_alphanumeric_string(33..=33)?)
             .build(),
         TestUser::builder().username("-starts-with-hyphen").build(),
         TestUser::builder().username("ends-with-hyphen-").build(),
         TestUser::builder()
             .username("two--hyphens-in-a-row")
             .build(),
-        TestUser::builder()
-            .username(rand_helper::random_string(3..=32)?)
-            .build(),
+        TestUser::builder().username(random_string(3..=32)?).build(),
     ];
 
     for bad_user in bad_users {
@@ -130,7 +128,7 @@ async fn signup_requires_valid_username() -> Result<()> {
 async fn signup_requires_valid_email_address() -> Result<()> {
     let app = TestApp::spawn().await?;
     let client = TestClient::new(app.address, None)?;
-    let random = rand_helper::random_alphanumeric_string(1..=30)?;
+    let random = random_alphanumeric_string(1..=30)?;
     let bad_users = &[
         // Missing @ symbol
         TestUser::builder().email(&random).build(),
@@ -159,10 +157,10 @@ async fn signup_requires_password_between_8_and_256_chars() -> Result<()> {
     let client = TestClient::new(app.address, None)?;
     let bad_users = &[
         TestUser::builder()
-            .password(rand_helper::random_alphanumeric_string(7..=7)?)
+            .password(random_alphanumeric_string(7..=7)?)
             .build(),
         TestUser::builder()
-            .password(rand_helper::random_alphanumeric_string(257..=257)?)
+            .password(random_alphanumeric_string(257..=257)?)
             .build(),
     ];
 
@@ -356,11 +354,13 @@ async fn show_does_not_include_secret_pastes() -> Result<()> {
     let client = TestClient::new(app.address, None)?;
     let paste1 = TestPaste::builder()
         .random()?
+        .filename(random_filename(64..=64)?)
         .build()
         .seed(&app, &user)
         .await?;
     let paste2 = TestPaste::builder()
         .random()?
+        .filename(random_filename(64..=64)?)
         .visibility("secret")
         .build()
         .seed(&app, &user)
@@ -382,11 +382,13 @@ async fn show_does_not_include_other_users_pastes() -> Result<()> {
     let client = TestClient::new(app.address, None)?;
     let paste1 = TestPaste::builder()
         .random()?
+        .filename(random_filename(64..=64)?)
         .build()
         .seed(&app, &user)
         .await?;
     let paste2 = TestPaste::builder()
         .random()?
+        .filename(random_filename(64..=64)?)
         .build()
         .seed(&app, &user2)
         .await?;
@@ -480,7 +482,7 @@ async fn show_paginates_correctly() -> Result<()> {
     let app = TestApp::spawn().await?;
     let user = TestUser::builder().random()?.build().seed(&app).await?;
     let client = TestClient::new(app.address, None)?;
-    let now = (OffsetDateTime::now_utc().unix_timestamp() * 1000) as u64;
+    let now = (JiffTimestamp::now().as_millisecond()) as u64;
 
     let mut pastes = Vec::new();
     for i in 0..8 {

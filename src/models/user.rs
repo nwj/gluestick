@@ -1,14 +1,15 @@
 use crate::db::Database;
 use crate::models::api_session::HashedApiKey;
 use crate::models::prelude::*;
-use crate::models::session::HashedSessionToken;
+use crate::models::session::{HashedSessionToken, Session};
 use crate::params::users::CreateUserParams;
 use argon2::password_hash::{PasswordHasher, SaltString};
 use argon2::{Argon2, PasswordHash, PasswordVerifier};
 use derive_more::Display;
+use jiff::Timestamp;
 use rand::rngs::OsRng;
-use rusqlite::types::{FromSql, FromSqlResult, ToSql, ToSqlOutput, ValueRef};
-use rusqlite::{named_params, Row};
+use rusqlite::types::{FromSql, FromSqlResult, ToSql, ToSqlOutput, Type, ValueRef};
+use rusqlite::{named_params, Row, Transaction, TransactionBehavior};
 use secrecy::{ExposeSecret, Secret};
 use uuid::Uuid;
 
@@ -18,6 +19,8 @@ pub struct User {
     pub username: Username,
     pub email: EmailAddress,
     pub password: HashedPassword,
+    pub created_at: Timestamp,
+    pub updated_at: Timestamp,
 }
 
 impl User {
@@ -31,6 +34,8 @@ impl User {
             username: Username::new(username),
             email: EmailAddress::new(email),
             password: HashedPassword::new(password)?,
+            created_at: Timestamp::now(),
+            updated_at: Timestamp::now(),
         })
     }
 
@@ -40,6 +45,12 @@ impl User {
             username: row.get(1)?,
             email: row.get(2)?,
             password: row.get(3)?,
+            created_at: Timestamp::from_millisecond(row.get(4)?).map_err(|e| {
+                rusqlite::Error::FromSqlConversionFailure(4, Type::Integer, Box::new(e))
+            })?,
+            updated_at: Timestamp::from_millisecond(row.get(5)?).map_err(|e| {
+                rusqlite::Error::FromSqlConversionFailure(5, Type::Integer, Box::new(e))
+            })?,
         })
     }
 
@@ -56,12 +67,14 @@ impl User {
             .conn
             .call(move |conn| {
                 let mut statement =
-                    conn.prepare("INSERT INTO users VALUES (:id, :username, :email, :password);")?;
+                    conn.prepare("INSERT INTO users VALUES (:id, :username, :email, :password, :created_at, :updated_at);")?;
                 let result = statement.execute(named_params! {
                     ":id": self.id,
                     ":username": self.username,
                     ":email": self.email,
-                    ":password": self.password.expose_secret()
+                    ":password": self.password.expose_secret(),
+                    ":created_at": self.created_at.as_millisecond(),
+                    ":updated_at": self.updated_at.as_millisecond(),
                 })?;
                 Ok(result)
             })
@@ -75,7 +88,7 @@ impl User {
             .conn
             .call(move |conn| {
                 let mut statement = conn.prepare(
-                    "SELECT id, username, email, password FROM users WHERE email = :email;",
+                    "SELECT id, username, email, password, created_at, updated_at FROM users WHERE email = :email;",
                 )?;
                 let mut rows = statement.query(named_params! {":email": email.to_lowercase()})?;
                 match rows.next()? {
@@ -97,7 +110,7 @@ impl User {
             .conn
             .call(move |conn| {
                 let mut statement = conn.prepare(
-                    "SELECT id, username, email, password FROM users WHERE username = :username;",
+                    "SELECT id, username, email, password, created_at, updated_at FROM users WHERE username = :username;",
                 )?;
                 let mut rows =
                     statement.query(named_params! {":username": username.to_lowercase()})?;
@@ -119,20 +132,33 @@ impl User {
         let optional_user = db
             .conn
             .call(move |conn| {
-                let mut statement = conn.prepare(
-                    r"SELECT users.id, users.username, users.email, users.password
-                    FROM users JOIN sessions ON users.id = sessions.user_id
-                    WHERE sessions.session_token = :token;",
-                )?;
-                let mut rows = statement.query(named_params! {":token": token})?;
-                match rows.next()? {
-                    Some(row) => Ok(Some(User::from_sql_row(row)?)),
-                    None => Ok(None),
+                let tx = conn.transaction_with_behavior(TransactionBehavior::Immediate)?;
+                let maybe_user = Self::tx_find_by_session_token(&tx, &token)?;
+                if maybe_user.is_some() {
+                    Session::tx_touch(&tx, &token)?;
                 }
+                tx.commit()?;
+                Ok(maybe_user)
             })
             .await?;
 
         Ok(optional_user)
+    }
+
+    pub fn tx_find_by_session_token(
+        tx: &Transaction,
+        session_token: &HashedSessionToken,
+    ) -> tokio_rusqlite::Result<Option<User>> {
+        let mut stmt = tx.prepare(
+            r"SELECT users.id, users.username, users.email, users.password, users.created_at, users.updated_at
+            FROM users JOIN sessions ON users.id = sessions.user_id
+            WHERE sessions.session_token = :session_token;",
+        )?;
+        let mut rows = stmt.query(named_params! {":session_token": session_token})?;
+        match rows.next()? {
+            Some(row) => Ok(Some(User::from_sql_row(row)?)),
+            None => Ok(None),
+        }
     }
 
     pub async fn delete_sessions(self, db: &Database) -> Result<usize> {
@@ -159,7 +185,7 @@ impl User {
             .conn
             .call(move |conn| {
                 let mut statement = conn.prepare(
-                    r"SELECT users.id, users.username, users.email, users.password
+                    r"SELECT users.id, users.username, users.email, users.password, users.created_at, users.updated_at
                     FROM users JOIN api_sessions ON users.id = api_sessions.user_id
                     WHERE api_sessions.api_key = :key;",
                 )?;
