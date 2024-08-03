@@ -1,7 +1,8 @@
 #[cfg(debug_assertions)]
 use dotenvy::dotenv;
-use gluestick::{config, db, router};
+use gluestick::{background_tasks, config, db, router};
 use tokio::net::TcpListener;
+use tokio::sync::mpsc;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[tokio::main]
@@ -50,19 +51,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     db::migrations().to_latest(&mut db.conn).await?;
 
+    let (shutdown_tx, shutdown_rx) = mpsc::channel(1);
+    let background_tasks_handle = background_tasks(shutdown_rx, db.clone());
+
     let app = router(db);
-
     let listener = TcpListener::bind(("127.0.0.1", config.port())).await?;
-
     tracing::debug!("listening on {}", listener.local_addr()?);
     axum::serve(listener, app)
-        .with_graceful_shutdown(shutdown_signal())
+        .with_graceful_shutdown(shutdown_signal(shutdown_tx))
         .await?;
 
+    background_tasks_handle.await?;
     Ok(())
 }
 
-async fn shutdown_signal() {
+async fn shutdown_signal(shutdown_tx: mpsc::Sender<()>) {
     use tokio::signal;
 
     let ctrl_c = async {
@@ -83,7 +86,9 @@ async fn shutdown_signal() {
     let terminate = std::future::pending::<()>();
 
     tokio::select! {
-        () = ctrl_c => {},
-        () = terminate => {},
+        _ = ctrl_c => {},
+        _ = terminate => {},
     }
+
+    let _ = shutdown_tx.send(()).await;
 }

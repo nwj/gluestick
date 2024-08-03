@@ -2,7 +2,7 @@ use crate::db::Database;
 use crate::models::prelude::*;
 use crate::models::user::User;
 use derive_more::From;
-use jiff::Timestamp;
+use jiff::{Timestamp, ToSpan, Unit};
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use rusqlite::types::{FromSql, FromSqlResult, ToSql, ToSqlOutput, ValueRef};
@@ -11,6 +11,7 @@ use sha2::{Digest, Sha256};
 use tokio_rusqlite::named_params;
 
 pub const SESSION_COOKIE_NAME: &str = "session_token";
+const SESSION_ABSOLUTE_TTL_SECONDS: i64 = 1_209_600; // 14 days
 
 #[derive(Debug)]
 pub struct Session {
@@ -26,6 +27,32 @@ impl Session {
             user,
             created_at: Timestamp::now(),
         }
+    }
+
+    pub async fn expire_absolute(db: &Database) -> Result<usize> {
+        let expiration_ttl = SESSION_ABSOLUTE_TTL_SECONDS.seconds();
+        tracing::trace!(
+            "expiring sessions older than {} days",
+            expiration_ttl.total(Unit::Day)?
+        );
+        let expiration_timestamp = Timestamp::now().checked_sub(expiration_ttl)?;
+        let result = db
+            .conn
+            .call(move |conn| {
+                let mut statement = conn
+                    .prepare("DELETE FROM sessions WHERE created_at <= :expiration_timestamp;")?;
+                let result = statement.execute(
+                    named_params! {":expiration_timestamp": expiration_timestamp.as_millisecond()},
+                )?;
+                Ok(result)
+            })
+            .await?;
+
+        tracing::trace!(
+            "done expiring sessions older than {} days, expired {result} sessions",
+            expiration_ttl.total(Unit::Day)?
+        );
+        Ok(result)
     }
 
     pub async fn insert(self, db: &Database) -> Result<usize> {

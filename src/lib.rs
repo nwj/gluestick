@@ -4,13 +4,16 @@
 #![allow(clippy::must_use_candidate)]
 
 use crate::db::Database;
+use crate::models::session::Session;
 use axum::{
     extract::Request,
     routing::{delete, get, patch, post, put},
     Router,
 };
 use memory_serve::{load_assets, MemoryServe};
-use std::time::Duration;
+use tokio::sync::mpsc;
+use tokio::task::JoinHandle;
+use tokio::time::{interval, Duration};
 use tower_http::{compression::CompressionLayer, timeout::TimeoutLayer, trace::TraceLayer};
 
 pub mod config;
@@ -94,4 +97,30 @@ pub fn router(db: Database) -> Router {
         .layer(TimeoutLayer::new(Duration::from_secs(10)))
         .layer(CompressionLayer::new())
         .with_state(db)
+}
+
+pub fn background_tasks(mut shutdown_rx: mpsc::Receiver<()>, db: Database) -> JoinHandle<()> {
+    tokio::spawn(async move {
+        let mut every_minute = interval(Duration::from_secs(60));
+
+        loop {
+            tokio::select! {
+                _ = shutdown_rx.recv() => {
+                    tracing::trace!("received graceful shutdown signal. Telling background tasks to shutdown");
+                    break;
+                },
+                _ = every_minute.tick() => {
+                    tracing::trace!("starting per minute background tasks");
+
+                    if let Err(e) = Session::expire_absolute(&db).await {
+                           tracing::error!("error in background task Session::expire_absolute: {e}");
+                    }
+
+                    tracing::trace!("finishing per minute background tasks");
+                }
+            }
+        }
+
+        tracing::trace!("shutting down background tasks");
+    })
 }
