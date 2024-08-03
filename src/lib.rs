@@ -112,6 +112,9 @@ pub fn background_tasks(mut shutdown_rx: mpsc::Receiver<()>, db: Database) -> Jo
                 _ = every_minute.tick() => {
                     tracing::trace!("starting per minute background tasks");
 
+                    if let Err(e) = Session::expire_idle(&db).await {
+                           tracing::error!("error in background task Session::expire_idle: {e}");
+                    }
                     if let Err(e) = Session::expire_absolute(&db).await {
                            tracing::error!("error in background task Session::expire_absolute: {e}");
                     }

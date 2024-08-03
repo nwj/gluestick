@@ -16,8 +16,9 @@ CREATE TABLE sessions (
   session_token BLOB PRIMARY KEY CHECK(length(session_token) = 32),
   -- user_id is a UUIDv7
   user_id BLOB NOT NULL CHECK(length(user_id) = 16),
-  -- created_at is a unix timestamp, with millisecond precision
+  -- created_at and updated_at are both unix timestamps, with millisecond precision
   created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL,
   FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
 ) STRICT;
 

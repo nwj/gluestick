@@ -1,7 +1,7 @@
 use crate::db::Database;
 use crate::models::api_session::HashedApiKey;
 use crate::models::prelude::*;
-use crate::models::session::HashedSessionToken;
+use crate::models::session::{HashedSessionToken, Session};
 use crate::params::users::CreateUserParams;
 use argon2::password_hash::{PasswordHasher, SaltString};
 use argon2::{Argon2, PasswordHash, PasswordVerifier};
@@ -9,7 +9,7 @@ use derive_more::Display;
 use jiff::Timestamp;
 use rand::rngs::OsRng;
 use rusqlite::types::{FromSql, FromSqlResult, ToSql, ToSqlOutput, Type, ValueRef};
-use rusqlite::{named_params, Row};
+use rusqlite::{named_params, Row, Transaction, TransactionBehavior};
 use secrecy::{ExposeSecret, Secret};
 use uuid::Uuid;
 
@@ -132,20 +132,33 @@ impl User {
         let optional_user = db
             .conn
             .call(move |conn| {
-                let mut statement = conn.prepare(
-                    r"SELECT users.id, users.username, users.email, users.password, users.created_at, users.updated_at
-                    FROM users JOIN sessions ON users.id = sessions.user_id
-                    WHERE sessions.session_token = :token;",
-                )?;
-                let mut rows = statement.query(named_params! {":token": token})?;
-                match rows.next()? {
-                    Some(row) => Ok(Some(User::from_sql_row(row)?)),
-                    None => Ok(None),
+                let tx = conn.transaction_with_behavior(TransactionBehavior::Immediate)?;
+                let maybe_user = Self::tx_find_by_session_token(&tx, &token)?;
+                if maybe_user.is_some() {
+                    Session::tx_touch(&tx, &token)?;
                 }
+                tx.commit()?;
+                Ok(maybe_user)
             })
             .await?;
 
         Ok(optional_user)
+    }
+
+    pub fn tx_find_by_session_token(
+        tx: &Transaction,
+        session_token: &HashedSessionToken,
+    ) -> tokio_rusqlite::Result<Option<User>> {
+        let mut stmt = tx.prepare(
+            r"SELECT users.id, users.username, users.email, users.password, users.created_at, users.updated_at
+            FROM users JOIN sessions ON users.id = sessions.user_id
+            WHERE sessions.session_token = :session_token;",
+        )?;
+        let mut rows = stmt.query(named_params! {":session_token": session_token})?;
+        match rows.next()? {
+            Some(row) => Ok(Some(User::from_sql_row(row)?)),
+            None => Ok(None),
+        }
     }
 
     pub async fn delete_sessions(self, db: &Database) -> Result<usize> {
