@@ -120,11 +120,12 @@ impl TestApp {
             .conn
             .call(move |conn| {
                 let mut stmt = conn
-                    .prepare("INSERT INTO api_sessions VALUES(:api_key, :user_id, :created_at);")?;
+                    .prepare("INSERT INTO api_sessions VALUES(:api_key, :user_id, :created_at, :updated_at);")?;
                 stmt.execute(named_params! {
                     ":api_key": hashed_api_key,
                     ":user_id": user_id,
-                    ":created_at": Timestamp::now().as_millisecond()
+                    ":created_at": Timestamp::now().as_millisecond(),
+                    ":updated_at": Timestamp::now().as_millisecond()
                 })?;
                 Ok(())
             })

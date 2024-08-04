@@ -6,6 +6,7 @@ use jiff::Timestamp;
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use rusqlite::types::{FromSql, FromSqlResult, ToSql, ToSqlOutput, ValueRef};
+use rusqlite::Transaction;
 use secrecy::{ExposeSecret, Secret};
 use sha2::{Digest, Sha256};
 use tokio_rusqlite::named_params;
@@ -15,6 +16,8 @@ pub const API_KEY_HEADER_NAME: &str = "X-GLUESTICK-API-KEY";
 pub struct ApiSession {
     pub api_key: HashedApiKey,
     pub user: User,
+    pub created_at: Timestamp,
+    pub updated_at: Timestamp,
 }
 
 impl ApiSession {
@@ -22,7 +25,19 @@ impl ApiSession {
         Self {
             api_key: api_key.into(),
             user,
+            created_at: Timestamp::now(),
+            updated_at: Timestamp::now(),
         }
+    }
+
+    pub fn tx_touch(tx: &Transaction, api_key: &HashedApiKey) -> tokio_rusqlite::Result<()> {
+        let mut stmt = tx.prepare(
+            "UPDATE api_sessions SET updated_at = :updated_at WHERE api_key = :api_key;",
+        )?;
+        stmt.execute(
+            named_params! {":updated_at": Timestamp::now().as_millisecond(), ":api_key": api_key},
+        )?;
+        Ok(())
     }
 
     pub async fn insert(self, db: &Database) -> Result<usize> {
@@ -30,12 +45,13 @@ impl ApiSession {
             .conn
             .call(move |conn| {
                 let mut statement = conn.prepare(
-                    "INSERT INTO api_sessions VALUES (:api_key, :user_id, :created_at);",
+                    "INSERT INTO api_sessions VALUES (:api_key, :user_id, :created_at, :updated_at);",
                 )?;
                 let result = statement.execute(named_params! {
                     ":api_key": self.api_key,
                     ":user_id": self.user.id,
-                    ":created_at": Timestamp::now().as_millisecond(),
+                    ":created_at": self.created_at.as_millisecond(),
+                    ":updated_at": self.updated_at.as_millisecond(),
                 })?;
                 Ok(result)
             })

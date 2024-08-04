@@ -1,5 +1,5 @@
 use crate::db::Database;
-use crate::models::api_session::HashedApiKey;
+use crate::models::api_session::{ApiSession, HashedApiKey};
 use crate::models::prelude::*;
 use crate::models::session::{HashedSessionToken, Session};
 use crate::params::users::CreateUserParams;
@@ -178,26 +178,39 @@ impl User {
 
     pub async fn find_by_api_key(
         db: &Database,
-        key: impl Into<HashedApiKey>,
+        api_key: impl Into<HashedApiKey>,
     ) -> Result<Option<User>> {
-        let key = key.into();
+        let api_key = api_key.into();
         let optional_user = db
             .conn
             .call(move |conn| {
-                let mut statement = conn.prepare(
-                    r"SELECT users.id, users.username, users.email, users.password, users.created_at, users.updated_at
-                    FROM users JOIN api_sessions ON users.id = api_sessions.user_id
-                    WHERE api_sessions.api_key = :key;",
-                )?;
-                let mut rows = statement.query(named_params! {":key": key})?;
-                match rows.next()? {
-                    Some(row) => Ok(Some(User::from_sql_row(row)?)),
-                    None => Ok(None),
+                let tx = conn.transaction_with_behavior(TransactionBehavior::Immediate)?;
+                let maybe_user = Self::tx_find_by_api_key(&tx, &api_key)?;
+                if maybe_user.is_some() {
+                    ApiSession::tx_touch(&tx, &api_key)?;
                 }
+                tx.commit()?;
+                Ok(maybe_user)
             })
             .await?;
 
         Ok(optional_user)
+    }
+
+    pub fn tx_find_by_api_key(
+        tx: &Transaction,
+        api_key: &HashedApiKey,
+    ) -> tokio_rusqlite::Result<Option<User>> {
+        let mut stmt = tx.prepare(
+            r"SELECT users.id, users.username, users.email, users.password, users.created_at, users.updated_at
+            FROM users JOIN api_sessions ON users.id = api_sessions.user_id
+            WHERE api_sessions.api_key = :api_key;"
+        )?;
+        let mut rows = stmt.query(named_params! {":api_key": api_key})?;
+        match rows.next()? {
+            Some(row) => Ok(Some(User::from_sql_row(row)?)),
+            None => Ok(None),
+        }
     }
 }
 
