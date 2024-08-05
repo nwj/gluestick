@@ -2,7 +2,7 @@ use crate::controllers::api::prelude::Error as ApiControllerError;
 use crate::controllers::prelude::Error as ControllerError;
 use crate::db::Database;
 use crate::models::api_session::{ApiKey, ApiSession, API_KEY_HEADER_NAME};
-use crate::models::session::{Session, SessionToken, SESSION_COOKIE_NAME};
+use crate::models::session::{Session, UnhashedToken, SESSION_COOKIE_NAME};
 use crate::models::user::User;
 use axum::extract::{FromRef, FromRequestParts};
 use axum::http::request::Parts;
@@ -31,12 +31,12 @@ where
             .to_owned();
 
         let token =
-            SessionToken::try_from(cookie.value()).map_err(|_| ControllerError::Unauthorized)?;
+            UnhashedToken::try_from(cookie.value()).map_err(|_| ControllerError::Unauthorized)?;
 
-        let optional_user = User::find_by_session_token(&db, &token).await?;
+        let maybe_session = Session::find_by_unhashed_token(&db, &token).await?;
 
-        match optional_user {
-            Some(user) => Ok(Session::new(&token, user)),
+        match maybe_session {
+            Some(session) => Ok(session),
             None => Err(ControllerError::Unauthorized),
         }
     }

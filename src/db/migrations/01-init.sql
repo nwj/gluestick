@@ -11,9 +11,9 @@ CREATE TABLE users (
   CHECK(created_at <= updated_at)
 ) STRICT;
 
-CREATE TABLE sessions (
-  -- session_token is a randomly generated u128, formatted as hex, hashed via SHA-256
-  session_token BLOB PRIMARY KEY CHECK(length(session_token) = 32),
+CREATE TABLE session_tokens (
+  -- token is a randomly generated u128, formatted as hex, hashed via SHA-256
+  token BLOB PRIMARY KEY CHECK(length(token) = 32),
   -- user_id is a UUIDv7
   user_id BLOB NOT NULL CHECK(length(user_id) = 16),
   -- created_at and updated_at are both unix timestamps, with millisecond precision

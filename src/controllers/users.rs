@@ -39,7 +39,7 @@ pub async fn create(
     let user: User = params.try_into()?;
     user.clone().insert(&db).await?;
 
-    let token = SessionToken::generate();
+    let (unhashed_token, hashed_token) = SessionToken::new(user.id);
     let response = Response::builder()
         .status(StatusCode::SEE_OTHER)
         .header("Location", "/")
@@ -48,13 +48,13 @@ pub async fn create(
             format!(
                 "{}={}; Max-Age=999999; Secure; HttpOnly",
                 SESSION_COOKIE_NAME,
-                &token.expose_secret()
+                &unhashed_token.expose_secret()
             ),
         )
         .body(Body::empty())
         .map_err(|e| Error::InternalServerError(Box::new(e)))?;
+    hashed_token.insert(&db).await?;
 
-    Session::new(&token, user).insert(&db).await?;
     invite_code.delete(&db).await?;
 
     Ok(response)

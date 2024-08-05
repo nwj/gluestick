@@ -22,11 +22,13 @@ pub struct ApiSession {
 
 impl ApiSession {
     pub fn new(api_key: impl Into<HashedApiKey>, user: User) -> Self {
+        let now = Timestamp::now();
+
         Self {
             api_key: api_key.into(),
             user,
-            created_at: Timestamp::now(),
-            updated_at: Timestamp::now(),
+            created_at: now,
+            updated_at: now,
         }
     }
 

@@ -1,7 +1,6 @@
 use crate::db::Database;
 use crate::models::api_session::{ApiSession, HashedApiKey};
 use crate::models::prelude::*;
-use crate::models::session::{HashedSessionToken, Session};
 use crate::params::users::CreateUserParams;
 use argon2::password_hash::{PasswordHasher, SaltString};
 use argon2::{Argon2, PasswordHash, PasswordVerifier};
@@ -124,49 +123,12 @@ impl User {
         Ok(optional_user)
     }
 
-    pub async fn find_by_session_token(
-        db: &Database,
-        token: impl Into<HashedSessionToken>,
-    ) -> Result<Option<User>> {
-        let token = token.into();
-        let optional_user = db
-            .conn
-            .call(move |conn| {
-                let tx = conn.transaction_with_behavior(TransactionBehavior::Immediate)?;
-                let maybe_user = Self::tx_find_by_session_token(&tx, &token)?;
-                if maybe_user.is_some() {
-                    Session::tx_touch(&tx, &token)?;
-                }
-                tx.commit()?;
-                Ok(maybe_user)
-            })
-            .await?;
-
-        Ok(optional_user)
-    }
-
-    pub fn tx_find_by_session_token(
-        tx: &Transaction,
-        session_token: &HashedSessionToken,
-    ) -> tokio_rusqlite::Result<Option<User>> {
-        let mut stmt = tx.prepare(
-            r"SELECT users.id, users.username, users.email, users.password, users.created_at, users.updated_at
-            FROM users JOIN sessions ON users.id = sessions.user_id
-            WHERE sessions.session_token = :session_token;",
-        )?;
-        let mut rows = stmt.query(named_params! {":session_token": session_token})?;
-        match rows.next()? {
-            Some(row) => Ok(Some(User::from_sql_row(row)?)),
-            None => Ok(None),
-        }
-    }
-
     pub async fn delete_sessions(self, db: &Database) -> Result<usize> {
         let result = db
             .conn
             .call(move |conn| {
                 let mut statement =
-                    conn.prepare("DELETE FROM sessions WHERE user_id = :user_id;")?;
+                    conn.prepare("DELETE FROM session_tokens WHERE user_id = :user_id;")?;
                 let result = statement.execute(named_params! {
                     ":user_id": self.id
                 })?;
