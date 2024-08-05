@@ -48,7 +48,7 @@ impl ApiSession {
         let mut stmt = tx.prepare(
             r"SELECT
                 users.id, users.username, users.email, users.password, users.created_at, users.updated_at,
-                api_keys.key, api_keys.user_id, api_keys.created_at, api_keys.updated_at
+                api_keys.key, api_keys.user_id, api_keys.created_at, api_keys.last_used_at
             FROM users JOIN api_keys ON users.id = api_keys.user_id
             WHERE api_keys.key = :key;"
         )?;
@@ -68,7 +68,7 @@ pub struct ApiKey {
     pub key: HashedKey,
     pub user_id: Uuid,
     pub created_at: Timestamp,
-    pub updated_at: Timestamp,
+    pub last_used_at: Timestamp,
 }
 
 impl ApiKey {
@@ -79,7 +79,7 @@ impl ApiKey {
             key: HashedKey::from(&unhashed_key),
             user_id,
             created_at: now,
-            updated_at: now,
+            last_used_at: now,
         };
         (unhashed_key, api_key)
     }
@@ -91,7 +91,7 @@ impl ApiKey {
             created_at: Timestamp::from_millisecond(row.get(2 + offset)?).map_err(|e| {
                 rusqlite::Error::FromSqlConversionFailure(2 + offset, Type::Integer, Box::new(e))
             })?,
-            updated_at: Timestamp::from_millisecond(row.get(3 + offset)?).map_err(|e| {
+            last_used_at: Timestamp::from_millisecond(row.get(3 + offset)?).map_err(|e| {
                 rusqlite::Error::FromSqlConversionFailure(3 + offset, Type::Integer, Box::new(e))
             })?,
         })
@@ -102,13 +102,13 @@ impl ApiKey {
             .conn
             .call(move |conn| {
                 let mut statement = conn.prepare(
-                    "INSERT INTO api_keys VALUES (:key, :user_id, :created_at, :updated_at);",
+                    "INSERT INTO api_keys VALUES (:key, :user_id, :created_at, :last_used_at);",
                 )?;
                 let result = statement.execute(named_params! {
                     ":key": self.key,
                     ":user_id": self.user_id,
                     ":created_at": self.created_at.as_millisecond(),
-                    ":updated_at": self.updated_at.as_millisecond(),
+                    ":last_used_at": self.last_used_at.as_millisecond(),
                 })?;
                 Ok(result)
             })
@@ -119,9 +119,9 @@ impl ApiKey {
 
     pub fn tx_touch(&self, tx: &Transaction) -> tokio_rusqlite::Result<()> {
         let mut stmt =
-            tx.prepare("UPDATE api_keys SET updated_at = :updated_at WHERE key = :key;")?;
+            tx.prepare("UPDATE api_keys SET last_used_at = :last_used_at WHERE key = :key;")?;
         stmt.execute(
-            named_params! {":updated_at": Timestamp::now().as_millisecond(), ":key": self.key},
+            named_params! {":last_used_at": Timestamp::now().as_millisecond(), ":key": self.key},
         )?;
         Ok(())
     }

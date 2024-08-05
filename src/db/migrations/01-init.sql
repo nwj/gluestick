@@ -16,10 +16,10 @@ CREATE TABLE session_tokens (
   token BLOB PRIMARY KEY CHECK(length(token) = 32),
   -- user_id is a UUIDv7
   user_id BLOB NOT NULL CHECK(length(user_id) = 16),
-  -- created_at and updated_at are both unix timestamps, with millisecond precision
+  -- created_at and last_used_at are both unix timestamps, with millisecond precision
   created_at INTEGER NOT NULL,
-  updated_at INTEGER NOT NULL,
-  CHECK(created_at <= updated_at),
+  last_used_at INTEGER NOT NULL,
+  CHECK(created_at <= last_used_at),
   FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
 ) STRICT;
 
@@ -28,10 +28,10 @@ CREATE TABLE api_keys (
   key BLOB PRIMARY KEY CHECK(length(key) = 32),
   -- user_id is a UUIDv7
   user_id BLOB NOT NULL CHECK(length(user_id) = 16),
-  -- created_at and updated_at are both unix timestamps, with millisecond precision
+  -- created_at and last_used_at are both unix timestamps, with millisecond precision
   created_at INTEGER NOT NULL,
-  updated_at INTEGER NOT NULL,
-  CHECK(created_at <= updated_at),
+  last_used_at INTEGER NOT NULL,
+  CHECK(created_at <= last_used_at),
   FOREIGN KEY(user_id) REFERENCES users(id)
 ) STRICT;
 

@@ -122,13 +122,13 @@ impl TestApp {
             .conn
             .call(move |conn| {
                 let mut stmt = conn.prepare(
-                    "INSERT INTO api_keys VALUES(:key, :user_id, :created_at, :updated_at);",
+                    "INSERT INTO api_keys VALUES(:key, :user_id, :created_at, :last_used_at);",
                 )?;
                 stmt.execute(named_params! {
                     ":key": hashed_api_key,
                     ":user_id": user_id,
                     ":created_at": now,
-                    ":updated_at": now,
+                    ":last_used_at": now,
                 })?;
                 Ok(())
             })
