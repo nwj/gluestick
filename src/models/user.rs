@@ -1,5 +1,4 @@
 use crate::db::Database;
-use crate::models::api_session::{ApiSession, HashedApiKey};
 use crate::models::prelude::*;
 use crate::params::users::CreateUserParams;
 use argon2::password_hash::{PasswordHasher, SaltString};
@@ -8,7 +7,7 @@ use derive_more::Display;
 use jiff::Timestamp;
 use rand::rngs::OsRng;
 use rusqlite::types::{FromSql, FromSqlResult, ToSql, ToSqlOutput, Type, ValueRef};
-use rusqlite::{named_params, Row, Transaction, TransactionBehavior};
+use rusqlite::{named_params, Row};
 use secrecy::{ExposeSecret, Secret};
 use uuid::Uuid;
 
@@ -136,43 +135,6 @@ impl User {
             })
             .await?;
         Ok(result)
-    }
-
-    pub async fn find_by_api_key(
-        db: &Database,
-        api_key: impl Into<HashedApiKey>,
-    ) -> Result<Option<User>> {
-        let api_key = api_key.into();
-        let optional_user = db
-            .conn
-            .call(move |conn| {
-                let tx = conn.transaction_with_behavior(TransactionBehavior::Immediate)?;
-                let maybe_user = Self::tx_find_by_api_key(&tx, &api_key)?;
-                if maybe_user.is_some() {
-                    ApiSession::tx_touch(&tx, &api_key)?;
-                }
-                tx.commit()?;
-                Ok(maybe_user)
-            })
-            .await?;
-
-        Ok(optional_user)
-    }
-
-    pub fn tx_find_by_api_key(
-        tx: &Transaction,
-        api_key: &HashedApiKey,
-    ) -> tokio_rusqlite::Result<Option<User>> {
-        let mut stmt = tx.prepare(
-            r"SELECT users.id, users.username, users.email, users.password, users.created_at, users.updated_at
-            FROM users JOIN api_sessions ON users.id = api_sessions.user_id
-            WHERE api_sessions.api_key = :api_key;"
-        )?;
-        let mut rows = stmt.query(named_params! {":api_key": api_key})?;
-        match rows.next()? {
-            Some(row) => Ok(Some(User::from_sql_row(row)?)),
-            None => Ok(None),
-        }
     }
 }
 

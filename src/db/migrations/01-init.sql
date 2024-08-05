@@ -23,9 +23,9 @@ CREATE TABLE session_tokens (
   FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
 ) STRICT;
 
-CREATE TABLE api_sessions (
-  -- api_key is a randomly generated u128, formatted as hex, hashed via SHA-256
-  api_key BLOB PRIMARY KEY CHECK(length(api_key) = 32),
+CREATE TABLE api_keys (
+  -- key is a randomly generated u128, formatted as hex, hashed via SHA-256
+  key BLOB PRIMARY KEY CHECK(length(key) = 32),
   -- user_id is a UUIDv7
   user_id BLOB NOT NULL CHECK(length(user_id) = 16),
   -- created_at and updated_at are both unix timestamps, with millisecond precision

@@ -5,41 +5,96 @@ use derive_more::From;
 use jiff::Timestamp;
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
-use rusqlite::types::{FromSql, FromSqlResult, ToSql, ToSqlOutput, ValueRef};
-use rusqlite::Transaction;
+use rusqlite::types::{FromSql, FromSqlResult, ToSql, ToSqlOutput, Type, ValueRef};
+use rusqlite::{Row, Transaction, TransactionBehavior};
 use secrecy::{ExposeSecret, Secret};
 use sha2::{Digest, Sha256};
 use tokio_rusqlite::named_params;
+use uuid::Uuid;
 
 pub const API_KEY_HEADER_NAME: &str = "X-GLUESTICK-API-KEY";
 
 pub struct ApiSession {
-    pub api_key: HashedApiKey,
+    pub api_key: ApiKey,
     pub user: User,
+}
+
+impl ApiSession {
+    pub async fn find_by_unhashed_key(
+        db: &Database,
+        unhashed_key: &UnhashedKey,
+    ) -> Result<Option<Self>> {
+        let hashed_key = HashedKey::from(unhashed_key);
+        let maybe_api_session = db
+            .conn
+            .call(move |conn| {
+                let tx = conn.transaction_with_behavior(TransactionBehavior::Immediate)?;
+                let maybe_api_session = Self::tx_find_by_hashed_key(&tx, &hashed_key)?;
+                if let Some(ref api_session) = maybe_api_session {
+                    api_session.api_key.tx_touch(&tx)?;
+                }
+                tx.commit()?;
+                Ok(maybe_api_session)
+            })
+            .await?;
+
+        Ok(maybe_api_session)
+    }
+
+    pub fn tx_find_by_hashed_key(
+        tx: &Transaction,
+        key: &HashedKey,
+    ) -> tokio_rusqlite::Result<Option<Self>> {
+        let mut stmt = tx.prepare(
+            r"SELECT
+                users.id, users.username, users.email, users.password, users.created_at, users.updated_at,
+                api_keys.key, api_keys.user_id, api_keys.created_at, api_keys.updated_at
+            FROM users JOIN api_keys ON users.id = api_keys.user_id
+            WHERE api_keys.key = :key;"
+        )?;
+        let mut rows = stmt.query(named_params! {":key": key})?;
+        match rows.next()? {
+            Some(row) => {
+                let user = User::from_sql_row(row)?;
+                let api_key = ApiKey::from_sql_row(row, 6)?;
+                Ok(Some(ApiSession { api_key, user }))
+            }
+            None => Ok(None),
+        }
+    }
+}
+
+pub struct ApiKey {
+    pub key: HashedKey,
+    pub user_id: Uuid,
     pub created_at: Timestamp,
     pub updated_at: Timestamp,
 }
 
-impl ApiSession {
-    pub fn new(api_key: impl Into<HashedApiKey>, user: User) -> Self {
+impl ApiKey {
+    pub fn new(user_id: Uuid) -> (UnhashedKey, Self) {
         let now = Timestamp::now();
-
-        Self {
-            api_key: api_key.into(),
-            user,
+        let unhashed_key = UnhashedKey::generate();
+        let api_key = Self {
+            key: HashedKey::from(&unhashed_key),
+            user_id,
             created_at: now,
             updated_at: now,
-        }
+        };
+        (unhashed_key, api_key)
     }
 
-    pub fn tx_touch(tx: &Transaction, api_key: &HashedApiKey) -> tokio_rusqlite::Result<()> {
-        let mut stmt = tx.prepare(
-            "UPDATE api_sessions SET updated_at = :updated_at WHERE api_key = :api_key;",
-        )?;
-        stmt.execute(
-            named_params! {":updated_at": Timestamp::now().as_millisecond(), ":api_key": api_key},
-        )?;
-        Ok(())
+    pub fn from_sql_row(row: &Row, offset: usize) -> rusqlite::Result<Self> {
+        Ok(Self {
+            key: row.get(offset)?,
+            user_id: row.get(1 + offset)?,
+            created_at: Timestamp::from_millisecond(row.get(2 + offset)?).map_err(|e| {
+                rusqlite::Error::FromSqlConversionFailure(2 + offset, Type::Integer, Box::new(e))
+            })?,
+            updated_at: Timestamp::from_millisecond(row.get(3 + offset)?).map_err(|e| {
+                rusqlite::Error::FromSqlConversionFailure(3 + offset, Type::Integer, Box::new(e))
+            })?,
+        })
     }
 
     pub async fn insert(self, db: &Database) -> Result<usize> {
@@ -47,11 +102,11 @@ impl ApiSession {
             .conn
             .call(move |conn| {
                 let mut statement = conn.prepare(
-                    "INSERT INTO api_sessions VALUES (:api_key, :user_id, :created_at, :updated_at);",
+                    "INSERT INTO api_keys VALUES (:key, :user_id, :created_at, :updated_at);",
                 )?;
                 let result = statement.execute(named_params! {
-                    ":api_key": self.api_key,
-                    ":user_id": self.user.id,
+                    ":key": self.key,
+                    ":user_id": self.user_id,
                     ":created_at": self.created_at.as_millisecond(),
                     ":updated_at": self.updated_at.as_millisecond(),
                 })?;
@@ -61,19 +116,28 @@ impl ApiSession {
 
         Ok(result)
     }
+
+    pub fn tx_touch(&self, tx: &Transaction) -> tokio_rusqlite::Result<()> {
+        let mut stmt =
+            tx.prepare("UPDATE api_keys SET updated_at = :updated_at WHERE key = :key;")?;
+        stmt.execute(
+            named_params! {":updated_at": Timestamp::now().as_millisecond(), ":key": self.key},
+        )?;
+        Ok(())
+    }
 }
 
 #[derive(Clone)]
-pub struct ApiKey(pub Secret<String>);
+pub struct UnhashedKey(pub Secret<String>);
 
-impl ApiKey {
+impl UnhashedKey {
     pub fn generate() -> Self {
         let mut rng = ChaCha20Rng::from_entropy();
         Self(Secret::new(format!("{:032x}", rng.gen::<u128>())))
     }
 }
 
-impl TryFrom<&str> for ApiKey {
+impl TryFrom<&str> for UnhashedKey {
     type Error = std::num::ParseIntError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
@@ -82,35 +146,35 @@ impl TryFrom<&str> for ApiKey {
     }
 }
 
-impl ExposeSecret<String> for ApiKey {
+impl ExposeSecret<String> for UnhashedKey {
     fn expose_secret(&self) -> &String {
         self.0.expose_secret()
     }
 }
 
 #[derive(From)]
-pub struct HashedApiKey(Secret<Vec<u8>>);
+pub struct HashedKey(Secret<Vec<u8>>);
 
-impl From<&ApiKey> for HashedApiKey {
-    fn from(key: &ApiKey) -> Self {
+impl From<&UnhashedKey> for HashedKey {
+    fn from(key: &UnhashedKey) -> Self {
         let hash = Sha256::digest(key.expose_secret().as_bytes()).to_vec();
         Self(Secret::new(hash))
     }
 }
 
-impl ExposeSecret<Vec<u8>> for HashedApiKey {
+impl ExposeSecret<Vec<u8>> for HashedKey {
     fn expose_secret(&self) -> &Vec<u8> {
         self.0.expose_secret()
     }
 }
 
-impl ToSql for HashedApiKey {
+impl ToSql for HashedKey {
     fn to_sql(&self) -> Result<ToSqlOutput<'_>, rusqlite::Error> {
         self.expose_secret().to_sql()
     }
 }
 
-impl FromSql for HashedApiKey {
+impl FromSql for HashedKey {
     fn column_result(value: ValueRef) -> FromSqlResult<Self> {
         Vec::<u8>::column_result(value).map(|vec| Ok(Secret::new(vec).into()))?
     }

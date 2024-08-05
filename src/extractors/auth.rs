@@ -1,9 +1,8 @@
 use crate::controllers::api::prelude::Error as ApiControllerError;
 use crate::controllers::prelude::Error as ControllerError;
 use crate::db::Database;
-use crate::models::api_session::{ApiKey, ApiSession, API_KEY_HEADER_NAME};
+use crate::models::api_session::{ApiSession, UnhashedKey, API_KEY_HEADER_NAME};
 use crate::models::session::{Session, UnhashedToken, SESSION_COOKIE_NAME};
-use crate::models::user::User;
 use axum::extract::{FromRef, FromRequestParts};
 use axum::http::request::Parts;
 use axum::{async_trait, RequestPartsExt};
@@ -63,12 +62,13 @@ where
             .to_str()
             .map_err(|_| ApiControllerError::Unauthorized)?;
 
-        let api_key = ApiKey::try_from(header).map_err(|_| ApiControllerError::Unauthorized)?;
+        let unhashed_key =
+            UnhashedKey::try_from(header).map_err(|_| ApiControllerError::Unauthorized)?;
 
-        let optional_user = User::find_by_api_key(&db, &api_key).await?;
+        let maybe_api_session = ApiSession::find_by_unhashed_key(&db, &unhashed_key).await?;
 
-        match optional_user {
-            Some(user) => Ok(ApiSession::new(&api_key, user)),
+        match maybe_api_session {
+            Some(api_session) => Ok(api_session),
             None => Err(ApiControllerError::Unauthorized),
         }
     }
