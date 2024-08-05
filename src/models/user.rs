@@ -27,13 +27,14 @@ impl User {
         email: impl Into<String>,
         password: impl Into<Secret<String>>,
     ) -> Result<Self> {
+        let now = Timestamp::now();
         Ok(User {
             id: Uuid::now_v7(),
             username: Username::new(username),
             email: EmailAddress::new(email),
             password: HashedPassword::new(password)?,
-            created_at: Timestamp::now(),
-            updated_at: Timestamp::now(),
+            created_at: now,
+            updated_at: now,
         })
     }
 

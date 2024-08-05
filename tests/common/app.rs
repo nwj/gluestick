@@ -89,6 +89,7 @@ impl TestApp {
                 .unwrap_or("can't seed user without an id".into()),
         )?;
         let hashed_password = rand_helper::hash_password(user.password)?;
+        let now = Timestamp::now().as_millisecond();
         self.db
             .conn
             .call(move |conn| {
@@ -99,8 +100,8 @@ impl TestApp {
                     ":username": user.username,
                     ":email": user.email.to_lowercase(),
                     ":password": hashed_password,
-                    ":created_at": Timestamp::now().as_millisecond(),
-                    ":updated_at": Timestamp::now().as_millisecond(),
+                    ":created_at": now,
+                    ":updated_at": now,
                 })?;
                 Ok(())
             })
@@ -116,6 +117,7 @@ impl TestApp {
                 .unwrap_or("can't seed api key without a user id".into()),
         )?;
         let hashed_api_key = rand_helper::hash_api_key(api_key);
+        let now = Timestamp::now().as_millisecond();
         self.db
             .conn
             .call(move |conn| {
@@ -125,8 +127,8 @@ impl TestApp {
                 stmt.execute(named_params! {
                     ":key": hashed_api_key,
                     ":user_id": user_id,
-                    ":created_at": Timestamp::now().as_millisecond(),
-                    ":updated_at": Timestamp::now().as_millisecond()
+                    ":created_at": now,
+                    ":updated_at": now,
                 })?;
                 Ok(())
             })
@@ -147,6 +149,7 @@ impl TestApp {
                 .clone()
                 .unwrap_or("can't seed paste without a user id".into()),
         )?;
+        let now = Timestamp::now().as_millisecond();
         self.db
             .conn
             .call(move |conn| {
@@ -159,8 +162,8 @@ impl TestApp {
                     ":description": paste.description,
                     ":body": paste.body,
                     ":visibility": paste.visibility,
-                    ":created_at": Timestamp::now().as_millisecond(),
-                    ":updated_at": Timestamp::now().as_millisecond(),
+                    ":created_at": now,
+                    ":updated_at": now,
                 })?;
                 Ok(())
             })
