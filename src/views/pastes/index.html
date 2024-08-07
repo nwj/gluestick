@@ -12,7 +12,7 @@
                         </div>
                         {% if !paste.description.is_empty() %}<div class="description-bar">{{ paste.description }}</div>{% endif %}
                         <div class="metadata-bar">
-                            <span title="{{ paste.updated_at|format_time }}">Updated {{ paste.updated_at|format_time_relative }}</span>,
+                            <span title="{{ paste.updated_at|format_timestamp }}">Updated {{ paste.updated_at|format_timestamp_relative }}</span>,
                             {{ paste.body|format_byte_size }}
                         </div>
                         {% if let Some(syntax_highlighted_html) = syntax_highlighted_html %}

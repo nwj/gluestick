@@ -1,6 +1,7 @@
 use crate::controllers::prelude::*;
 use crate::db::Database;
 use crate::helpers::pagination::{CursorPaginationParams, CursorPaginationResponse};
+use crate::models::api_session::ApiKey;
 use crate::models::paste::Paste;
 use crate::models::session::{Session, SessionToken, SESSION_COOKIE_NAME};
 use crate::models::user::User;
@@ -102,9 +103,11 @@ pub async fn show(
     }
 }
 
-pub async fn settings(session: Session) -> Result<impl IntoResponse> {
+pub async fn settings(session: Session, State(db): State<Database>) -> Result<impl IntoResponse> {
+    let api_keys = ApiKey::all_for_user_id(&db, session.user.id).await?;
     let session = Some(session);
-    Ok(SettingsTemplate { session })
+
+    Ok(SettingsTemplate { session, api_keys })
 }
 
 pub async fn validate_username(

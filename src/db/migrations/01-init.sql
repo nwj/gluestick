@@ -28,6 +28,7 @@ CREATE TABLE api_keys (
   key BLOB PRIMARY KEY CHECK(length(key) = 32),
   -- user_id is a UUIDv7
   user_id BLOB NOT NULL CHECK(length(user_id) = 16),
+  name TEXT NOT NULL CHECK (length(name) BETWEEN 1 AND 256),
   -- created_at and last_used_at are both unix timestamps, with millisecond precision
   created_at INTEGER NOT NULL,
   last_used_at INTEGER NOT NULL,

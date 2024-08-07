@@ -136,15 +136,13 @@ pub mod filters {
         Ok([&result, SUFFIX[base.floor() as usize]].join(" "))
     }
 
-    pub fn format_time(ts: &Timestamp) -> askama::Result<String> {
+    pub fn format_timestamp(ts: &Timestamp) -> askama::Result<String> {
         let datetime = Zoned::new(*ts, TimeZone::UTC);
-        Ok(datetime
-            .strftime("%A, %B %d, %Y at %-I:%M%P %Z")
-            .to_string())
+        Ok(datetime.strftime("%b %d, %Y at %-I:%M%P %Z").to_string())
     }
 
     #[allow(clippy::cast_lossless)]
-    pub fn format_time_relative(ts: &Timestamp) -> askama::Result<String> {
+    pub fn format_timestamp_relative(ts: &Timestamp) -> askama::Result<String> {
         let now = Zoned::new(Timestamp::now(), TimeZone::UTC);
         let then = Zoned::new(*ts, TimeZone::UTC);
         let timespan = then
@@ -216,7 +214,7 @@ pub mod filters {
     mod tests {
         use super::*;
 
-        mod format_time_relative {
+        mod format_timestamp_relative {
             use super::*;
             use jiff::Span;
 
@@ -225,28 +223,28 @@ pub mod filters {
                 let now = Zoned::new(Timestamp::now(), TimeZone::UTC);
 
                 let ts = now.checked_sub(Span::new().years(2)).unwrap().timestamp();
-                assert_eq!(format_time_relative(&ts).unwrap(), "2 years ago");
+                assert_eq!(format_timestamp_relative(&ts).unwrap(), "2 years ago");
 
                 let ts = now.checked_sub(Span::new().months(5)).unwrap().timestamp();
-                assert_eq!(format_time_relative(&ts).unwrap(), "5 months ago");
+                assert_eq!(format_timestamp_relative(&ts).unwrap(), "5 months ago");
 
                 let ts = now.checked_sub(Span::new().days(17)).unwrap().timestamp();
-                assert_eq!(format_time_relative(&ts).unwrap(), "17 days ago");
+                assert_eq!(format_timestamp_relative(&ts).unwrap(), "17 days ago");
 
                 let ts = now.checked_sub(Span::new().hours(12)).unwrap().timestamp();
-                assert_eq!(format_time_relative(&ts).unwrap(), "12 hours ago");
+                assert_eq!(format_timestamp_relative(&ts).unwrap(), "12 hours ago");
 
                 let ts = now
                     .checked_sub(Span::new().minutes(42))
                     .unwrap()
                     .timestamp();
-                assert_eq!(format_time_relative(&ts).unwrap(), "42 minutes ago");
+                assert_eq!(format_timestamp_relative(&ts).unwrap(), "42 minutes ago");
 
                 let ts = now
                     .checked_sub(Span::new().seconds(53))
                     .unwrap()
                     .timestamp();
-                assert_eq!(format_time_relative(&ts).unwrap(), "53 seconds ago");
+                assert_eq!(format_timestamp_relative(&ts).unwrap(), "53 seconds ago");
             }
 
             #[test]
@@ -254,22 +252,22 @@ pub mod filters {
                 let now = Zoned::new(Timestamp::now(), TimeZone::UTC);
 
                 let ts = now.checked_sub(Span::new().years(1)).unwrap().timestamp();
-                assert_eq!(format_time_relative(&ts).unwrap(), "1 year ago");
+                assert_eq!(format_timestamp_relative(&ts).unwrap(), "1 year ago");
 
                 let ts = now.checked_sub(Span::new().months(1)).unwrap().timestamp();
-                assert_eq!(format_time_relative(&ts).unwrap(), "1 month ago");
+                assert_eq!(format_timestamp_relative(&ts).unwrap(), "1 month ago");
 
                 let ts = now.checked_sub(Span::new().days(1)).unwrap().timestamp();
-                assert_eq!(format_time_relative(&ts).unwrap(), "1 day ago");
+                assert_eq!(format_timestamp_relative(&ts).unwrap(), "1 day ago");
 
                 let ts = now.checked_sub(Span::new().hours(1)).unwrap().timestamp();
-                assert_eq!(format_time_relative(&ts).unwrap(), "1 hour ago");
+                assert_eq!(format_timestamp_relative(&ts).unwrap(), "1 hour ago");
 
                 let ts = now.checked_sub(Span::new().minutes(1)).unwrap().timestamp();
-                assert_eq!(format_time_relative(&ts).unwrap(), "1 minute ago");
+                assert_eq!(format_timestamp_relative(&ts).unwrap(), "1 minute ago");
 
                 let ts = now.checked_sub(Span::new().seconds(1)).unwrap().timestamp();
-                assert_eq!(format_time_relative(&ts).unwrap(), "1 second ago");
+                assert_eq!(format_timestamp_relative(&ts).unwrap(), "1 second ago");
             }
 
             #[test]
@@ -280,31 +278,31 @@ pub mod filters {
                     .checked_sub(Span::new().years(3).months(2).days(18))
                     .unwrap()
                     .timestamp();
-                assert_eq!(format_time_relative(&ts).unwrap(), "3 years ago");
+                assert_eq!(format_timestamp_relative(&ts).unwrap(), "3 years ago");
 
                 let ts = now
                     .checked_sub(Span::new().months(1).days(24).hours(7))
                     .unwrap()
                     .timestamp();
-                assert_eq!(format_time_relative(&ts).unwrap(), "2 months ago");
+                assert_eq!(format_timestamp_relative(&ts).unwrap(), "2 months ago");
 
                 let ts = now
                     .checked_sub(Span::new().days(5).hours(7).minutes(22).seconds(18))
                     .unwrap()
                     .timestamp();
-                assert_eq!(format_time_relative(&ts).unwrap(), "5 days ago");
+                assert_eq!(format_timestamp_relative(&ts).unwrap(), "5 days ago");
 
                 let ts = now
                     .checked_sub(Span::new().hours(7).minutes(33).seconds(18))
                     .unwrap()
                     .timestamp();
-                assert_eq!(format_time_relative(&ts).unwrap(), "8 hours ago");
+                assert_eq!(format_timestamp_relative(&ts).unwrap(), "8 hours ago");
 
                 let ts = now
                     .checked_sub(Span::new().minutes(39).seconds(18))
                     .unwrap()
                     .timestamp();
-                assert_eq!(format_time_relative(&ts).unwrap(), "39 minutes ago");
+                assert_eq!(format_timestamp_relative(&ts).unwrap(), "39 minutes ago");
             }
         }
     }

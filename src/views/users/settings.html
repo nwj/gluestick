@@ -5,5 +5,29 @@
         <h1>Settings</h1>
         <button hx-post="/api_sessions" hx-target="#new-api-key">Generate an api key</button>
         <div id="new-api-key"></div>
-    </main>
+        <section>
+            <h2>API Keys</h2>
+            <ul class="api-key-list">
+                {% for api_key in api_keys %}
+                    <li class="api-key">
+                        <div>
+                            <div class="name">{{ api_key.name }}</div>
+                            <div class="created-at" title="{{ api_key.created_at|format_timestamp }}">
+                                Created {{ api_key.created_at|format_timestamp_relative }}
+                            </div>
+                            {% if api_key.last_used_at == api_key.created_at %}
+                                <div class="last-used-at">Never used</div>
+                            {% else %}
+                                <div class="last-used-at"
+                                     title="{{ api_key.last_used_at|format_timestamp }}">
+                                    Last used {{ api_key.last_used_at|format_timestamp_relative }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </li>
+            {% endfor %}
+        </ul>
+    </section>
+</main>
 {% endblock %}
