@@ -77,9 +77,10 @@ impl ApiKey {
     pub fn new(user_id: Uuid) -> (UnhashedKey, Self) {
         let now = Timestamp::now();
         let unhashed_key = UnhashedKey::generate();
+        let last_four = &unhashed_key.expose_secret()[unhashed_key.expose_secret().len() - 4..];
         let api_key = Self {
             id: Uuid::now_v7(),
-            name: String::from("Unnamed API Key"),
+            name: format!("API Key ending in '{last_four}'"),
             key: HashedKey::from(&unhashed_key),
             user_id,
             created_at: now,
@@ -109,7 +110,7 @@ impl ApiKey {
             .call(move |conn| {
                 let mut statement = conn.prepare(
                     r"SELECT id, name, key, user_id, created_at, last_used_at FROM api_keys
-                    WHERE user_id = :user_id ORDER BY name;",
+                    WHERE user_id = :user_id ORDER BY id DESC;",
                 )?;
                 let api_key_iter = statement
                     .query_map(named_params! {":user_id": user_id}, |k| {
