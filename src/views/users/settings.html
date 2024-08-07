@@ -3,11 +3,11 @@
 {% block main %}
     <main class="settings">
         <h1>Settings</h1>
-        <button hx-post="/api_sessions" hx-target="#new-api-key">Generate an api key</button>
-        <div id="new-api-key"></div>
         <section>
             <h2>API Keys</h2>
+            <button hx-post="/api_sessions" hx-target="next .new-api-key">Generate an api key</button>
             <ul class="api-key-list">
+                <li class="new-api-key"></li>
                 {% for api_key in api_keys %}
                     <li class="api-key">
                         <div>
@@ -24,6 +24,13 @@
                                 </div>
                             {% endif %}
                         </div>
+                        <button hx-confirm="Are you sure you want to delete this api_key?"
+                                hx-delete="/api_sessions/{{ api_key.id }}">
+                            <svg class="icon">
+                                <use href="/assets/images/vendor/feather-sprite-subset.v4.29.0.svg#trash-2" />
+                            </svg>
+                            Delete
+                        </button>
                     </div>
                 </li>
             {% endfor %}

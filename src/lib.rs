@@ -63,6 +63,10 @@ pub fn router(db: Database) -> Router {
         .route("/login", post(controllers::sessions::create))
         .route("/logout", delete(controllers::sessions::delete))
         .route("/api_sessions", post(controllers::api_sessions::create))
+        .route(
+            "/api_sessions/:api_key_id",
+            delete(controllers::api_sessions::destroy),
+        )
         .route("/pastes", get(controllers::pastes::index))
         .route("/pastes", post(controllers::pastes::create))
         .route("/:username", get(controllers::users::show))

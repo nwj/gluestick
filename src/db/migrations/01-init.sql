@@ -24,11 +24,13 @@ CREATE TABLE session_tokens (
 ) STRICT;
 
 CREATE TABLE api_keys (
+  -- id is a UUIDv7
+  id BLOB PRIMARY KEY CHECK(length(id) = 16),
+  name TEXT NOT NULL CHECK (length(name) BETWEEN 1 AND 256),
   -- key is a randomly generated u128, formatted as hex, hashed via SHA-256
-  key BLOB PRIMARY KEY CHECK(length(key) = 32),
+  key BLOB NOT NULL CHECK(length(key) = 32),
   -- user_id is a UUIDv7
   user_id BLOB NOT NULL CHECK(length(user_id) = 16),
-  name TEXT NOT NULL CHECK (length(name) BETWEEN 1 AND 256),
   -- created_at and last_used_at are both unix timestamps, with millisecond precision
   created_at INTEGER NOT NULL,
   last_used_at INTEGER NOT NULL,

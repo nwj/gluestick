@@ -48,7 +48,7 @@ impl ApiSession {
         let mut stmt = tx.prepare(
             r"SELECT
                 users.id, users.username, users.email, users.password, users.created_at, users.updated_at,
-                api_keys.key, api_keys.user_id, api_keys.name, api_keys.created_at, api_keys.last_used_at
+                api_keys.id, api_keys.name, api_keys.key, api_keys.user_id, api_keys.created_at, api_keys.last_used_at
             FROM users JOIN api_keys ON users.id = api_keys.user_id
             WHERE api_keys.key = :key;"
         )?;
@@ -65,9 +65,10 @@ impl ApiSession {
 }
 
 pub struct ApiKey {
+    pub id: Uuid,
+    pub name: String,
     pub key: HashedKey,
     pub user_id: Uuid,
-    pub name: String,
     pub created_at: Timestamp,
     pub last_used_at: Timestamp,
 }
@@ -77,9 +78,10 @@ impl ApiKey {
         let now = Timestamp::now();
         let unhashed_key = UnhashedKey::generate();
         let api_key = Self {
+            id: Uuid::now_v7(),
+            name: String::from("Unnamed API Key"),
             key: HashedKey::from(&unhashed_key),
             user_id,
-            name: String::from("Unnamed API Key"),
             created_at: now,
             last_used_at: now,
         };
@@ -88,14 +90,15 @@ impl ApiKey {
 
     pub fn from_sql_row(row: &Row, offset: usize) -> rusqlite::Result<Self> {
         Ok(Self {
-            key: row.get(offset)?,
-            user_id: row.get(1 + offset)?,
-            name: row.get(2 + offset)?,
-            created_at: Timestamp::from_millisecond(row.get(3 + offset)?).map_err(|e| {
-                rusqlite::Error::FromSqlConversionFailure(3 + offset, Type::Integer, Box::new(e))
-            })?,
-            last_used_at: Timestamp::from_millisecond(row.get(4 + offset)?).map_err(|e| {
+            id: row.get(offset)?,
+            name: row.get(1 + offset)?,
+            key: row.get(offset + 2)?,
+            user_id: row.get(3 + offset)?,
+            created_at: Timestamp::from_millisecond(row.get(4 + offset)?).map_err(|e| {
                 rusqlite::Error::FromSqlConversionFailure(4 + offset, Type::Integer, Box::new(e))
+            })?,
+            last_used_at: Timestamp::from_millisecond(row.get(5 + offset)?).map_err(|e| {
+                rusqlite::Error::FromSqlConversionFailure(5 + offset, Type::Integer, Box::new(e))
             })?,
         })
     }
@@ -105,7 +108,7 @@ impl ApiKey {
             .conn
             .call(move |conn| {
                 let mut statement = conn.prepare(
-                    r"SELECT key, user_id, name, created_at, last_used_at FROM api_keys
+                    r"SELECT id, name, key, user_id, created_at, last_used_at FROM api_keys
                     WHERE user_id = :user_id ORDER BY name;",
                 )?;
                 let api_key_iter = statement
@@ -118,17 +121,41 @@ impl ApiKey {
         Ok(api_keys)
     }
 
+    pub async fn find_scoped_by_user_id(
+        db: &Database,
+        id: Uuid,
+        user_id: Uuid,
+    ) -> Result<Option<ApiKey>> {
+        let maybe_api_key = db
+            .conn
+            .call(move |conn| {
+                let mut stmt = conn.prepare(
+                    r"SELECT id, name, key, user_id, created_at, last_used_at FROM api_keys
+                    WHERE id = :id AND user_id = :user_id;",
+                )?;
+                let mut rows = stmt.query(named_params! {":id": id, ":user_id": user_id})?;
+                match rows.next()? {
+                    Some(row) => Ok(Some(ApiKey::from_sql_row(row, 0)?)),
+                    None => Ok(None),
+                }
+            })
+            .await?;
+
+        Ok(maybe_api_key)
+    }
+
     pub async fn insert(self, db: &Database) -> Result<usize> {
         let result = db
             .conn
             .call(move |conn| {
                 let mut statement = conn.prepare(
-                    "INSERT INTO api_keys VALUES (:key, :user_id, :name, :created_at, :last_used_at);",
+                    "INSERT INTO api_keys VALUES (:id, :name, :key, :user_id, :created_at, :last_used_at);",
                 )?;
                 let result = statement.execute(named_params! {
+                    ":id": self.id,
+                    ":name": self.name,
                     ":key": self.key,
                     ":user_id": self.user_id,
-                    ":name": self.name,
                     ":created_at": self.created_at.as_millisecond(),
                     ":last_used_at": self.last_used_at.as_millisecond(),
                 })?;
@@ -136,6 +163,18 @@ impl ApiKey {
             })
             .await?;
 
+        Ok(result)
+    }
+
+    pub async fn delete(self, db: &Database) -> Result<usize> {
+        let result = db
+            .conn
+            .call(move |conn| {
+                let mut stmt = conn.prepare("DELETE FROM api_keys WHERE id = :id;")?;
+                let result = stmt.execute(named_params! {":id": self.id})?;
+                Ok(result)
+            })
+            .await?;
         Ok(result)
     }
 
