@@ -1,5 +1,6 @@
 use crate::controllers::prelude::ErrorTemplate;
 use crate::helpers::pagination::CursorPaginationResponse;
+use crate::models::api_session::ApiKey;
 use crate::models::paste::Paste;
 use crate::models::session::Session;
 use crate::models::user::User;
@@ -56,6 +57,7 @@ pub struct ShowUsersTemplate {
 #[template(path = "users/settings.html")]
 pub struct SettingsTemplate {
     pub session: Option<Session>,
+    pub api_keys: Vec<ApiKey>,
 }
 
 #[derive(Clone, Debug, Default, Template)]

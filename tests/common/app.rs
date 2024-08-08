@@ -1,3 +1,4 @@
+use crate::common::api_key_helper::TestApiKey;
 use crate::common::paste_helper::TestPaste;
 use crate::common::rand_helper;
 use crate::common::user_helper::TestUser;
@@ -89,6 +90,7 @@ impl TestApp {
                 .unwrap_or("can't seed user without an id".into()),
         )?;
         let hashed_password = rand_helper::hash_password(user.password)?;
+        let now = Timestamp::now().as_millisecond();
         self.db
             .conn
             .call(move |conn| {
@@ -99,8 +101,8 @@ impl TestApp {
                     ":username": user.username,
                     ":email": user.email.to_lowercase(),
                     ":password": hashed_password,
-                    ":created_at": Timestamp::now().as_millisecond(),
-                    ":updated_at": Timestamp::now().as_millisecond(),
+                    ":created_at": now,
+                    ":updated_at": now,
                 })?;
                 Ok(())
             })
@@ -108,23 +110,29 @@ impl TestApp {
         Ok(())
     }
 
-    pub async fn seed_api_key(&self, api_key: String, user: &TestUser) -> Result<()> {
+    pub async fn seed_api_key(&self, api_key: TestApiKey, user: &TestUser) -> Result<()> {
         let user_id = Uuid::try_parse(
             &user
                 .id
                 .clone()
                 .unwrap_or("can't seed api key without a user id".into()),
         )?;
-        let hashed_api_key = rand_helper::hash_api_key(api_key);
+        let api_key_id = Uuid::try_parse(&api_key.id)?;
+        let hashed_api_key = rand_helper::hash_api_key(api_key.unhashed_key.clone());
+        let now = Timestamp::now().as_millisecond();
         self.db
             .conn
             .call(move |conn| {
-                let mut stmt = conn
-                    .prepare("INSERT INTO api_sessions VALUES(:api_key, :user_id, :created_at);")?;
+                let mut stmt = conn.prepare(
+                    "INSERT INTO api_keys VALUES(:id, :name, :key, :user_id, :created_at, :last_used_at);",
+                )?;
                 stmt.execute(named_params! {
-                    ":api_key": hashed_api_key,
+                    ":id": api_key_id,
+                    ":name": api_key.name,
+                    ":key": hashed_api_key,
                     ":user_id": user_id,
-                    ":created_at": Timestamp::now().as_millisecond()
+                    ":created_at": now,
+                    ":last_used_at": now,
                 })?;
                 Ok(())
             })
@@ -145,6 +153,7 @@ impl TestApp {
                 .clone()
                 .unwrap_or("can't seed paste without a user id".into()),
         )?;
+        let now = Timestamp::now().as_millisecond();
         self.db
             .conn
             .call(move |conn| {
@@ -157,8 +166,8 @@ impl TestApp {
                     ":description": paste.description,
                     ":body": paste.body,
                     ":visibility": paste.visibility,
-                    ":created_at": Timestamp::now().as_millisecond(),
-                    ":updated_at": Timestamp::now().as_millisecond(),
+                    ":created_at": now,
+                    ":updated_at": now,
                 })?;
                 Ok(())
             })

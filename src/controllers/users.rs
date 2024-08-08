@@ -1,6 +1,7 @@
 use crate::controllers::prelude::*;
 use crate::db::Database;
 use crate::helpers::pagination::{CursorPaginationParams, CursorPaginationResponse};
+use crate::models::api_session::ApiKey;
 use crate::models::paste::Paste;
 use crate::models::session::{Session, SessionToken, SESSION_COOKIE_NAME};
 use crate::models::user::User;
@@ -39,7 +40,7 @@ pub async fn create(
     let user: User = params.try_into()?;
     user.clone().insert(&db).await?;
 
-    let token = SessionToken::generate();
+    let (unhashed_token, hashed_token) = SessionToken::new(user.id);
     let response = Response::builder()
         .status(StatusCode::SEE_OTHER)
         .header("Location", "/")
@@ -48,13 +49,13 @@ pub async fn create(
             format!(
                 "{}={}; Max-Age=999999; Secure; HttpOnly",
                 SESSION_COOKIE_NAME,
-                &token.expose_secret()
+                &unhashed_token.expose_secret()
             ),
         )
         .body(Body::empty())
         .map_err(|e| Error::InternalServerError(Box::new(e)))?;
+    hashed_token.insert(&db).await?;
 
-    Session::new(&token, user).insert(&db).await?;
     invite_code.delete(&db).await?;
 
     Ok(response)
@@ -102,9 +103,11 @@ pub async fn show(
     }
 }
 
-pub async fn settings(session: Session) -> Result<impl IntoResponse> {
+pub async fn settings(session: Session, State(db): State<Database>) -> Result<impl IntoResponse> {
+    let api_keys = ApiKey::all_for_user_id(&db, session.user.id).await?;
     let session = Some(session);
-    Ok(SettingsTemplate { session })
+
+    Ok(SettingsTemplate { session, api_keys })
 }
 
 pub async fn validate_username(

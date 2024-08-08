@@ -5,11 +5,12 @@ use derive_more::From;
 use jiff::{Timestamp, ToSpan, Unit};
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
-use rusqlite::types::{FromSql, FromSqlResult, ToSql, ToSqlOutput, ValueRef};
-use rusqlite::Transaction;
+use rusqlite::types::{FromSql, FromSqlResult, ToSql, ToSqlOutput, Type, ValueRef};
+use rusqlite::{Row, Transaction, TransactionBehavior};
 use secrecy::{ExposeSecret, Secret};
 use sha2::{Digest, Sha256};
 use tokio_rusqlite::named_params;
+use uuid::Uuid;
 
 pub const SESSION_COOKIE_NAME: &str = "session_token";
 const ABSOLUTE_SESSION_TTL_SECONDS: i64 = 1_209_600; // 14 days
@@ -17,31 +18,90 @@ const IDLE_SESSION_TTL_SECONDS: i64 = 28_800; // 8 hours
 
 #[derive(Debug)]
 pub struct Session {
-    pub token: HashedSessionToken,
+    pub session_token: SessionToken,
     pub user: User,
-    pub created_at: Timestamp,
-    pub updated_at: Timestamp,
 }
 
 impl Session {
-    pub fn new(token: impl Into<HashedSessionToken>, user: User) -> Self {
-        Self {
-            token: token.into(),
-            user,
-            created_at: Timestamp::now(),
-            updated_at: Timestamp::now(),
-        }
+    pub async fn find_by_unhashed_token(
+        db: &Database,
+        unhashed_token: &UnhashedToken,
+    ) -> Result<Option<Self>> {
+        let hashed_token = HashedToken::from(unhashed_token);
+        let maybe_session = db
+            .conn
+            .call(move |conn| {
+                let tx = conn.transaction_with_behavior(TransactionBehavior::Immediate)?;
+                let maybe_session = Self::tx_find_by_hashed_token(&tx, &hashed_token)?;
+                if let Some(ref session) = maybe_session {
+                    session.session_token.tx_touch(&tx)?;
+                }
+                tx.commit()?;
+                Ok(maybe_session)
+            })
+            .await?;
+
+        Ok(maybe_session)
     }
 
-    pub fn tx_touch(
+    pub fn tx_find_by_hashed_token(
         tx: &Transaction,
-        session_token: &HashedSessionToken,
-    ) -> tokio_rusqlite::Result<()> {
+        token: &HashedToken,
+    ) -> tokio_rusqlite::Result<Option<Self>> {
         let mut stmt = tx.prepare(
-            "UPDATE sessions SET updated_at = :updated_at WHERE session_token = :session_token;",
+            r"SELECT
+                users.id, users.username, users.email, users.password, users.created_at, users.updated_at,
+                session_tokens.token, session_tokens.user_id, session_tokens.created_at, session_tokens.last_used_at
+            FROM users JOIN session_tokens ON users.id = session_tokens.user_id
+            WHERE session_tokens.token = :token;",
         )?;
-        stmt.execute(named_params! {":updated_at": Timestamp::now().as_millisecond(), ":session_token": session_token})?;
-        Ok(())
+        let mut rows = stmt.query(named_params! {":token": token})?;
+        match rows.next()? {
+            Some(row) => {
+                let user = User::from_sql_row(row)?;
+                let session_token = SessionToken::from_sql_row(row, 6)?;
+                Ok(Some(Self {
+                    session_token,
+                    user,
+                }))
+            }
+            None => Ok(None),
+        }
+    }
+}
+
+#[allow(clippy::module_name_repetitions)]
+#[derive(Debug)]
+pub struct SessionToken {
+    pub token: HashedToken,
+    pub user_id: Uuid,
+    pub created_at: Timestamp,
+    pub last_used_at: Timestamp,
+}
+
+impl SessionToken {
+    pub fn new(user_id: Uuid) -> (UnhashedToken, Self) {
+        let unhashed_token = UnhashedToken::generate();
+        let session_token = Self {
+            token: HashedToken::from(&unhashed_token),
+            user_id,
+            created_at: Timestamp::now(),
+            last_used_at: Timestamp::now(),
+        };
+        (unhashed_token, session_token)
+    }
+
+    pub fn from_sql_row(row: &Row, offset: usize) -> rusqlite::Result<Self> {
+        Ok(Self {
+            token: row.get(offset)?,
+            user_id: row.get(1 + offset)?,
+            created_at: Timestamp::from_millisecond(row.get(2 + offset)?).map_err(|e| {
+                rusqlite::Error::FromSqlConversionFailure(2 + offset, Type::Integer, Box::new(e))
+            })?,
+            last_used_at: Timestamp::from_millisecond(row.get(3 + offset)?).map_err(|e| {
+                rusqlite::Error::FromSqlConversionFailure(3 + offset, Type::Integer, Box::new(e))
+            })?,
+        })
     }
 
     pub async fn expire_absolute(db: &Database) -> Result<usize> {
@@ -54,8 +114,9 @@ impl Session {
         let result = db
             .conn
             .call(move |conn| {
-                let mut statement =
-                    conn.prepare("DELETE FROM sessions WHERE created_at < :expiration_timestamp;")?;
+                let mut statement = conn.prepare(
+                    "DELETE FROM session_tokens WHERE created_at < :expiration_timestamp;",
+                )?;
                 let result = statement.execute(
                     named_params! {":expiration_timestamp": expiration_timestamp.as_millisecond()},
                 )?;
@@ -77,8 +138,9 @@ impl Session {
         let result = db
             .conn
             .call(move |conn| {
-                let mut statement =
-                    conn.prepare("DELETE FROM sessions WHERE updated_at < :expiration_timestamp;")?;
+                let mut statement = conn.prepare(
+                    "DELETE FROM session_tokens WHERE last_used_at < :expiration_timestamp;",
+                )?;
                 let result = statement.execute(
                     named_params! {":expiration_timestamp": expiration_timestamp.as_millisecond()},
                 )?;
@@ -95,13 +157,13 @@ impl Session {
             .conn
             .call(move |conn| {
                 let mut statement = conn.prepare(
-                    "INSERT INTO sessions VALUES (:session_token, :user_id, :created_at, :updated_at);",
+                    "INSERT INTO session_tokens VALUES (:token, :user_id, :created_at, :last_used_at);",
                 )?;
                 let result = statement.execute(named_params! {
-                    ":session_token": self.token,
-                    ":user_id": self.user.id,
+                    ":token": self.token,
+                    ":user_id": self.user_id,
                     ":created_at": self.created_at.as_millisecond(),
-                    ":updated_at": self.updated_at.as_millisecond(),
+                    ":last_used_at": self.last_used_at.as_millisecond(),
                 })?;
                 Ok(result)
             })
@@ -109,13 +171,22 @@ impl Session {
 
         Ok(result)
     }
+
+    pub fn tx_touch(&self, tx: &Transaction) -> tokio_rusqlite::Result<()> {
+        let mut stmt = tx.prepare(
+            "UPDATE session_tokens SET last_used_at = :last_used_at WHERE token = :token;",
+        )?;
+        stmt.execute(
+            named_params! {":last_used_at": Timestamp::now().as_millisecond(), ":token": self.token},
+        )?;
+        Ok(())
+    }
 }
 
 #[derive(Clone)]
-#[allow(clippy::module_name_repetitions)]
-pub struct SessionToken(Secret<String>);
+pub struct UnhashedToken(Secret<String>);
 
-impl SessionToken {
+impl UnhashedToken {
     pub fn generate() -> Self {
         // The OWASP checklist for session tokens:
         // - has a size of at least 128-bits: ours is 128-bits
@@ -128,7 +199,7 @@ impl SessionToken {
     }
 }
 
-impl TryFrom<&str> for SessionToken {
+impl TryFrom<&str> for UnhashedToken {
     type Error = std::num::ParseIntError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
@@ -137,41 +208,41 @@ impl TryFrom<&str> for SessionToken {
     }
 }
 
-impl ExposeSecret<String> for SessionToken {
+impl ExposeSecret<String> for UnhashedToken {
     fn expose_secret(&self) -> &String {
         self.0.expose_secret()
     }
 }
 
 #[derive(From)]
-pub struct HashedSessionToken(Secret<Vec<u8>>);
+pub struct HashedToken(Secret<Vec<u8>>);
 
-impl From<&SessionToken> for HashedSessionToken {
-    fn from(token: &SessionToken) -> Self {
+impl From<&UnhashedToken> for HashedToken {
+    fn from(token: &UnhashedToken) -> Self {
         let hash = Sha256::digest(token.expose_secret().as_bytes()).to_vec();
         Self(Secret::new(hash))
     }
 }
 
-impl std::fmt::Debug for HashedSessionToken {
+impl std::fmt::Debug for HashedToken {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "[REDACTED HashedSessionToken]")
+        write!(f, "[REDACTED HashedToken]")
     }
 }
 
-impl ExposeSecret<Vec<u8>> for HashedSessionToken {
+impl ExposeSecret<Vec<u8>> for HashedToken {
     fn expose_secret(&self) -> &Vec<u8> {
         self.0.expose_secret()
     }
 }
 
-impl ToSql for HashedSessionToken {
+impl ToSql for HashedToken {
     fn to_sql(&self) -> Result<ToSqlOutput<'_>, rusqlite::Error> {
         self.expose_secret().to_sql()
     }
 }
 
-impl FromSql for HashedSessionToken {
+impl FromSql for HashedToken {
     fn column_result(value: ValueRef) -> FromSqlResult<Self> {
         Vec::<u8>::column_result(value).map(|vec| Ok(Secret::new(vec).into()))?
     }

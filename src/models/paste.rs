@@ -31,6 +31,7 @@ impl Paste {
         body: String,
         visibility: Visibility,
     ) -> Result<Self> {
+        let now = Timestamp::now();
         Ok(Self {
             id: Uuid::now_v7(),
             user_id,
@@ -38,8 +39,8 @@ impl Paste {
             description: description.into(),
             body: body.into(),
             visibility,
-            created_at: Timestamp::now(),
-            updated_at: Timestamp::now(),
+            created_at: now,
+            updated_at: now,
         })
     }
 

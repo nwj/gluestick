@@ -4,7 +4,7 @@
 #![allow(clippy::must_use_candidate)]
 
 use crate::db::Database;
-use crate::models::session::Session;
+use crate::models::session::SessionToken;
 use axum::{
     extract::Request,
     routing::{delete, get, patch, post, put},
@@ -63,6 +63,10 @@ pub fn router(db: Database) -> Router {
         .route("/login", post(controllers::sessions::create))
         .route("/logout", delete(controllers::sessions::delete))
         .route("/api_sessions", post(controllers::api_sessions::create))
+        .route(
+            "/api_sessions/:api_key_id",
+            delete(controllers::api_sessions::destroy),
+        )
         .route("/pastes", get(controllers::pastes::index))
         .route("/pastes", post(controllers::pastes::create))
         .route("/:username", get(controllers::users::show))
@@ -112,11 +116,11 @@ pub fn background_tasks(mut shutdown_rx: mpsc::Receiver<()>, db: Database) -> Jo
                 _ = every_minute.tick() => {
                     tracing::trace!("starting per minute background tasks");
 
-                    if let Err(e) = Session::expire_idle(&db).await {
-                           tracing::error!("error in background task Session::expire_idle: {e}");
+                    if let Err(e) = SessionToken::expire_idle(&db).await {
+                       tracing::error!("error in background task SessionToken::expire_idle: {e}");
                     }
-                    if let Err(e) = Session::expire_absolute(&db).await {
-                           tracing::error!("error in background task Session::expire_absolute: {e}");
+                    if let Err(e) = SessionToken::expire_absolute(&db).await {
+                       tracing::error!("error in background task SessionToken::expire_absolute: {e}");
                     }
 
                     tracing::trace!("finishing per minute background tasks");

@@ -11,24 +11,30 @@ CREATE TABLE users (
   CHECK(created_at <= updated_at)
 ) STRICT;
 
-CREATE TABLE sessions (
-  -- session_token is a randomly generated u128, formatted as hex, hashed via SHA-256
-  session_token BLOB PRIMARY KEY CHECK(length(session_token) = 32),
+CREATE TABLE session_tokens (
+  -- token is a randomly generated u128, formatted as hex, hashed via SHA-256
+  token BLOB PRIMARY KEY CHECK(length(token) = 32),
   -- user_id is a UUIDv7
   user_id BLOB NOT NULL CHECK(length(user_id) = 16),
-  -- created_at and updated_at are both unix timestamps, with millisecond precision
+  -- created_at and last_used_at are both unix timestamps, with millisecond precision
   created_at INTEGER NOT NULL,
-  updated_at INTEGER NOT NULL,
+  last_used_at INTEGER NOT NULL,
+  CHECK(created_at <= last_used_at),
   FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
 ) STRICT;
 
-CREATE TABLE api_sessions (
-  -- api_key is a randomly generated u128, formatted as hex, hashed via SHA-256
-  api_key BLOB PRIMARY KEY CHECK(length(api_key) = 32),
+CREATE TABLE api_keys (
+  -- id is a UUIDv7
+  id BLOB PRIMARY KEY CHECK(length(id) = 16),
+  name TEXT NOT NULL CHECK (length(name) BETWEEN 1 AND 256),
+  -- key is a randomly generated u128, formatted as hex, hashed via SHA-256
+  key BLOB NOT NULL CHECK(length(key) = 32),
   -- user_id is a UUIDv7
   user_id BLOB NOT NULL CHECK(length(user_id) = 16),
-  -- created_at is a unix timestamp, with millisecond precision
+  -- created_at and last_used_at are both unix timestamps, with millisecond precision
   created_at INTEGER NOT NULL,
+  last_used_at INTEGER NOT NULL,
+  CHECK(created_at <= last_used_at),
   FOREIGN KEY(user_id) REFERENCES users(id)
 ) STRICT;
 
