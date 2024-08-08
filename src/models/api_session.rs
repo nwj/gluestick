@@ -77,7 +77,8 @@ impl ApiKey {
     pub fn new(user_id: Uuid) -> (UnhashedKey, Self) {
         let now = Timestamp::now();
         let unhashed_key = UnhashedKey::generate();
-        let last_four = &unhashed_key.expose_secret()[unhashed_key.expose_secret().len() - 4..];
+        let last_four =
+            &unhashed_key.expose_secret()[unhashed_key.expose_secret().len().saturating_sub(4)..];
         let api_key = Self {
             id: Uuid::now_v7(),
             name: format!("API Key ending in '{last_four}'"),

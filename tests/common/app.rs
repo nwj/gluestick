@@ -1,3 +1,4 @@
+use crate::common::api_key_helper::TestApiKey;
 use crate::common::paste_helper::TestPaste;
 use crate::common::rand_helper;
 use crate::common::user_helper::TestUser;
@@ -109,14 +110,15 @@ impl TestApp {
         Ok(())
     }
 
-    pub async fn seed_api_key(&self, api_key: String, user: &TestUser) -> Result<()> {
+    pub async fn seed_api_key(&self, api_key: TestApiKey, user: &TestUser) -> Result<()> {
         let user_id = Uuid::try_parse(
             &user
                 .id
                 .clone()
                 .unwrap_or("can't seed api key without a user id".into()),
         )?;
-        let hashed_api_key = rand_helper::hash_api_key(api_key);
+        let api_key_id = Uuid::try_parse(&api_key.id)?;
+        let hashed_api_key = rand_helper::hash_api_key(api_key.unhashed_key.clone());
         let now = Timestamp::now().as_millisecond();
         self.db
             .conn
@@ -125,8 +127,8 @@ impl TestApp {
                     "INSERT INTO api_keys VALUES(:id, :name, :key, :user_id, :created_at, :last_used_at);",
                 )?;
                 stmt.execute(named_params! {
-                    ":id": Uuid::now_v7(),
-                    ":name": "Unnamed API Key",
+                    ":id": api_key_id,
+                    ":name": api_key.name,
                     ":key": hashed_api_key,
                     ":user_id": user_id,
                     ":created_at": now,

@@ -1,3 +1,4 @@
+use crate::common::api_key_helper::TestApiKey;
 use crate::common::app::TestApp;
 use crate::common::rand_helper;
 use crate::prelude::*;
@@ -29,10 +30,10 @@ impl TestUser {
         Ok(self)
     }
 
-    pub async fn seed_with_api_key(mut self, app: &TestApp) -> Result<(Self, String)> {
+    pub async fn seed_with_api_key(mut self, app: &TestApp) -> Result<(Self, TestApiKey)> {
         let id = Uuid::now_v7().to_string();
         self.id = Some(id.clone());
-        let api_key = rand_helper::random_api_key();
+        let api_key = TestApiKey::builder().random()?.build();
         app.seed_user(self.clone()).await?;
         app.seed_api_key(api_key.clone(), &self).await?;
         Ok((self, api_key))

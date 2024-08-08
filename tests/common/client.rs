@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+use crate::common::api_key_helper::TestApiKey;
 use crate::common::pagination_helper::{PaginationParams, PaginationResponse};
 use crate::common::paste_helper::TestPaste;
 use crate::common::user_helper::TestUser;
@@ -15,12 +16,15 @@ pub struct TestClient {
 }
 
 impl TestClient {
-    pub fn new(address: SocketAddr, api_key: Option<&str>) -> Result<Self> {
+    pub fn new(address: SocketAddr, api_key: Option<&TestApiKey>) -> Result<Self> {
         let base_url = Url::parse(&format!("http://{address}/"))?;
 
         let mut headers = HeaderMap::new();
         if let Some(api_key) = api_key {
-            headers.insert("X-Gluestick-API-Key", HeaderValue::from_str(api_key)?);
+            headers.insert(
+                "X-Gluestick-API-Key",
+                HeaderValue::from_str(api_key.as_ref())?,
+            );
         }
 
         let client = reqwest::Client::builder()
@@ -163,12 +167,25 @@ impl<'c> ApiPastesEndpoint<'c> {
 pub struct ApiSessionsEndpoint<'c>(&'c TestClient);
 
 impl<'c> ApiSessionsEndpoint<'c> {
+    fn endpoint_str(&self) -> &str {
+        "api_sessions"
+    }
+
     fn endpoint(&self) -> Result<Url> {
-        Ok(self.0.base_url.join("api_sessions")?)
+        Ok(self.0.base_url.join(self.endpoint_str())?)
+    }
+
+    fn endpoint_with_trailing_slash(&self) -> Result<Url> {
+        Ok(self.0.base_url.join(&format!("{}/", self.endpoint_str()))?)
     }
 
     pub async fn post(&self) -> Result<Response> {
         Ok(self.0.client.post(self.endpoint()?).send().await?)
+    }
+
+    pub async fn delete_by_id(&self, api_key: &TestApiKey) -> Result<Response> {
+        let endpoint = self.endpoint_with_trailing_slash()?.join(&api_key.id)?;
+        Ok(self.0.client.delete(endpoint).send().await?)
     }
 }
 

@@ -1,3 +1,4 @@
+use crate::common::api_key_helper::TestApiKey;
 use crate::common::app::TestApp;
 use crate::common::client::TestClient;
 use crate::common::pagination_helper::PaginationParams;
@@ -229,17 +230,6 @@ async fn cant_signup_twice_with_the_same_email() -> Result<()> {
     assert_eq!(response.status(), 200);
 
     // Since settings is session gated, we can use it to check for a session
-    let response = client.settings().get().await?;
-    assert_eq!(response.status(), 401);
-
-    Ok(())
-}
-
-#[tokio::test]
-async fn settings_inaccessible_when_logged_out() -> Result<()> {
-    let app = TestApp::spawn().await?;
-    let client = TestClient::new(app.address, None)?;
-
     let response = client.settings().get().await?;
     assert_eq!(response.status(), 401);
 
@@ -564,5 +554,151 @@ async fn show_paginates_correctly() -> Result<()> {
     }
     assert!(html.contains("<span>Newer</span>"));
     assert!(html.contains("Older</a>"));
+    Ok(())
+}
+
+#[tokio::test]
+async fn settings_inaccessible_when_logged_out() -> Result<()> {
+    let app = TestApp::spawn().await?;
+    let client = TestClient::new(app.address, None)?;
+
+    let response = client.settings().get().await?;
+    assert_eq!(response.status(), 401);
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn settings_lists_users_api_keys() -> Result<()> {
+    let app = TestApp::spawn().await?;
+    let user = TestUser::builder().random()?.build().seed(&app).await?;
+    let client = TestClient::new(app.address, None)?;
+    let api_key1 = TestApiKey::builder()
+        .random()?
+        .build()
+        .seed(&app, &user)
+        .await?;
+    let api_key2 = TestApiKey::builder()
+        .random()?
+        .build()
+        .seed(&app, &user)
+        .await?;
+    client.login().post(&user).await?;
+
+    let response = client.settings().get().await?;
+    assert_eq!(response.status(), 200);
+    let html = response.text().await?;
+    assert!(html.contains(&api_key1.name));
+    assert!(html.contains(&api_key2.name));
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn settings_does_not_list_other_users_api_keys() -> Result<()> {
+    let app = TestApp::spawn().await?;
+    let user = TestUser::builder().random()?.build().seed(&app).await?;
+    let other_user = TestUser::builder().random()?.build().seed(&app).await?;
+    let client = TestClient::new(app.address, None)?;
+    let api_key1 = TestApiKey::builder()
+        .random()?
+        .build()
+        .seed(&app, &other_user)
+        .await?;
+    let api_key2 = TestApiKey::builder()
+        .random()?
+        .build()
+        .seed(&app, &other_user)
+        .await?;
+    client.login().post(&user).await?;
+
+    let response = client.settings().get().await?;
+    assert_eq!(response.status(), 200);
+    let html = response.text().await?;
+    assert!(!html.contains(&api_key1.name));
+    assert!(!html.contains(&api_key2.name));
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn can_generate_new_api_keys() -> Result<()> {
+    let app = TestApp::spawn().await?;
+    let user = TestUser::builder().random()?.build().seed(&app).await?;
+    let client = TestClient::new(app.address, None)?;
+    client.login().post(&user).await?;
+
+    let response = client.settings().get().await?;
+    assert_eq!(response.status(), 200);
+    let html = response.text().await?;
+    assert!(!html.contains("<li class=\"key\">"));
+
+    let response = client.api_sessions().post().await?;
+    assert_eq!(response.status(), 200);
+
+    let response = client.settings().get().await?;
+    assert_eq!(response.status(), 200);
+    let html = response.text().await?;
+    assert!(html.contains("<li class=\"key\">"));
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn can_delete_api_keys() -> Result<()> {
+    let app = TestApp::spawn().await?;
+    let user = TestUser::builder().random()?.build().seed(&app).await?;
+    let client = TestClient::new(app.address, None)?;
+    let api_key = TestApiKey::builder()
+        .random()?
+        .build()
+        .seed(&app, &user)
+        .await?;
+    client.login().post(&user).await?;
+
+    let response = client.settings().get().await?;
+    assert_eq!(response.status(), 200);
+    let html = response.text().await?;
+    assert!(html.contains(&api_key.name));
+
+    let response = client.api_sessions().delete_by_id(&api_key).await?;
+    assert_eq!(response.status(), 200);
+
+    let response = client.settings().get().await?;
+    assert_eq!(response.status(), 200);
+    let html = response.text().await?;
+    assert!(!html.contains(&api_key.name));
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn cannot_delete_other_users_api_keys() -> Result<()> {
+    let app = TestApp::spawn().await?;
+    let user = TestUser::builder().random()?.build().seed(&app).await?;
+    let client = TestClient::new(app.address, None)?;
+    let other_user = TestUser::builder().random()?.build().seed(&app).await?;
+    let other_client = TestClient::new(app.address, None)?;
+    let api_key = TestApiKey::builder()
+        .random()?
+        .build()
+        .seed(&app, &other_user)
+        .await?;
+    client.login().post(&user).await?;
+    other_client.login().post(&other_user).await?;
+
+    let response = other_client.settings().get().await?;
+    assert_eq!(response.status(), 200);
+    let html = response.text().await?;
+    assert!(html.contains(&api_key.name));
+
+    let response = client.api_sessions().delete_by_id(&api_key).await?;
+    assert_eq!(response.status(), 404);
+
+    let response = other_client.settings().get().await?;
+    assert_eq!(response.status(), 200);
+    let html = response.text().await?;
+    assert!(html.contains(&api_key.name));
+
     Ok(())
 }
