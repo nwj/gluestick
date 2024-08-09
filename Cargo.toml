@@ -18,20 +18,20 @@ askama = { version = "0.12.1", features = ["with-axum"] }
 askama_axum = "0.4.0"
 axum = { version = "0.7.5", features = ["macros"] }
 axum-extra = { version = "0.9.3", features = ["cookie"] }
-derive_more = "0.99.18"
+derive_more = { version = "1.0.0", features = ["from", "as_ref", "into", "display"] }
 dotenvy = "0.15.7"
-jiff = { version = "0.1.4", features = ["serde"] }
-memory-serve = "0.4.5"
+jiff = { version = "0.1.5", features = ["serde"] }
+memory-serve = "0.6.0"
 rand = "0.8.5"
 rand_chacha = "0.3.1"
 rusqlite = { version = "0.31.0", features = ["bundled", "uuid"] }
 rusqlite_migration = { version = "1.2.0", features = ["alpha-async-tokio-rusqlite"] }
 secrecy = { version = "0.8.0", features = ["serde"] }
-serde = { version = "1.0.203", features = ["derive"] }
+serde = { version = "1.0.205", features = ["derive"] }
 sha2 = "0.10.8"
 syntect = "5.2.0"
 thiserror = "1.0.61"
-tokio = { version = "1.38.0", features = ["macros", "rt-multi-thread", "signal"] }
+tokio = { version = "1.39.2", features = ["macros", "rt-multi-thread", "signal"] }
 tokio-rusqlite = "0.5.1"
 tower-http = { version = "0.5.2", features = ["trace", "compression-full", "timeout"] }
 tracing = "0.1.40"
