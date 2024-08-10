@@ -4,6 +4,10 @@
     <main class="pastes-show">
         <h1>
             <a href="/{{ username }}">{{ username }}</a> / <a href="/{{ username }}/{{ paste.id }}">{{ paste.filename }}</a>
+            {% if paste.visibility.is_secret() %}
+                <span class="secret-tag"
+                      title="Only people with the link can see this paste">Secret</span>
+            {% endif %}
         </h1>
         {% if !paste.description.is_empty() %}<div class="description-bar">{{ paste.description }}</div>{% endif %}
         <div class="metadata-bar">

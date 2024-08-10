@@ -392,6 +392,63 @@ async fn show_does_not_include_other_users_pastes() -> Result<()> {
 }
 
 #[tokio::test]
+async fn show_includes_your_own_secret_pastes_when_logged_in() -> Result<()> {
+    let app = TestApp::spawn().await?;
+    let user = TestUser::builder().random()?.build().seed(&app).await?;
+    let client = TestClient::new(app.address, None)?;
+    let paste1 = TestPaste::builder()
+        .random()?
+        .filename(random_filename(64..=64)?)
+        .build()
+        .seed(&app, &user)
+        .await?;
+    let paste2 = TestPaste::builder()
+        .random()?
+        .filename(random_filename(64..=64)?)
+        .visibility("secret")
+        .build()
+        .seed(&app, &user)
+        .await?;
+    client.login().post(&user).await?;
+
+    let response = client.username(&user.username).get(None).await?;
+    assert_eq!(response.status(), 200);
+    let html = response.text().await.unwrap();
+    assert!(html.contains(&paste1.filename));
+    assert!(html.contains(&paste2.filename));
+    Ok(())
+}
+
+#[tokio::test]
+async fn show_does_not_include_other_users_secret_pastes_when_logged_in() -> Result<()> {
+    let app = TestApp::spawn().await?;
+    let user = TestUser::builder().random()?.build().seed(&app).await?;
+    let user2 = TestUser::builder().random()?.build().seed(&app).await?;
+    let client = TestClient::new(app.address, None)?;
+    let paste1 = TestPaste::builder()
+        .random()?
+        .filename(random_filename(64..=64)?)
+        .build()
+        .seed(&app, &user2)
+        .await?;
+    let paste2 = TestPaste::builder()
+        .random()?
+        .filename(random_filename(64..=64)?)
+        .visibility("secret")
+        .build()
+        .seed(&app, &user2)
+        .await?;
+    client.login().post(&user).await?;
+
+    let response = client.username(&user2.username).get(None).await?;
+    assert_eq!(response.status(), 200);
+    let html = response.text().await.unwrap();
+    assert!(html.contains(&paste1.filename));
+    assert!(!html.contains(&paste2.filename));
+    Ok(())
+}
+
+#[tokio::test]
 async fn show_has_per_page_default() -> Result<()> {
     let app = TestApp::spawn().await?;
     let user = TestUser::builder().random()?.build().seed(&app).await?;

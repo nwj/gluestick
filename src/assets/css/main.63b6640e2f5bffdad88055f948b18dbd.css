@@ -405,9 +405,16 @@ main {
     margin-bottom: var(--spacing-xl);
 
     .filename-bar {
-      margin-bottom: var(--spacing-xs);
       font-size: var(--font-size-lg);
-      line-height: var(--line-height-heading);
+      line-height: var(--line-height-text);
+
+      .secret-tag {
+        background-color: var(--color-space-cadet-blue);
+        padding: var(--spacing-2xs) var(--spacing-xs);
+        border: 1px solid var(--color-grey-500);
+        font-size: var(--font-size-xs);
+        margin-left: var(--spacing-xs);
+      }
     }
 
     .description-bar,
@@ -466,6 +473,14 @@ main {
 }
 
 .pastes-show {
+  h1 .secret-tag {
+    background-color: var(--color-space-cadet-blue);
+    padding: var(--spacing-2xs) var(--spacing-xs);
+    border: 1px solid var(--color-grey-500);
+    font-size: var(--font-size-sm);
+    margin-left: var(--spacing-xs);
+  }
+
   .description-bar,
   .metadata-bar {
     color: var(--color-grey-200);
