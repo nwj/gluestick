@@ -51,6 +51,6 @@ pub async fn delete(session: Session, State(db): State<Database>) -> Result<impl
     session.user.delete_sessions(&db).await?;
 
     let mut headers = HeaderMap::new();
-    headers.insert("HX-Redirect", HeaderValue::from_static("/login"));
+    headers.insert("HX-Redirect", HeaderValue::from_static("/"));
     Ok(headers)
 }
