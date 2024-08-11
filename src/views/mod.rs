@@ -1,3 +1,4 @@
+use crate::models::session::Session;
 use askama::Template;
 
 pub mod api_sessions;
@@ -6,27 +7,33 @@ pub mod sessions;
 pub mod users;
 
 #[derive(Template)]
+#[template(path = "about.html")]
+pub struct AboutTemplate {
+    pub session: Option<Session>,
+}
+
+#[derive(Template)]
 #[template(path = "401.html")]
 pub struct UnauthorizedTemplate {
-    pub session: Option<()>,
+    pub session: Option<Session>,
 }
 
 #[derive(Template)]
 #[template(path = "403.html")]
 pub struct ForbiddenTemplate {
-    pub session: Option<()>,
+    pub session: Option<Session>,
 }
 
 #[derive(Template)]
 #[template(path = "404.html")]
 pub struct NotFoundTemplate {
-    pub session: Option<()>,
+    pub session: Option<Session>,
 }
 
 #[derive(Template)]
 #[template(path = "500.html")]
 pub struct InternalServerErrorTemplate {
-    pub session: Option<()>,
+    pub session: Option<Session>,
 }
 
 #[allow(clippy::unnecessary_wraps)]

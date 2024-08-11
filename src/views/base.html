@@ -8,7 +8,7 @@
             - Gluestick
         </title>
         <link rel="stylesheet"
-              href="/assets/css/main.63b6640e2f5bffdad88055f948b18dbd.css">
+              href="/assets/css/main.bd55e376bc559cda3d8dce05df5fde5b.css">
         <script src="/assets/js/vendor/htmx.v2.0.0.min.js"></script>
         <link rel="icon" href="/assets/favicon/favicon.ico" sizes="32x32">
         <link rel="icon" href="/assets/favicon/favicon.svg" type="image/svg+xml">
@@ -18,14 +18,15 @@
     <body hx-boost="true">
         <header>
             <nav>
-                <div>
+                <div class="subnav">
                     <a class="logo" href="/">Gluestick</a>
+                    <a href="/pastes">All Pastes</a>
+                    {% if let Some(session) = session %}
+                        <a href="/{{ session.user.username }}">Your Pastes</a>
+                        <a href="/new">Create New Paste</a>
+                    {% endif %}
                 </div>
-                <div>
-                    <a href="/pastes">Recent Pastes</a>
-                    {% if session.is_some() %}<a href="/">New Paste</a>{% endif %}
-                </div>
-                <div>
+                <div class="subnav">
                     {% if session.is_some() %}
                         <a href="/settings">Settings</a>
                         <a href="/logout" hx-delete="/logout">Sign Out</a>

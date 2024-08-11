@@ -134,6 +134,11 @@ header {
     width: var(--content-width);
     padding: var(--spacing-sm) var(--spacing-sm) var(--spacing-md);
 
+    .subnav {
+      display: flex;
+      align-items: center;
+    }
+
     a {
       color: var(--color-black);
       font-size: var(--font-size-xl);
@@ -149,6 +154,7 @@ header {
       font-size: var(--font-size-3xl);
       line-height: var(--line-height-heading);
       margin-left: unset;
+      margin-right: var(--spacing-lg);
     }
   }
 
@@ -407,6 +413,7 @@ main {
     .filename-bar {
       font-size: var(--font-size-lg);
       line-height: var(--line-height-text);
+      margin-bottom: var(--spacing-2xs);
 
       .secret-tag {
         background-color: var(--color-space-cadet-blue);

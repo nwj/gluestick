@@ -16,7 +16,7 @@ pub const SESSION_COOKIE_NAME: &str = "session_token";
 const ABSOLUTE_SESSION_TTL_SECONDS: i64 = 1_209_600; // 14 days
 const IDLE_SESSION_TTL_SECONDS: i64 = 28_800; // 8 hours
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Session {
     pub session_token: SessionToken,
     pub user: User,
@@ -71,7 +71,7 @@ impl Session {
 }
 
 #[allow(clippy::module_name_repetitions)]
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SessionToken {
     pub token: HashedToken,
     pub user_id: Uuid,
@@ -216,6 +216,12 @@ impl ExposeSecret<String> for UnhashedToken {
 
 #[derive(From)]
 pub struct HashedToken(Secret<Vec<u8>>);
+
+impl Clone for HashedToken {
+    fn clone(&self) -> Self {
+        HashedToken(Secret::new(self.0.expose_secret().clone()))
+    }
+}
 
 impl From<&UnhashedToken> for HashedToken {
     fn from(token: &UnhashedToken) -> Self {

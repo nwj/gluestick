@@ -1,11 +1,5 @@
 {% extends "base.html" %}
-{% block title %}
-    {% if session.is_some() %}
-        New Paste
-    {% else %}
-        About Gluestick
-    {% endif %}
-{% endblock %}
+{% block title %}New Paste{% endblock %}
 {% block main %}
     {% if let Some(session) = session %}
         <main class="pastes-new">
@@ -66,7 +60,5 @@
                 <button class="primary" type="submit">Create Paste</button>
             </form>
         </main>
-    {% else %}
-        {% include "partials/about.html" %}
     {% endif %}
 {% endblock %}

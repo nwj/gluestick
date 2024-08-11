@@ -43,7 +43,7 @@ pub async fn create(
     let (unhashed_token, hashed_token) = SessionToken::new(user.id);
     let response = Response::builder()
         .status(StatusCode::SEE_OTHER)
-        .header("Location", "/")
+        .header("Location", "/new")
         .header(
             "Set-Cookie",
             format!(

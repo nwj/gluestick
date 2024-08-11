@@ -47,7 +47,7 @@ pub async fn index(
     })
 }
 
-pub async fn new(session: Option<Session>) -> NewPastesTemplate {
+pub async fn new(session: Session) -> NewPastesTemplate {
     NewPastesTemplate::from_session(session)
 }
 
@@ -58,7 +58,7 @@ pub async fn create(
 ) -> Result<impl IntoResponse> {
     let user_id = session.user.id;
     let username = session.user.username.clone();
-    let error_template = NewPastesTemplate::from_session_and_params(Some(session), params.clone());
+    let error_template = NewPastesTemplate::from_session_and_params(session, params.clone());
     params
         .validate()
         .map_err(|e| handle_params_error(e, error_template))?;
