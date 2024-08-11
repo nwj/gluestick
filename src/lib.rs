@@ -42,7 +42,7 @@ pub fn router(db: Database) -> Router {
     Router::new()
         .nest("/api/v1", json_api_router)
         .nest("/assets", assets_router)
-        .route("/", get(controllers::pastes::new))
+        .route("/", get(controllers::about))
         .route("/health", get(controllers::health::check))
         .route("/signup", get(controllers::users::new))
         .route("/signup", post(controllers::users::create))
@@ -67,6 +67,7 @@ pub fn router(db: Database) -> Router {
             "/api_sessions/:api_key_id",
             delete(controllers::api_sessions::destroy),
         )
+        .route("/new", get(controllers::pastes::new))
         .route("/pastes", get(controllers::pastes::index))
         .route("/pastes", post(controllers::pastes::create))
         .route("/:username", get(controllers::users::show))

@@ -31,7 +31,7 @@ pub async fn create(
     let (unhashed_token, hashed_token) = SessionToken::new(user.id);
     let response = Response::builder()
         .status(StatusCode::SEE_OTHER)
-        .header("Location", "/")
+        .header("Location", "/new")
         .header(
             "Set-Cookie",
             format!(
@@ -51,6 +51,6 @@ pub async fn delete(session: Session, State(db): State<Database>) -> Result<impl
     session.user.delete_sessions(&db).await?;
 
     let mut headers = HeaderMap::new();
-    headers.insert("HX-Redirect", HeaderValue::from_static("/login"));
+    headers.insert("HX-Redirect", HeaderValue::from_static("/"));
     Ok(headers)
 }

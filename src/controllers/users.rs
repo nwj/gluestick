@@ -43,7 +43,7 @@ pub async fn create(
     let (unhashed_token, hashed_token) = SessionToken::new(user.id);
     let response = Response::builder()
         .status(StatusCode::SEE_OTHER)
-        .header("Location", "/")
+        .header("Location", "/new")
         .header(
             "Set-Cookie",
             format!(
@@ -75,14 +75,25 @@ pub async fn show(
                 .validate()
                 .map_err(|e| Error::BadRequest(Box::new(e)))?;
 
-            let mut pastes = Paste::cursor_paginated_for_user_id(
-                &db,
-                user.id,
-                pagination_params.limit_with_lookahead(),
-                pagination_params.direction(),
-                pagination_params.cursor(),
-            )
-            .await?;
+            let mut pastes = if Some(&user) == session.as_ref().map(|s| &s.user) {
+                Paste::cursor_paginated_for_user_id_with_secrets(
+                    &db,
+                    user.id,
+                    pagination_params.limit_with_lookahead(),
+                    pagination_params.direction(),
+                    pagination_params.cursor(),
+                )
+                .await?
+            } else {
+                Paste::cursor_paginated_for_user_id(
+                    &db,
+                    user.id,
+                    pagination_params.limit_with_lookahead(),
+                    pagination_params.direction(),
+                    pagination_params.cursor(),
+                )
+                .await?
+            };
             let pagination_response =
                 CursorPaginationResponse::new_with_lookahead(&pagination_params, &mut pastes);
             let mut pairs = Vec::new();

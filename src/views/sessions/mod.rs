@@ -1,4 +1,5 @@
 use crate::controllers::prelude::ErrorTemplate;
+use crate::models::session::Session;
 use crate::params::prelude::Report;
 use crate::params::sessions::CreateSessionParams;
 use askama_axum::Template;
@@ -7,7 +8,7 @@ use secrecy::ExposeSecret;
 #[derive(Clone, Debug, Default, Template)]
 #[template(path = "sessions/new.html")]
 pub struct NewSessionsTemplate {
-    pub session: Option<()>,
+    pub session: Option<Session>,
     pub email: String,
     pub password: String,
     pub error_report: Report,

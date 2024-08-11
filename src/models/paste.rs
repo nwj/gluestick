@@ -4,7 +4,7 @@ use crate::helpers::syntax_highlight;
 use crate::models::prelude::*;
 use crate::models::user::Username;
 use crate::params::pastes::VisibilityParam;
-use derive_more::{AsRef, Display, From, Into};
+use derive_more::{AsRef, Display, From, Into, IsVariant};
 use jiff::Timestamp;
 use rusqlite::types::{FromSql, FromSqlError, FromSqlResult, ToSql, ToSqlOutput, Type, ValueRef};
 use rusqlite::{named_params, Row, Transaction, TransactionBehavior};
@@ -189,6 +189,45 @@ impl Paste {
                     r"SELECT id, user_id, filename, description, body, visibility, created_at, updated_at
                     FROM pastes
                     WHERE user_id = :user_id AND visibility = 'public' {cursor_sql}
+                    ORDER BY pastes.id {direction_sql}
+                    LIMIT :limit;"
+                );
+                let mut stmt = conn.prepare(&raw_sql)?;
+                match cursor {
+                    None => {
+                        let paste_iter = stmt.query_map(named_params! {":user_id": user_id, ":limit": limit}, Paste::from_sql_row)?;
+                        Ok(paste_iter.collect::<Result<Vec<_>, _>>()?)
+                    }
+                    Some(cursor) => {
+                        let paste_iter = stmt.query_map(named_params! {":user_id": user_id, ":limit": limit, ":cursor": cursor}, Paste::from_sql_row)?;
+                        Ok(paste_iter.collect::<Result<Vec<_>, _>>()?)
+                    }
+                }
+            })
+            .await?;
+        Ok(pastes)
+    }
+
+    pub async fn cursor_paginated_for_user_id_with_secrets(
+        db: &Database,
+        user_id: Uuid,
+        limit: usize,
+        direction: Direction,
+        cursor: Option<Uuid>,
+    ) -> Result<Vec<Paste>> {
+        let pastes: Vec<_> = db
+            .conn
+            .call(move |conn| {
+                let direction_sql = direction.to_raw_sql();
+                let cursor_sql = match (cursor, &direction) {
+                    (None, _) => "",
+                    (Some(_), Direction::Ascending) => "AND pastes.id > :cursor",
+                    (Some(_), Direction::Descending) => "AND pastes.id < :cursor",
+                };
+                let raw_sql = format!(
+                    r"SELECT id, user_id, filename, description, body, visibility, created_at, updated_at
+                    FROM pastes
+                    WHERE user_id = :user_id {cursor_sql}
                     ORDER BY pastes.id {direction_sql}
                     LIMIT :limit;"
                 );
@@ -461,18 +500,12 @@ impl FromSql for Body {
     }
 }
 
-#[derive(Clone, Copy, Debug, Serialize)]
+#[derive(Clone, Copy, Debug, IsVariant, Serialize)]
 pub enum Visibility {
     #[serde(rename = "public")]
     Public,
     #[serde(rename = "secret")]
     Secret,
-}
-
-impl Visibility {
-    pub fn is_secret(&self) -> bool {
-        matches!(self, Visibility::Secret)
-    }
 }
 
 impl ToSql for Visibility {

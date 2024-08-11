@@ -41,6 +41,7 @@ impl Validate for UsernameParam {
             "health",
             "login",
             "logout",
+            "new",
             "pastes",
             "settings",
             "signup",

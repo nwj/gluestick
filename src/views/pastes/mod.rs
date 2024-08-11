@@ -21,16 +21,16 @@ pub struct NewPastesTemplate {
 }
 
 impl NewPastesTemplate {
-    pub fn from_session(session: Option<Session>) -> Self {
+    pub fn from_session(session: Session) -> Self {
         Self {
-            session,
+            session: Some(session),
             ..Default::default()
         }
     }
 
-    pub fn from_session_and_params(session: Option<Session>, params: CreatePasteParams) -> Self {
+    pub fn from_session_and_params(session: Session, params: CreatePasteParams) -> Self {
         Self {
-            session,
+            session: Some(session),
             filename: params.filename.into(),
             description: params.description.into(),
             body: params.body.into(),

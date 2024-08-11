@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}About Gluestick{% endblock %}
+{% block main %}
+    <main class="about">
+        <section class="image-content-pair" id="hero">
+            <div class="progressive-image-container" id="james">
+                <picture class="preview-image">
+                    <source type="image/avif" srcset="/assets/images/james-preview.avif" />
+                    <img src="/assets/images/james-preview.png"
+                         alt="die-cut sticker of James, a glue monster, pixelated preview image"
+                         width="300"
+                         height="357" />
+                </picture>
+                <picture class="main-image">
+                    <source type="image/avif" srcset="/assets/images/james.avif" />
+                    <img src="/assets/images/james.png"
+                         alt="die-cut sticker of James, a glue monster"
+                         width="300"
+                         height="357"
+                         loading="lazy"
+                         onload="this.parentElement.style.opacity = 1; this.parentElement.previousElementSibling.style.opacity = 0;" />
+                </picture>
+            </div>
+            <div>
+                <h1>
+                    <span class="logo">Gluestick</span> is a self-hosted pastebin that makes
+                    it easy to share code, notes, and text snippets.
+                </h1>
+                <a class="button primary" href="https://github.com/nwj/gluestick">
+                    Get Gluestick on
+                    <svg class="icon">
+                        <title>GitHub icon</title>
+                        <use href="/assets/images/vendor/feather-sprite-subset.v4.29.0.svg#github" />
+                    </svg>
+                </a>
+            </div>
+        </section>
+        <section class="image-content-pair">
+            <div class="progressive-image-container" id="monstera">
+                <picture class="preview-image">
+                    <source type="image/avif" srcset="/assets/images/monstera-preview.avif" />
+                    <img src="/assets/images/monstera-preview.png"
+                         alt="die-cut sticker of a monstera house plant in a blue pot, pixelated preview image"
+                         width="211"
+                         height="250" />
+                </picture>
+                <picture class="main-image">
+                    <source type="image/avif" srcset="/assets/images/monstera.avif" />
+                    <img src="/assets/images/monstera.png"
+                         alt="die-cut sticker of a monstera house plant in a blue pot"
+                         width="211"
+                         height="250"
+                         loading="lazy"
+                         onload="this.parentElement.style.opacity = 1; this.parentElement.previousElementSibling.style.opacity = 0;" />
+                </picture>
+            </div>
+            <div>
+                <h2>Grow Your Own Digital Garden</h2>
+                <p>
+                    By compiling to a single executable and storing all its data in a single
+                    file, Gluestick is designed for easy self-hosting. And it runs at over
+                    1,500 requests per second with sub-200ms P95 latencies on some of the
+                    cheapest, bottom-of-the-barrel cloud servers in the world.
+                </p>
+            </div>
+        </section>
+        <section class="image-content-pair">
+            <div class="progressive-image-container" id="sneaker">
+                <picture class="preview-image">
+                    <source type="image/avif" srcset="/assets/images/sneaker-preview.avif" />
+                    <img src="/assets/images/sneaker-preview.png"
+                         alt="die-cut sticker of a tennis shoe, pixelated preview image"
+                         width="235"
+                         height="209" />
+                </picture>
+                <picture class="main-image">
+                    <source type="image/avif" srcset="/assets/images/sneaker.avif" />
+                    <img src="/assets/images/sneaker.png"
+                         alt="die-cut sticker of a tennis shoe"
+                         width="235"
+                         height="209"
+                         loading="lazy"
+                         onload="this.parentElement.style.opacity = 1; this.parentElement.previousElementSibling.style.opacity = 0;" />
+                </picture>
+            </div>
+            <div>
+                <h2>Put Your Code's Best Foot Forward</h2>
+                <p>
+                    Beautiful syntax highlighting support for hundreds of programming
+                    languages and text formats, via
+                    <a href="https://github.com/trishume/syntect/">Syntect</a> and the
+                    lovely
+                    <a href="https://github.com/catppuccin/catppuccin">Catppuccin</a>
+                    colorscheme.
+                </p>
+            </div>
+        </section>
+        <section class="image-content-pair">
+            <div class="progressive-image-container" id="console">
+                <picture class="preview-image">
+                    <source type="image/avif" srcset="/assets/images/console-preview.avif" />
+                    <img src="/assets/images/console-preview.png"
+                         alt="die-cut sticker of retro computer console, pixelated preview image"
+                         width="250"
+                         height="217" />
+                </picture>
+                <picture class="main-image">
+                    <source type="image/avif" srcset="/assets/images/console.avif" />
+                    <img src="/assets/images/console.png"
+                         alt="die-cut sticker of retro computer console"
+                         width="250"
+                         height="217"
+                         loading="lazy"
+                         onload="this.parentElement.style.opacity = 1; this.parentElement.previousElementSibling.style.opacity = 0;" />
+                </picture>
+            </div>
+            <div>
+                <h2>Outrageously Scriptable</h2>
+                <p>
+                    Gluestick ships with a full-featured JSON API so you can
+                    programmatically create, read, and manage pastes with ease.
+                </p>
+            </div>
+        </section>
+    </main>
+{% endblock %}

@@ -13,7 +13,7 @@ use secrecy::ExposeSecret;
 #[derive(Clone, Debug, Default, Template)]
 #[template(path = "users/new.html")]
 pub struct NewUsersTemplate {
-    pub session: Option<()>,
+    pub session: Option<Session>,
     pub username: String,
     pub email: String,
     pub password: String,
