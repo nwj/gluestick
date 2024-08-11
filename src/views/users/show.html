@@ -60,7 +60,11 @@
                     </picture>
                 </div>
                 <p>There doesn't appear to be anything out here yet.</p>
-                <a href="/" class="button primary">Back to homepage</a>
+                {% if let Some(session) = session %}
+                    <a href="/new" class="button primary">Create a new paste</a>
+                {% else %}
+                    <a href="/" class="button primary">Back to homepage</a>
+                {% endif %}
             </section>
         {% endif %}
     </main>
