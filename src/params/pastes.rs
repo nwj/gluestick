@@ -116,21 +116,9 @@ impl Validate for CreatePasteParams {
     fn validate(&self) -> Result<()> {
         let mut report = Report::new();
 
-        match self.filename.validate() {
-            Err(Error::Report(filename_report)) => report.merge(filename_report),
-            Err(Error::Other(e)) => return Err(Error::Other(e)),
-            _ => {}
-        };
-        match self.description.validate() {
-            Err(Error::Report(description_report)) => report.merge(description_report),
-            Err(Error::Other(e)) => return Err(Error::Other(e)),
-            _ => {}
-        };
-        match self.body.validate() {
-            Err(Error::Report(body_report)) => report.merge(body_report),
-            Err(Error::Other(e)) => return Err(Error::Other(e)),
-            _ => {}
-        };
+        report.merge_result(self.filename.validate())?;
+        report.merge_result(self.description.validate())?;
+        report.merge_result(self.body.validate())?;
 
         report.to_result()
     }
@@ -147,21 +135,9 @@ impl UpdatePasteParams {
     pub fn validate(&self) -> Result<()> {
         let mut report = Report::new();
 
-        match self.filename.validate() {
-            Err(Error::Report(filename_report)) => report.merge(filename_report),
-            Err(Error::Other(e)) => return Err(Error::Other(e)),
-            _ => {}
-        };
-        match self.description.validate() {
-            Err(Error::Report(description_report)) => report.merge(description_report),
-            Err(Error::Other(e)) => return Err(Error::Other(e)),
-            _ => {}
-        };
-        match self.body.validate() {
-            Err(Error::Report(body_report)) => report.merge(body_report),
-            Err(Error::Other(e)) => return Err(Error::Other(e)),
-            _ => {}
-        };
+        report.merge_result(self.filename.validate())?;
+        report.merge_result(self.description.validate())?;
+        report.merge_result(self.body.validate())?;
 
         report.to_result()
     }

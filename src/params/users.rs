@@ -187,26 +187,10 @@ impl Validate for CreateUserParams {
     fn validate(&self) -> Result<()> {
         let mut report = Report::new();
 
-        match self.username.validate() {
-            Err(Error::Report(username_report)) => report.merge(username_report),
-            Err(Error::Other(e)) => return Err(Error::Other(e)),
-            _ => {}
-        };
-        match self.email.validate() {
-            Err(Error::Report(email_report)) => report.merge(email_report),
-            Err(Error::Other(e)) => return Err(Error::Other(e)),
-            _ => {}
-        };
-        match self.password.validate() {
-            Err(Error::Report(password_report)) => report.merge(password_report),
-            Err(Error::Other(e)) => return Err(Error::Other(e)),
-            _ => {}
-        };
-        match self.invite_code.validate() {
-            Err(Error::Report(invite_code_report)) => report.merge(invite_code_report),
-            Err(Error::Other(e)) => return Err(Error::Other(e)),
-            _ => {}
-        };
+        report.merge_result(self.username.validate())?;
+        report.merge_result(self.email.validate())?;
+        report.merge_result(self.password.validate())?;
+        report.merge_result(self.invite_code.validate())?;
 
         report.to_result()
     }
@@ -218,16 +202,9 @@ impl Verify for CreateUserParams {
     async fn verify(self, db: &Database) -> Result<Self::Output> {
         let mut report = Report::new();
 
-        match self.username.verify(db).await {
-            Err(Error::Report(username_report)) => report.merge(username_report),
-            Err(Error::Other(e)) => return Err(Error::Other(e)),
-            _ => {}
-        };
-        match self.email.verify(db).await {
-            Err(Error::Report(email_report)) => report.merge(email_report),
-            Err(Error::Other(e)) => return Err(Error::Other(e)),
-            _ => {}
-        };
+        report.merge_result(self.username.verify(db).await)?;
+        report.merge_result(self.email.verify(db).await)?;
+
         match self.invite_code.verify(db).await {
             Err(Error::Report(invite_code_report)) => {
                 report.merge(invite_code_report);

@@ -47,6 +47,17 @@ impl Report {
         }
     }
 
+    pub fn merge_result(&mut self, result: Result<()>) -> Result<()> {
+        match result {
+            Err(Error::Report(report)) => {
+                self.merge(report);
+                Ok(())
+            }
+            Err(Error::Other(e)) => Err(Error::Other(e)),
+            _ => Ok(()),
+        }
+    }
+
     pub fn to_result(self) -> Result<()> {
         if self.is_empty() {
             Ok(())
