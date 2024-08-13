@@ -52,11 +52,7 @@ impl Validate for UsernameParam {
             report.add("username", "Username is unavailable");
         }
 
-        if report.is_empty() {
-            Ok(())
-        } else {
-            Err(report.into())
-        }
+        report.to_result()
     }
 }
 
@@ -100,11 +96,7 @@ impl Validate for EmailAddressParam {
             );
         }
 
-        if report.is_empty() {
-            Ok(())
-        } else {
-            Err(report.into())
-        }
+        report.to_result()
     }
 }
 
@@ -145,11 +137,7 @@ impl Validate for PasswordParam {
             );
         }
 
-        if report.is_empty() {
-            Ok(())
-        } else {
-            Err(report.into())
-        }
+        report.to_result()
     }
 }
 
@@ -220,11 +208,7 @@ impl Validate for CreateUserParams {
             _ => {}
         };
 
-        if report.is_empty() {
-            Ok(())
-        } else {
-            Err(report.into())
-        }
+        report.to_result()
     }
 }
 
@@ -291,11 +275,7 @@ impl ChangePasswordParams {
             );
         }
 
-        if report.is_empty() {
-            Ok(())
-        } else {
-            Err(report.into())
-        }
+        report.to_result()
     }
 
     pub fn authenticate(&self, user: &User) -> Result<()> {

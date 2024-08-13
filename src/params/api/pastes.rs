@@ -30,11 +30,7 @@ impl Validate for CreatePasteParams {
             _ => {}
         };
 
-        if report.is_empty() {
-            Ok(())
-        } else {
-            Err(report.into())
-        }
+        report.to_result()
     }
 }
 
@@ -71,10 +67,6 @@ impl Validate for UpdatePasteParams {
             };
         }
 
-        if report.is_empty() {
-            Ok(())
-        } else {
-            Err(report.into())
-        }
+        report.to_result()
     }
 }

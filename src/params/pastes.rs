@@ -48,11 +48,7 @@ impl FilenameParam {
             );
         }
 
-        if report.is_empty() {
-            Ok(())
-        } else {
-            Err(report.into())
-        }
+        report.to_result()
     }
 }
 
@@ -71,11 +67,7 @@ impl DescriptionParam {
             );
         }
 
-        if report.is_empty() {
-            Ok(())
-        } else {
-            Err(report.into())
-        }
+        report.to_result()
     }
 }
 
@@ -91,11 +83,7 @@ impl BodyParam {
             report.add(BODY_REPORT_KEY, "Body is a required field");
         }
 
-        if report.is_empty() {
-            Ok(())
-        } else {
-            Err(report.into())
-        }
+        report.to_result()
     }
 }
 
@@ -144,11 +132,7 @@ impl Validate for CreatePasteParams {
             _ => {}
         };
 
-        if report.is_empty() {
-            Ok(())
-        } else {
-            Err(report.into())
-        }
+        report.to_result()
     }
 }
 
@@ -179,10 +163,6 @@ impl UpdatePasteParams {
             _ => {}
         };
 
-        if report.is_empty() {
-            Ok(())
-        } else {
-            Err(report.into())
-        }
+        report.to_result()
     }
 }

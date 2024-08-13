@@ -57,11 +57,7 @@ impl Validate for CursorPaginationParams {
             );
         }
 
-        if report.is_empty() {
-            Ok(())
-        } else {
-            Err(report.into())
-        }
+        report.to_result()
     }
 }
 

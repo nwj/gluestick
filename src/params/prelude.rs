@@ -46,6 +46,14 @@ impl Report {
             self.errors.entry(field).or_default().extend(errors);
         }
     }
+
+    pub fn to_result(self) -> Result<()> {
+        if self.is_empty() {
+            Ok(())
+        } else {
+            Err(self.into())
+        }
+    }
 }
 
 impl std::fmt::Display for Report {
