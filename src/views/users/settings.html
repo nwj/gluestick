@@ -3,6 +3,10 @@
 {% block main %}
     <main class="settings">
         <h1>Settings</h1>
+        <section class="change-password">
+            <h2>Change Password</h2>
+            {{ change_password_form|safe }}
+        </section>
         <section class="api-keys">
             <h2>API Keys</h2>
             <button class="primary"

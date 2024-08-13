@@ -58,10 +58,14 @@ pub fn router(db: Database) -> Router {
             "/signup/validate/password",
             post(controllers::users::validate_password),
         )
-        .route("/settings", get(controllers::users::settings))
         .route("/login", get(controllers::sessions::new))
         .route("/login", post(controllers::sessions::create))
         .route("/logout", delete(controllers::sessions::delete))
+        .route("/settings", get(controllers::users::settings))
+        .route(
+            "/settings/change_password",
+            post(controllers::users::change_password),
+        )
         .route("/api_sessions", post(controllers::api_sessions::create))
         .route(
             "/api_sessions/:api_key_id",
