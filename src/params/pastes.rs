@@ -3,8 +3,8 @@ use derive_more::{From, Into};
 use serde::Deserialize;
 
 const MAX_FILENAME_LENGTH: usize = 256;
-const MAX_DESCRIPTION_LENGTH: usize = 256;
 const INVALID_FILENAME_CHARS: &[char] = &['<', '>', ':', '"', '/', '\\', '|', '?', '*'];
+const MAX_DESCRIPTION_LENGTH: usize = 256;
 
 pub const FILENAME_REPORT_KEY: &str = "filename";
 pub const DESCRIPTION_REPORT_KEY: &str = "description";

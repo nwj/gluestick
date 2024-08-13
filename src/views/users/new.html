@@ -7,7 +7,7 @@
             {% include "partials/username_input.html" %}
             {% include "partials/email_input.html" %}
             {% include "partials/password_input.html" %}
-            {% let error = error_report.get_first("invite_code") %}
+            {% let error = error_report.get_first(INVITE_CODE_REPORT_KEY) %}
             <div class="validated-input {% if let Some(error) = error %}invalid{% endif %}">
                 <label>
                     Invite Code

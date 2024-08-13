@@ -28,18 +28,20 @@ pub async fn create(
     let error_template: NewUsersTemplate = params.clone().into();
 
     params
-        .validate()
+        .validate_and_check_if_taken(&db)
+        .await
         .map_err(|e| handle_params_error(e, error_template.clone()))?;
+
     let invite_code = params
-        .clone()
-        .verify(&db)
+        .verify_invite_code(&db)
         .await
         .map_err(|e| handle_params_error(e, error_template))?;
 
-    let user: User = params.try_into()?;
-    user.clone().insert(&db).await?;
+    let user: User = User::new(params.username, params.email, params.password)?;
+    let user_id = user.id;
+    user.insert(&db).await?;
 
-    let (unhashed_token, hashed_token) = SessionToken::new(user.id);
+    let (unhashed_token, hashed_token) = SessionToken::new(user_id);
     let response = Response::builder()
         .status(StatusCode::SEE_OTHER)
         .header("Location", "/new")
@@ -159,9 +161,8 @@ pub async fn validate_username(
     username
         .validate()
         .map_err(|e| handle_params_error(e, template.clone()))?;
-
     username
-        .verify(&db)
+        .check_if_taken(&db)
         .await
         .map_err(|e| handle_params_error(e, template.clone()))?;
 
@@ -179,7 +180,7 @@ pub async fn validate_email(
         .validate()
         .map_err(|e| handle_params_error(e, template.clone()))?;
     email
-        .verify(&db)
+        .check_if_taken(&db)
         .await
         .map_err(|e| handle_params_error(e, template.clone()))?;
 

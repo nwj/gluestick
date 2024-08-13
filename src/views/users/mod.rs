@@ -5,7 +5,10 @@ use crate::models::paste::Paste;
 use crate::models::session::Session;
 use crate::models::user::User;
 use crate::params::prelude::Report;
-use crate::params::users::{ChangePasswordParams, CreateUserParams};
+use crate::params::users::{
+    ChangePasswordParams, CreateUserParams, CURRENT_PASSWORD_REPORT_KEY, EMAIL_REPORT_KEY,
+    INVITE_CODE_REPORT_KEY, PASSWORD_REPORT_KEY, USERNAME_REPORT_KEY,
+};
 use crate::views::filters;
 use askama_axum::Template;
 use secrecy::ExposeSecret;
@@ -28,7 +31,7 @@ impl From<CreateUserParams> for NewUsersTemplate {
             username: params.username.into(),
             email: params.email.into(),
             password: params.password.expose_secret().to_string(),
-            invite_code: params.invite_code.into(),
+            invite_code: params.invite_code,
             error_report: Report::default(),
         }
     }

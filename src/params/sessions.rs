@@ -4,9 +4,10 @@ use crate::params::prelude::*;
 use secrecy::{ExposeSecret, Secret};
 use serde::Deserialize;
 
-const AUTH_FAILURE_MESSAGE: &str = "Incorrect email or password";
 const MIN_PASSWORD_LENGTH: usize = 8;
 const MAX_PASSWORD_LENGTH: usize = 256;
+
+const AUTH_FAILURE_MESSAGE: &str = "Incorrect email or password";
 
 pub const SELF_REPORT_KEY: &str = "self";
 

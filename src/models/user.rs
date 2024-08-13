@@ -1,6 +1,5 @@
 use crate::db::Database;
 use crate::models::prelude::*;
-use crate::params::users::CreateUserParams;
 use argon2::password_hash::{PasswordHasher, SaltString};
 use argon2::{Argon2, PasswordHash, PasswordVerifier};
 use derive_more::Display;
@@ -22,7 +21,7 @@ pub struct User {
 }
 
 impl User {
-    fn new(
+    pub fn new(
         username: impl Into<String>,
         email: impl Into<String>,
         password: impl Into<Secret<String>>,
@@ -85,7 +84,7 @@ impl User {
     pub async fn update_password(
         &self,
         db: &Database,
-        new_password: Secret<String>,
+        new_password: impl Into<Secret<String>>,
     ) -> Result<usize> {
         let id = self.id;
         let hashed_password = HashedPassword::new(new_password)?;
@@ -106,7 +105,8 @@ impl User {
         Ok(result)
     }
 
-    pub async fn find_by_email(db: &Database, email: String) -> Result<Option<User>> {
+    pub async fn find_by_email(db: &Database, email: impl Into<String>) -> Result<Option<User>> {
+        let email = email.into();
         let optional_user = db
             .conn
             .call(move |conn| {
@@ -160,14 +160,6 @@ impl User {
             })
             .await?;
         Ok(result)
-    }
-}
-
-impl TryFrom<CreateUserParams> for User {
-    type Error = Error;
-
-    fn try_from(params: CreateUserParams) -> std::result::Result<Self, Self::Error> {
-        Self::new(params.username, params.email, params.password)
     }
 }
 

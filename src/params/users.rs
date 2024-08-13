@@ -6,7 +6,17 @@ use derive_more::{From, Into};
 use secrecy::{ExposeSecret, Secret};
 use serde::Deserialize;
 
-const USERNAME_CHAR_VALIDATION_FAILURE_MESSAGE: &str = "Username may only contain alphanumeric characters or single hyphens, and cannot begin or end with a hyphen";
+const MAX_USERNAME_LENGTH: usize = 32;
+const MIN_PASSWORD_LENGTH: usize = 8;
+const MAX_PASSWORD_LENGTH: usize = 256;
+
+const INVALID_USERNAME_CHARS_MESSAGE: &str = "Username must only contain alphanumeric characters or single hyphens, and may not begin or end with a hyphen";
+
+pub const USERNAME_REPORT_KEY: &str = "username";
+pub const EMAIL_REPORT_KEY: &str = "email";
+pub const PASSWORD_REPORT_KEY: &str = "password";
+pub const INVITE_CODE_REPORT_KEY: &str = "invite_code";
+pub const CURRENT_PASSWORD_REPORT_KEY: &str = "current_password";
 
 #[derive(Clone, Debug, Deserialize, From, Into, PartialEq)]
 #[serde(transparent)]
@@ -16,23 +26,23 @@ impl UsernameParam {
     pub fn validate(&self) -> Result<()> {
         let mut report = Report::new();
 
-        if self.0.chars().count() < 1 {
-            report.add("username", "Username is too short (minimum is 1 character)");
+        if self.0.is_empty() {
+            report.add(USERNAME_REPORT_KEY, "Username is a required field");
         }
-        if self.0.chars().count() > 32 {
+        if self.0.chars().count() > MAX_USERNAME_LENGTH {
             report.add(
-                "username",
-                "Username is too long (maximum is 32 characters)",
+                USERNAME_REPORT_KEY,
+                format!("Username is too long (maximum is {MAX_USERNAME_LENGTH} characters)"),
             );
         }
         if !self.0.chars().all(|c| c.is_alphanumeric() || c == '-') {
-            report.add("username", USERNAME_CHAR_VALIDATION_FAILURE_MESSAGE);
+            report.add(USERNAME_REPORT_KEY, INVALID_USERNAME_CHARS_MESSAGE);
         }
         if self.0.starts_with('-') || self.0.ends_with('-') {
-            report.add("username", USERNAME_CHAR_VALIDATION_FAILURE_MESSAGE);
+            report.add(USERNAME_REPORT_KEY, INVALID_USERNAME_CHARS_MESSAGE);
         }
         if self.0.contains("--") {
-            report.add("username", USERNAME_CHAR_VALIDATION_FAILURE_MESSAGE);
+            report.add(USERNAME_REPORT_KEY, INVALID_USERNAME_CHARS_MESSAGE);
         }
         if [
             "api",
@@ -49,18 +59,19 @@ impl UsernameParam {
         .into_iter()
         .any(|reserved_name| reserved_name == self.0)
         {
-            report.add("username", "Username is unavailable");
+            report.add(USERNAME_REPORT_KEY, "Username is unavailable");
         }
 
         report.to_result()
     }
 
-    pub async fn verify(self, db: &Database) -> Result<()> {
-        match User::find_by_username(db, self).await {
+    pub async fn check_if_taken(&self, db: &Database) -> Result<()> {
+        let username = self.clone();
+        match User::find_by_username(db, username).await {
             Ok(None) => Ok(()),
             Ok(Some(_)) => {
                 let mut report = Report::new();
-                report.add("username", "Username is already taken");
+                report.add(USERNAME_REPORT_KEY, "Username is already taken");
                 Err(report.into())
             }
             Err(e) => Err(Error::Other(Box::new(e))),
@@ -76,18 +87,21 @@ impl EmailAddressParam {
     pub fn validate(&self) -> Result<()> {
         let mut report = Report::new();
 
+        if self.0.is_empty() {
+            report.add(EMAIL_REPORT_KEY, "Email is a required field");
+        }
         if !self.0.contains('@') {
-            report.add("email", "Email is missing the '@' symbol");
+            report.add(EMAIL_REPORT_KEY, "Email is missing the '@' symbol");
         }
         if self.0.starts_with('@') {
             report.add(
-                "email",
+                EMAIL_REPORT_KEY,
                 "Email is missing the username part before the '@' symbol",
             );
         }
         if self.0.ends_with('@') {
             report.add(
-                "email",
+                EMAIL_REPORT_KEY,
                 "Email is missing the domain part after the '@' symbol",
             );
         }
@@ -95,12 +109,13 @@ impl EmailAddressParam {
         report.to_result()
     }
 
-    pub async fn verify(self, db: &Database) -> Result<()> {
-        match User::find_by_email(db, self.into()).await {
+    pub async fn check_if_taken(&self, db: &Database) -> Result<()> {
+        let email = self.clone();
+        match User::find_by_email(db, email).await {
             Ok(None) => Ok(()),
             Ok(Some(_)) => {
                 let mut report = Report::new();
-                report.add("email", "Email is already taken");
+                report.add(EMAIL_REPORT_KEY, "Email is already taken");
                 Err(report.into())
             }
             Err(e) => Err(Error::Other(Box::new(e))),
@@ -116,16 +131,19 @@ impl PasswordParam {
     pub fn validate(&self) -> Result<()> {
         let mut report = Report::new();
 
-        if self.expose_secret().chars().count() < 8 {
+        if self.expose_secret().is_empty() {
+            report.add(PASSWORD_REPORT_KEY, "Password is a required field");
+        }
+        if self.expose_secret().chars().count() < MIN_PASSWORD_LENGTH {
             report.add(
-                "password",
-                "Password is too short (minimum is 8 characters)",
+                PASSWORD_REPORT_KEY,
+                format!("Password is too short (minimum is {MIN_PASSWORD_LENGTH} characters)"),
             );
         }
-        if self.expose_secret().chars().count() > 256 {
+        if self.expose_secret().chars().count() > MAX_PASSWORD_LENGTH {
             report.add(
-                "password",
-                "Password is too long (maximum is 256 characters)",
+                PASSWORD_REPORT_KEY,
+                format!("Password is too long (maximum is {MAX_PASSWORD_LENGTH} characters)"),
             );
         }
 
@@ -139,71 +157,49 @@ impl ExposeSecret<String> for PasswordParam {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, From, Into)]
-#[serde(transparent)]
-pub struct InviteCodeParam(pub String);
-
-impl InviteCodeParam {
-    pub fn validate(&self) -> Result<()> {
-        Ok(())
-    }
-}
-
-impl InviteCodeParam {
-    pub async fn verify(self, db: &Database) -> Result<InviteCode> {
-        let mut report = Report::new();
-
-        if let Some(invite_code) = InviteCode::find(db, self)
-            .await
-            .map_err(|e| Error::Other(Box::new(e)))?
-        {
-            Ok(invite_code)
-        } else {
-            report.add("invite_code", "Invalid invite code");
-            Err(report.into())
-        }
-    }
-}
-
 #[derive(Clone, Deserialize)]
 pub struct CreateUserParams {
     pub username: UsernameParam,
     pub email: EmailAddressParam,
     pub password: PasswordParam,
-    pub invite_code: InviteCodeParam,
+    pub invite_code: String,
 }
 
 impl CreateUserParams {
-    pub fn validate(&self) -> Result<()> {
+    pub async fn validate_and_check_if_taken(&self, db: &Database) -> Result<()> {
         let mut report = Report::new();
 
-        report.merge_result(self.username.validate())?;
-        report.merge_result(self.email.validate())?;
+        let mut username_report = Report::new();
+        username_report.merge_result(self.username.validate())?;
+        if username_report.is_empty() {
+            username_report.merge_result(self.username.check_if_taken(db).await)?;
+        }
+
+        let mut email_report = Report::new();
+        email_report.merge_result(self.email.validate())?;
+        if email_report.is_empty() {
+            email_report.merge_result(self.email.check_if_taken(db).await)?;
+        }
+
+        report.merge(email_report);
+        report.merge(username_report);
         report.merge_result(self.password.validate())?;
-        report.merge_result(self.invite_code.validate())?;
 
         report.to_result()
     }
 
-    pub async fn verify(self, db: &Database) -> Result<InviteCode> {
+    pub async fn verify_invite_code(&self, db: &Database) -> Result<InviteCode> {
         let mut report = Report::new();
+        let invite_code = self.invite_code.clone();
 
-        report.merge_result(self.username.verify(db).await)?;
-        report.merge_result(self.email.verify(db).await)?;
-
-        match self.invite_code.verify(db).await {
-            Err(Error::Report(invite_code_report)) => {
-                report.merge(invite_code_report);
-                Err(report.into())
-            }
-            Err(Error::Other(e)) => Err(Error::Other(e)),
-            Ok(invite_code) => {
-                if report.is_empty() {
-                    Ok(invite_code)
-                } else {
-                    Err(report.into())
-                }
-            }
+        if let Some(invite_code) = InviteCode::find(db, invite_code)
+            .await
+            .map_err(|e| Error::Other(Box::new(e)))?
+        {
+            Ok(invite_code)
+        } else {
+            report.add(INVITE_CODE_REPORT_KEY, "Invalid invite code");
+            Err(report.into())
         }
     }
 }
@@ -211,7 +207,7 @@ impl CreateUserParams {
 #[derive(Clone, Deserialize)]
 pub struct ChangePasswordParams {
     pub current_password: Secret<String>,
-    pub new_password: Secret<String>,
+    pub new_password: PasswordParam,
     pub new_password_confirm: Secret<String>,
 }
 
@@ -219,21 +215,10 @@ impl ChangePasswordParams {
     pub fn validate(&self) -> Result<()> {
         let mut report = Report::new();
 
-        if self.new_password.expose_secret().chars().count() < 8 {
-            report.add(
-                "new_password",
-                "Password is too short (minimum is 8 characters)",
-            );
-        }
-        if self.new_password.expose_secret().chars().count() > 256 {
-            report.add(
-                "new_password",
-                "Password is too long (maximum is 256 characters)",
-            );
-        }
+        report.merge_result(self.new_password.validate())?;
         if self.new_password.expose_secret() != self.new_password_confirm.expose_secret() {
             report.add(
-                "new_password",
+                PASSWORD_REPORT_KEY,
                 "New password and password confirmation do not match",
             );
         }
@@ -245,7 +230,7 @@ impl ChangePasswordParams {
         user.verify_password(self.current_password.expose_secret())
             .map_err(|_| {
                 let mut report = Report::new();
-                report.add("current_password", "Incorrect password");
+                report.add(CURRENT_PASSWORD_REPORT_KEY, "Incorrect password");
                 Error::Report(report)
             })
     }
