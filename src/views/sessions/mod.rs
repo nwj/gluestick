@@ -1,7 +1,7 @@
 use crate::controllers::prelude::ErrorTemplate;
 use crate::models::session::Session;
 use crate::params::prelude::Report;
-use crate::params::sessions::CreateSessionParams;
+use crate::params::sessions::{CreateSessionParams, SELF_REPORT_KEY};
 use askama_axum::Template;
 use secrecy::{ExposeSecret, Secret};
 

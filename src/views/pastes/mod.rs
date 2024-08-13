@@ -3,7 +3,10 @@ use crate::helpers::pagination::CursorPaginationResponse;
 use crate::models::paste::Paste;
 use crate::models::session::Session;
 use crate::models::user::Username;
-use crate::params::pastes::{CreatePasteParams, UpdatePasteParams};
+use crate::params::pastes::{
+    CreatePasteParams, UpdatePasteParams, BODY_REPORT_KEY, DESCRIPTION_REPORT_KEY,
+    FILENAME_REPORT_KEY,
+};
 use crate::params::prelude::Report;
 use crate::views::filters;
 use askama_axum::Template;
