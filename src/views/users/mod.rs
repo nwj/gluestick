@@ -5,7 +5,7 @@ use crate::models::paste::Paste;
 use crate::models::session::Session;
 use crate::models::user::User;
 use crate::params::prelude::Report;
-use crate::params::users::CreateUserParams;
+use crate::params::users::{ChangePasswordParams, CreateUserParams};
 use crate::views::filters;
 use askama_axum::Template;
 use secrecy::ExposeSecret;
@@ -53,11 +53,43 @@ pub struct ShowUsersTemplate {
     pub pagination: CursorPaginationResponse,
 }
 
-#[derive(Template)]
+#[derive(Default, Template)]
 #[template(path = "users/settings.html")]
 pub struct SettingsTemplate {
     pub session: Option<Session>,
     pub api_keys: Vec<ApiKey>,
+    pub change_password_form: ChangePasswordFormPartial,
+}
+
+#[derive(Clone, Debug, Default, Template)]
+#[template(path = "users/partials/change_password_form.html")]
+pub struct ChangePasswordFormPartial {
+    pub current_password: String,
+    pub new_password: String,
+    pub new_password_confirm: String,
+    pub error_report: Report,
+    pub show_success_message: bool,
+}
+
+impl From<ChangePasswordParams> for ChangePasswordFormPartial {
+    fn from(params: ChangePasswordParams) -> Self {
+        Self {
+            current_password: params.current_password.expose_secret().to_string(),
+            new_password: params.new_password.expose_secret().to_string(),
+            new_password_confirm: params.new_password_confirm.expose_secret().to_string(),
+            ..Default::default()
+        }
+    }
+}
+
+impl ErrorTemplate for ChangePasswordFormPartial {
+    fn render_template(&self) -> askama::Result<String> {
+        self.render()
+    }
+
+    fn with_report(&mut self, report: Report) {
+        self.error_report = report;
+    }
 }
 
 #[derive(Clone, Debug, Default, Template)]

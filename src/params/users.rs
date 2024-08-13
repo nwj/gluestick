@@ -260,3 +260,50 @@ impl Verify for CreateUserParams {
         }
     }
 }
+
+#[derive(Clone, Deserialize)]
+pub struct ChangePasswordParams {
+    pub current_password: Secret<String>,
+    pub new_password: Secret<String>,
+    pub new_password_confirm: Secret<String>,
+}
+
+impl ChangePasswordParams {
+    pub fn validate(&self) -> Result<()> {
+        let mut report = Report::new();
+
+        if self.new_password.expose_secret().chars().count() < 8 {
+            report.add(
+                "new_password",
+                "Password is too short (minimum is 8 characters)",
+            );
+        }
+        if self.new_password.expose_secret().chars().count() > 256 {
+            report.add(
+                "new_password",
+                "Password is too long (maximum is 256 characters)",
+            );
+        }
+        if self.new_password.expose_secret() != self.new_password_confirm.expose_secret() {
+            report.add(
+                "new_password",
+                "New password and password confirmation do not match",
+            );
+        }
+
+        if report.is_empty() {
+            Ok(())
+        } else {
+            Err(report.into())
+        }
+    }
+
+    pub fn authenticate(&self, user: &User) -> Result<()> {
+        user.verify_password(self.current_password.expose_secret())
+            .map_err(|_| {
+                let mut report = Report::new();
+                report.add("current_password", "Incorrect password");
+                Error::Report(report)
+            })
+    }
+}

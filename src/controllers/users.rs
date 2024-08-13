@@ -6,10 +6,10 @@ use crate::models::paste::Paste;
 use crate::models::session::{Session, SessionToken, SESSION_COOKIE_NAME};
 use crate::models::user::User;
 use crate::params::prelude::{Validate, Verify};
-use crate::params::users::{CreateUserParams, UsernameParam};
+use crate::params::users::{ChangePasswordParams, CreateUserParams, UsernameParam};
 use crate::views::users::{
-    EmailAddressInputPartial, NewUsersTemplate, PasswordInputPartial, SettingsTemplate,
-    ShowUsersTemplate, UsernameInputPartial,
+    ChangePasswordFormPartial, EmailAddressInputPartial, NewUsersTemplate, PasswordInputPartial,
+    SettingsTemplate, ShowUsersTemplate, UsernameInputPartial,
 };
 use axum::body::Body;
 use axum::extract::{Form, State};
@@ -118,7 +118,36 @@ pub async fn settings(session: Session, State(db): State<Database>) -> Result<im
     let api_keys = ApiKey::all_for_user_id(&db, session.user.id).await?;
     let session = Some(session);
 
-    Ok(SettingsTemplate { session, api_keys })
+    Ok(SettingsTemplate {
+        session,
+        api_keys,
+        ..Default::default()
+    })
+}
+
+pub async fn change_password(
+    session: Session,
+    State(db): State<Database>,
+    Form(params): Form<ChangePasswordParams>,
+) -> Result<impl IntoResponse> {
+    let error_template: ChangePasswordFormPartial = params.clone().into();
+
+    params
+        .validate()
+        .map_err(|e| handle_params_error(e, error_template.clone()))?;
+    params
+        .authenticate(&session.user)
+        .map_err(|e| handle_params_error(e, error_template))?;
+
+    session
+        .user
+        .update_password(&db, params.new_password)
+        .await?;
+
+    Ok(ChangePasswordFormPartial {
+        show_success_message: true,
+        ..Default::default()
+    })
 }
 
 pub async fn validate_username(

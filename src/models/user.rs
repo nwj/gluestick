@@ -82,6 +82,30 @@ impl User {
         Ok(result)
     }
 
+    pub async fn update_password(
+        &self,
+        db: &Database,
+        new_password: Secret<String>,
+    ) -> Result<usize> {
+        let id = self.id;
+        let hashed_password = HashedPassword::new(new_password)?;
+        let result = db
+            .conn
+            .call(move |conn| {
+                let mut statement =
+                    conn.prepare("UPDATE users SET password = :password, updated_at = :updated_at WHERE id = :id;")?;
+                let result = statement.execute(named_params! {
+                    ":password": hashed_password,
+                    ":id": id,
+                    ":updated_at": Timestamp::now().as_millisecond(),
+                })?;
+                Ok(result)
+            })
+            .await?;
+
+        Ok(result)
+    }
+
     pub async fn find_by_email(db: &Database, email: String) -> Result<Option<User>> {
         let optional_user = db
             .conn
