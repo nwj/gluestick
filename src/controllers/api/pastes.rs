@@ -4,7 +4,6 @@ use crate::helpers::pagination::{CursorPaginationParams, CursorPaginationRespons
 use crate::models::api_session::ApiSession;
 use crate::models::paste::Paste;
 use crate::params::api::pastes::{CreatePasteParams, UpdatePasteParams};
-use crate::params::prelude::Validate;
 use axum::extract::{Path, State};
 use axum::response::IntoResponse;
 use axum::Json;

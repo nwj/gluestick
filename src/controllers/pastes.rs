@@ -5,7 +5,6 @@ use crate::models::paste::Paste;
 use crate::models::session::Session;
 use crate::models::user::User;
 use crate::params::pastes::{CreatePasteParams, UpdatePasteParams};
-use crate::params::prelude::Validate;
 use crate::params::users::UsernameParam;
 use crate::views::pastes::{
     EditPastesTemplate, IndexPastesTemplate, NewPastesTemplate, ShowPastesTemplate,

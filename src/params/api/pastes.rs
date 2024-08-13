@@ -10,8 +10,8 @@ pub struct CreatePasteParams {
     pub visibility: VisibilityParam,
 }
 
-impl Validate for CreatePasteParams {
-    fn validate(&self) -> Result<()> {
+impl CreatePasteParams {
+    pub fn validate(&self) -> Result<()> {
         let mut report = Report::new();
 
         report.merge_result(self.filename.validate())?;
@@ -29,8 +29,8 @@ pub struct UpdatePasteParams {
     pub body: Option<BodyParam>,
 }
 
-impl Validate for UpdatePasteParams {
-    fn validate(&self) -> Result<()> {
+impl UpdatePasteParams {
+    pub fn validate(&self) -> Result<()> {
         let mut report = Report::new();
 
         if let Some(filename) = &self.filename {

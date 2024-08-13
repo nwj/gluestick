@@ -40,10 +40,8 @@ impl CursorPaginationParams {
     fn per_page_default() -> usize {
         PER_PAGE_DEFAULT
     }
-}
 
-impl Validate for CursorPaginationParams {
-    fn validate(&self) -> Result<()> {
+    pub fn validate(&self) -> Result<()> {
         let mut report = Report::new();
 
         if self.per_page < 1 {

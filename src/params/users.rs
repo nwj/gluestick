@@ -12,8 +12,8 @@ const USERNAME_CHAR_VALIDATION_FAILURE_MESSAGE: &str = "Username may only contai
 #[serde(transparent)]
 pub struct UsernameParam(String);
 
-impl Validate for UsernameParam {
-    fn validate(&self) -> Result<()> {
+impl UsernameParam {
+    pub fn validate(&self) -> Result<()> {
         let mut report = Report::new();
 
         if self.0.chars().count() < 1 {
@@ -54,12 +54,8 @@ impl Validate for UsernameParam {
 
         report.to_result()
     }
-}
 
-impl Verify for UsernameParam {
-    type Output = ();
-
-    async fn verify(self, db: &Database) -> Result<Self::Output> {
+    pub async fn verify(self, db: &Database) -> Result<()> {
         match User::find_by_username(db, self).await {
             Ok(None) => Ok(()),
             Ok(Some(_)) => {
@@ -76,8 +72,8 @@ impl Verify for UsernameParam {
 #[serde(transparent)]
 pub struct EmailAddressParam(String);
 
-impl Validate for EmailAddressParam {
-    fn validate(&self) -> Result<()> {
+impl EmailAddressParam {
+    pub fn validate(&self) -> Result<()> {
         let mut report = Report::new();
 
         if !self.0.contains('@') {
@@ -98,12 +94,8 @@ impl Validate for EmailAddressParam {
 
         report.to_result()
     }
-}
 
-impl Verify for EmailAddressParam {
-    type Output = ();
-
-    async fn verify(self, db: &Database) -> Result<Self::Output> {
+    pub async fn verify(self, db: &Database) -> Result<()> {
         match User::find_by_email(db, self.into()).await {
             Ok(None) => Ok(()),
             Ok(Some(_)) => {
@@ -120,8 +112,8 @@ impl Verify for EmailAddressParam {
 #[serde(transparent)]
 pub struct PasswordParam(Secret<String>);
 
-impl Validate for PasswordParam {
-    fn validate(&self) -> Result<()> {
+impl PasswordParam {
+    pub fn validate(&self) -> Result<()> {
         let mut report = Report::new();
 
         if self.expose_secret().chars().count() < 8 {
@@ -151,16 +143,14 @@ impl ExposeSecret<String> for PasswordParam {
 #[serde(transparent)]
 pub struct InviteCodeParam(pub String);
 
-impl Validate for InviteCodeParam {
-    fn validate(&self) -> Result<()> {
+impl InviteCodeParam {
+    pub fn validate(&self) -> Result<()> {
         Ok(())
     }
 }
 
-impl Verify for InviteCodeParam {
-    type Output = InviteCode;
-
-    async fn verify(self, db: &Database) -> Result<Self::Output> {
+impl InviteCodeParam {
+    pub async fn verify(self, db: &Database) -> Result<InviteCode> {
         let mut report = Report::new();
 
         if let Some(invite_code) = InviteCode::find(db, self)
@@ -183,8 +173,8 @@ pub struct CreateUserParams {
     pub invite_code: InviteCodeParam,
 }
 
-impl Validate for CreateUserParams {
-    fn validate(&self) -> Result<()> {
+impl CreateUserParams {
+    pub fn validate(&self) -> Result<()> {
         let mut report = Report::new();
 
         report.merge_result(self.username.validate())?;
@@ -194,12 +184,8 @@ impl Validate for CreateUserParams {
 
         report.to_result()
     }
-}
 
-impl Verify for CreateUserParams {
-    type Output = InviteCode;
-
-    async fn verify(self, db: &Database) -> Result<Self::Output> {
+    pub async fn verify(self, db: &Database) -> Result<InviteCode> {
         let mut report = Report::new();
 
         report.merge_result(self.username.verify(db).await)?;

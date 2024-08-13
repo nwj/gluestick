@@ -112,8 +112,8 @@ pub struct CreatePasteParams {
     pub visibility: VisibilityParam,
 }
 
-impl Validate for CreatePasteParams {
-    fn validate(&self) -> Result<()> {
+impl CreatePasteParams {
+    pub fn validate(&self) -> Result<()> {
         let mut report = Report::new();
 
         report.merge_result(self.filename.validate())?;

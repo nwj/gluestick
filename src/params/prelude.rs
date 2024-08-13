@@ -1,4 +1,3 @@
-use crate::db::Database;
 use std::collections::HashMap;
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
@@ -77,14 +76,4 @@ impl std::fmt::Display for Report {
         }
         Ok(())
     }
-}
-
-pub trait Validate {
-    fn validate(&self) -> Result<()>;
-}
-
-#[allow(async_fn_in_trait)]
-pub trait Verify {
-    type Output;
-    async fn verify(self, db: &Database) -> Result<Self::Output>;
 }

@@ -5,7 +5,6 @@ use crate::models::api_session::ApiKey;
 use crate::models::paste::Paste;
 use crate::models::session::{Session, SessionToken, SESSION_COOKIE_NAME};
 use crate::models::user::User;
-use crate::params::prelude::{Validate, Verify};
 use crate::params::users::{ChangePasswordParams, CreateUserParams, UsernameParam};
 use crate::views::users::{
     ChangePasswordFormPartial, EmailAddressInputPartial, NewUsersTemplate, PasswordInputPartial,
