@@ -4,7 +4,7 @@
     <main class="pastes-edit">
         {% if let Some(session) = session %}
             <form hx-put="/{{ session.user.username }}/{{ paste_id }}" hx-target="body">
-                {% let error = error_report.get_first("filename") %}
+                {% let error = error_report.get_first(FILENAME_REPORT_KEY) %}
                 <div class="filename-bar">
                     <a href="{{ session.user.username }}">{{ session.user.username }}</a><span>/</span>
                     <div class="validated-input filename {% if let Some(error) = error %}invalid{% endif %}">
@@ -17,7 +17,7 @@
                         </div>
                     </div>
                 </div>
-                {% let error = error_report.get_first("description") %}
+                {% let error = error_report.get_first(DESCRIPTION_REPORT_KEY) %}
                 <div class="validated-input description {% if let Some(error) = error %}invalid{% endif %}">
                     <label>
                         Description
@@ -30,7 +30,7 @@
                         {% if let Some(error) = error %}{{ error }}{% endif %}
                     </div>
                 </div>
-                {% let error = error_report.get_first("body") %}
+                {% let error = error_report.get_first(BODY_REPORT_KEY) %}
                 <div class="validated-input body {% if let Some(error) = error %}invalid{% endif %}">
                     <label for="body">Body</label>
                     <textarea id="body" name="body" placeholder="Body...">{{body}}</textarea>

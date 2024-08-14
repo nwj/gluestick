@@ -1,4 +1,4 @@
-{% let error = error_report.get_first("email") %}
+{% let error = error_report.get_first(EMAIL_REPORT_KEY) %}
 <div class="validated-input {% if let Some(error) = error %}invalid{% endif %}"
      hx-target="this"
      hx-swap="outerHTML">

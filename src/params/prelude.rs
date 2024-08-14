@@ -1,4 +1,3 @@
-use crate::db::Database;
 use std::collections::HashMap;
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
@@ -46,6 +45,25 @@ impl Report {
             self.errors.entry(field).or_default().extend(errors);
         }
     }
+
+    pub fn merge_result(&mut self, result: Result<()>) -> Result<()> {
+        match result {
+            Err(Error::Report(report)) => {
+                self.merge(report);
+                Ok(())
+            }
+            Err(Error::Other(e)) => Err(Error::Other(e)),
+            _ => Ok(()),
+        }
+    }
+
+    pub fn to_result(self) -> Result<()> {
+        if self.is_empty() {
+            Ok(())
+        } else {
+            Err(self.into())
+        }
+    }
 }
 
 impl std::fmt::Display for Report {
@@ -58,14 +76,4 @@ impl std::fmt::Display for Report {
         }
         Ok(())
     }
-}
-
-pub trait Validate {
-    fn validate(&self) -> Result<()>;
-}
-
-#[allow(async_fn_in_trait)]
-pub trait Verify {
-    type Output;
-    async fn verify(self, db: &Database) -> Result<Self::Output>;
 }

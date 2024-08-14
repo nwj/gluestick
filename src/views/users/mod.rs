@@ -5,20 +5,36 @@ use crate::models::paste::Paste;
 use crate::models::session::Session;
 use crate::models::user::User;
 use crate::params::prelude::Report;
-use crate::params::users::{ChangePasswordParams, CreateUserParams};
+use crate::params::users::{
+    ChangePasswordParams, CreateUserParams, CURRENT_PASSWORD_REPORT_KEY, EMAIL_REPORT_KEY,
+    INVITE_CODE_REPORT_KEY, PASSWORD_REPORT_KEY, USERNAME_REPORT_KEY,
+};
 use crate::views::filters;
 use askama_axum::Template;
-use secrecy::ExposeSecret;
+use secrecy::{ExposeSecret, Secret};
 
-#[derive(Clone, Debug, Default, Template)]
+#[derive(Clone, Debug, Template)]
 #[template(path = "users/new.html")]
 pub struct NewUsersTemplate {
     pub session: Option<Session>,
     pub username: String,
     pub email: String,
-    pub password: String,
+    pub password: Secret<String>,
     pub invite_code: String,
     pub error_report: Report,
+}
+
+impl Default for NewUsersTemplate {
+    fn default() -> Self {
+        Self {
+            session: Option::default(),
+            username: String::default(),
+            email: String::default(),
+            password: Secret::new(String::default()),
+            invite_code: String::default(),
+            error_report: Report::default(),
+        }
+    }
 }
 
 impl From<CreateUserParams> for NewUsersTemplate {
@@ -27,8 +43,8 @@ impl From<CreateUserParams> for NewUsersTemplate {
             session: None,
             username: params.username.into(),
             email: params.email.into(),
-            password: params.password.expose_secret().to_string(),
-            invite_code: params.invite_code.into(),
+            password: params.password.into(),
+            invite_code: params.invite_code,
             error_report: Report::default(),
         }
     }
@@ -61,22 +77,34 @@ pub struct SettingsTemplate {
     pub change_password_form: ChangePasswordFormPartial,
 }
 
-#[derive(Clone, Debug, Default, Template)]
+#[derive(Clone, Debug, Template)]
 #[template(path = "users/partials/change_password_form.html")]
 pub struct ChangePasswordFormPartial {
-    pub current_password: String,
-    pub new_password: String,
-    pub new_password_confirm: String,
+    pub current_password: Secret<String>,
+    pub new_password: Secret<String>,
+    pub new_password_confirm: Secret<String>,
     pub error_report: Report,
     pub show_success_message: bool,
+}
+
+impl Default for ChangePasswordFormPartial {
+    fn default() -> Self {
+        Self {
+            current_password: Secret::new(String::default()),
+            new_password: Secret::new(String::default()),
+            new_password_confirm: Secret::new(String::default()),
+            error_report: Report::default(),
+            show_success_message: bool::default(),
+        }
+    }
 }
 
 impl From<ChangePasswordParams> for ChangePasswordFormPartial {
     fn from(params: ChangePasswordParams) -> Self {
         Self {
-            current_password: params.current_password.expose_secret().to_string(),
-            new_password: params.new_password.expose_secret().to_string(),
-            new_password_confirm: params.new_password_confirm.expose_secret().to_string(),
+            current_password: params.current_password,
+            new_password: params.new_password.into(),
+            new_password_confirm: params.new_password_confirm,
             ..Default::default()
         }
     }
@@ -144,17 +172,26 @@ impl ErrorTemplate for EmailAddressInputPartial {
     }
 }
 
-#[derive(Clone, Debug, Default, Template)]
+#[derive(Clone, Debug, Template)]
 #[template(path = "users/partials/password_input.html")]
 pub struct PasswordInputPartial {
-    pub password: String,
+    pub password: Secret<String>,
     pub error_report: Report,
+}
+
+impl Default for PasswordInputPartial {
+    fn default() -> Self {
+        Self {
+            password: Secret::new(String::default()),
+            error_report: Report::default(),
+        }
+    }
 }
 
 impl From<CreateUserParams> for PasswordInputPartial {
     fn from(params: CreateUserParams) -> Self {
         Self {
-            password: params.password.expose_secret().into(),
+            password: params.password.into(),
             error_report: Report::default(),
         }
     }

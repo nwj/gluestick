@@ -1,118 +1,53 @@
 use crate::db::Database;
 use crate::models::user::User;
 use crate::params::prelude::*;
-use derive_more::{From, Into};
 use secrecy::{ExposeSecret, Secret};
 use serde::Deserialize;
 
-// Throughout this module, we use this message, rather than more specific error feedback for
-// validation and verification errors. The reason for this is that we don't want to provide
-// specific feedback that would leak information to an attacker that is attempting to brute-force
-// authentication.
+const MIN_PASSWORD_LENGTH: usize = 8;
+const MAX_PASSWORD_LENGTH: usize = 256;
+
 const AUTH_FAILURE_MESSAGE: &str = "Incorrect email or password";
 
-#[derive(Clone, Deserialize, From, Into)]
-#[serde(transparent)]
-pub struct EmailAddressParam(String);
-
-impl Validate for EmailAddressParam {
-    fn validate(&self) -> Result<()> {
-        let mut report = Report::new();
-
-        if !self.0.contains('@') {
-            report.add("self", AUTH_FAILURE_MESSAGE);
-        }
-        if self.0.starts_with('@') {
-            report.add("self", AUTH_FAILURE_MESSAGE);
-        }
-        if self.0.ends_with('@') {
-            report.add("self", AUTH_FAILURE_MESSAGE);
-        }
-
-        if report.is_empty() {
-            Ok(())
-        } else {
-            Err(report.into())
-        }
-    }
-}
-
-#[derive(Clone, Deserialize, From, Into)]
-#[serde(transparent)]
-pub struct PasswordParam(Secret<String>);
-
-impl Validate for PasswordParam {
-    fn validate(&self) -> Result<()> {
-        let mut report = Report::new();
-
-        if self.expose_secret().chars().count() < 8 {
-            report.add("self", AUTH_FAILURE_MESSAGE);
-        }
-        if self.expose_secret().chars().count() > 256 {
-            report.add("self", AUTH_FAILURE_MESSAGE);
-        }
-
-        if report.is_empty() {
-            Ok(())
-        } else {
-            Err(report.into())
-        }
-    }
-}
-
-impl ExposeSecret<String> for PasswordParam {
-    fn expose_secret(&self) -> &String {
-        self.0.expose_secret()
-    }
-}
+pub const SELF_REPORT_KEY: &str = "self";
 
 #[derive(Clone, Deserialize)]
 pub struct CreateSessionParams {
-    pub email: EmailAddressParam,
-    pub password: PasswordParam,
+    pub email: String,
+    pub password: Secret<String>,
 }
 
-impl Validate for CreateSessionParams {
-    fn validate(&self) -> Result<()> {
-        let mut report = Report::new();
-
-        match self.email.validate() {
-            Err(Error::Report(email_report)) => report.merge(email_report),
-            Err(Error::Other(e)) => return Err(Error::Other(e)),
-            _ => {}
-        };
-        match self.password.validate() {
-            Err(Error::Report(password_report)) => report.merge(password_report),
-            Err(Error::Other(e)) => return Err(Error::Other(e)),
-            _ => {}
-        };
-
-        if report.is_empty() {
-            Ok(())
-        } else {
-            Err(report.into())
+impl CreateSessionParams {
+    pub async fn authenticate(self, db: &Database) -> Result<User> {
+        if !self.email.contains('@') {
+            return Err(Self::report().into());
         }
-    }
-}
+        if self.email.starts_with('@') {
+            return Err(Self::report().into());
+        }
+        if self.email.ends_with('@') {
+            return Err(Self::report().into());
+        }
 
-impl Verify for CreateSessionParams {
-    type Output = User;
+        if self.password.expose_secret().chars().count() < MIN_PASSWORD_LENGTH {
+            return Err(Self::report().into());
+        }
+        if self.password.expose_secret().chars().count() > MAX_PASSWORD_LENGTH {
+            return Err(Self::report().into());
+        }
 
-    async fn verify(self, db: &Database) -> Result<Self::Output> {
-        let mut report = Report::new();
-        report.add("self", AUTH_FAILURE_MESSAGE);
-
-        let user = User::find_by_email(db, self.email.into())
+        let user = User::find_by_email(db, self.email)
             .await
             .map_err(|e| Error::Other(Box::new(e)))?;
-
-        if let Some(user) = user {
-            user.verify_password(self.password.expose_secret())
-                .map_err(|_| Error::Report(report))?;
-
-            Ok(user)
-        } else {
-            Err(report.into())
+        match user {
+            Some(user) if user.verify_password(self.password.expose_secret()).is_ok() => Ok(user),
+            _ => Err(Self::report().into()),
         }
+    }
+
+    fn report() -> Report {
+        let mut report = Report::new();
+        report.add(SELF_REPORT_KEY, AUTH_FAILURE_MESSAGE);
+        report
     }
 }

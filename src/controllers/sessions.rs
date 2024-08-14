@@ -1,7 +1,6 @@
 use crate::controllers::prelude::*;
 use crate::db::Database;
 use crate::models::session::{Session, SessionToken, SESSION_COOKIE_NAME};
-use crate::params::prelude::{Validate, Verify};
 use crate::params::sessions::CreateSessionParams;
 use crate::views::sessions::NewSessionsTemplate;
 use axum::body::Body;
@@ -18,15 +17,11 @@ pub async fn create(
     State(db): State<Database>,
     Form(params): Form<CreateSessionParams>,
 ) -> Result<impl IntoResponse> {
-    let error_template: NewSessionsTemplate = params.clone().into();
-
-    params
-        .validate()
-        .map_err(|e| handle_params_error(e, error_template.clone()))?;
     let user = params
-        .verify(&db)
+        .clone()
+        .authenticate(&db)
         .await
-        .map_err(|e| handle_params_error(e, error_template))?;
+        .map_err(|e| handle_params_error(e, NewSessionsTemplate::from(params)))?;
 
     let (unhashed_token, hashed_token) = SessionToken::new(user.id);
     let response = Response::builder()

@@ -2,38 +2,53 @@ use crate::params::prelude::*;
 use derive_more::{From, Into};
 use serde::Deserialize;
 
+const MAX_FILENAME_LENGTH: usize = 256;
+const INVALID_FILENAME_CHARS: &[char] = &['<', '>', ':', '"', '/', '\\', '|', '?', '*'];
+const MAX_DESCRIPTION_LENGTH: usize = 256;
+
+pub const FILENAME_REPORT_KEY: &str = "filename";
+pub const DESCRIPTION_REPORT_KEY: &str = "description";
+pub const BODY_REPORT_KEY: &str = "body";
+
 #[derive(Clone, Debug, Deserialize, From, Into)]
 #[serde(transparent)]
 pub struct FilenameParam(String);
 
-impl Validate for FilenameParam {
-    fn validate(&self) -> Result<()> {
+impl FilenameParam {
+    pub fn validate(&self) -> Result<()> {
         let mut report = Report::new();
 
-        if self.0.chars().count() < 1 {
-            report.add("filename", "Filename is a required field");
+        if self.0.is_empty() {
+            report.add(FILENAME_REPORT_KEY, "Filename is a required field");
         }
-        if self.0.chars().count() > 256 {
-            report.add("filename", "Filename may not be longer than 256 characters");
-        }
-        if self
-            .0
-            .contains(&['<', '>', ':', '"', '/', '\\', '|', '?', '*'][..])
-        {
+        if self.0.chars().count() > MAX_FILENAME_LENGTH {
             report.add(
-                "filename",
-                "Filename may not contain the following characters: < > : \" / \\ | ? *",
+                FILENAME_REPORT_KEY,
+                format!("Filename may not be longer than {MAX_FILENAME_LENGTH} characters"),
+            );
+        }
+        if self.0.chars().any(|c| INVALID_FILENAME_CHARS.contains(&c)) {
+            report.add(
+                FILENAME_REPORT_KEY,
+                format!(
+                    "Filename may not contain the following characters: {}",
+                    // once it gets stabilized, we should be able to replace this with .intersperse
+                    INVALID_FILENAME_CHARS
+                        .iter()
+                        .map(std::string::ToString::to_string)
+                        .collect::<Vec<_>>()
+                        .join(" ")
+                ),
             );
         }
         if self.0.ends_with('.') {
-            report.add("filename", "Filename may not end with a '.' character");
+            report.add(
+                FILENAME_REPORT_KEY,
+                "Filename may not end with a '.' character",
+            );
         }
 
-        if report.is_empty() {
-            Ok(())
-        } else {
-            Err(report.into())
-        }
+        report.to_result()
     }
 }
 
@@ -41,22 +56,18 @@ impl Validate for FilenameParam {
 #[serde(transparent)]
 pub struct DescriptionParam(String);
 
-impl Validate for DescriptionParam {
-    fn validate(&self) -> Result<()> {
+impl DescriptionParam {
+    pub fn validate(&self) -> Result<()> {
         let mut report = Report::new();
 
-        if self.0.chars().count() > 256 {
+        if self.0.chars().count() > MAX_DESCRIPTION_LENGTH {
             report.add(
-                "description",
-                "Description may not be longer than 256 characters",
+                DESCRIPTION_REPORT_KEY,
+                format!("Description may not be longer than {MAX_DESCRIPTION_LENGTH} characters"),
             );
         }
 
-        if report.is_empty() {
-            Ok(())
-        } else {
-            Err(report.into())
-        }
+        report.to_result()
     }
 }
 
@@ -65,24 +76,14 @@ impl Validate for DescriptionParam {
 pub struct BodyParam(String);
 
 impl BodyParam {
-    pub fn into_inner(self) -> String {
-        self.0
-    }
-}
-
-impl Validate for BodyParam {
-    fn validate(&self) -> Result<()> {
+    pub fn validate(&self) -> Result<()> {
         let mut report = Report::new();
 
-        if self.0.chars().count() < 1 {
-            report.add("body", "Body is a required field");
+        if self.0.is_empty() {
+            report.add(BODY_REPORT_KEY, "Body is a required field");
         }
 
-        if report.is_empty() {
-            Ok(())
-        } else {
-            Err(report.into())
-        }
+        report.to_result()
     }
 }
 
@@ -111,31 +112,15 @@ pub struct CreatePasteParams {
     pub visibility: VisibilityParam,
 }
 
-impl Validate for CreatePasteParams {
-    fn validate(&self) -> Result<()> {
+impl CreatePasteParams {
+    pub fn validate(&self) -> Result<()> {
         let mut report = Report::new();
 
-        match self.filename.validate() {
-            Err(Error::Report(filename_report)) => report.merge(filename_report),
-            Err(Error::Other(e)) => return Err(Error::Other(e)),
-            _ => {}
-        };
-        match self.description.validate() {
-            Err(Error::Report(description_report)) => report.merge(description_report),
-            Err(Error::Other(e)) => return Err(Error::Other(e)),
-            _ => {}
-        };
-        match self.body.validate() {
-            Err(Error::Report(body_report)) => report.merge(body_report),
-            Err(Error::Other(e)) => return Err(Error::Other(e)),
-            _ => {}
-        };
+        report.merge_result(self.filename.validate())?;
+        report.merge_result(self.description.validate())?;
+        report.merge_result(self.body.validate())?;
 
-        if report.is_empty() {
-            Ok(())
-        } else {
-            Err(report.into())
-        }
+        report.to_result()
     }
 }
 
@@ -146,30 +131,14 @@ pub struct UpdatePasteParams {
     pub body: BodyParam,
 }
 
-impl Validate for UpdatePasteParams {
-    fn validate(&self) -> Result<()> {
+impl UpdatePasteParams {
+    pub fn validate(&self) -> Result<()> {
         let mut report = Report::new();
 
-        match self.filename.validate() {
-            Err(Error::Report(filename_report)) => report.merge(filename_report),
-            Err(Error::Other(e)) => return Err(Error::Other(e)),
-            _ => {}
-        };
-        match self.description.validate() {
-            Err(Error::Report(description_report)) => report.merge(description_report),
-            Err(Error::Other(e)) => return Err(Error::Other(e)),
-            _ => {}
-        };
-        match self.body.validate() {
-            Err(Error::Report(body_report)) => report.merge(body_report),
-            Err(Error::Other(e)) => return Err(Error::Other(e)),
-            _ => {}
-        };
+        report.merge_result(self.filename.validate())?;
+        report.merge_result(self.description.validate())?;
+        report.merge_result(self.body.validate())?;
 
-        if report.is_empty() {
-            Ok(())
-        } else {
-            Err(report.into())
-        }
+        report.to_result()
     }
 }

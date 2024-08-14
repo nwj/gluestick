@@ -4,7 +4,7 @@
     <main class="login">
         <h1>Sign-in to Gluestick</h1>
         <form action="/login" method="post">
-            {% let error = error_report.get_first("self") %}
+            {% let error = error_report.get_first(SELF_REPORT_KEY) %}
             <div class="validated-input {% if let Some(error) = error %}invalid{% endif %}">
                 <label>
                     Email
@@ -20,7 +20,7 @@
                     <input type="password"
                            name="password"
                            placeholder="Your password..."
-                           value="{{ password }}" />
+                           value="{{ password.expose_secret() }}" />
                 </label>
                 <div class="error-msg">
                     {% if let Some(error) = error %}{{ error }}{% endif %}
