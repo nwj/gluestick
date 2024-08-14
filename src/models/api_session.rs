@@ -191,7 +191,7 @@ impl ApiKey {
 }
 
 #[derive(Clone)]
-pub struct UnhashedKey(pub Secret<String>);
+pub struct UnhashedKey(Secret<String>);
 
 impl UnhashedKey {
     pub fn generate() -> Self {
