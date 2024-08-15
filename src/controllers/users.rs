@@ -4,8 +4,8 @@ use crate::helpers::pagination::{CursorPaginationParams, CursorPaginationRespons
 use crate::models::api_session::ApiKey;
 use crate::models::paste::Paste;
 use crate::models::session::{Session, SessionToken, SESSION_COOKIE_NAME};
-use crate::models::user::User;
-use crate::params::users::{ChangePasswordParams, CreateUserParams, UsernameParam};
+use crate::models::user::{HashedPassword, User};
+use crate::params::users::{CreateUserParams, UsernameParam};
 use crate::views::users::{
     ChangePasswordFormPartial, EmailAddressInputPartial, NewUsersTemplate, PasswordInputPartial,
     SettingsTemplate, ShowUsersTemplate, UsernameInputPartial,
@@ -15,7 +15,8 @@ use axum::extract::{Form, State};
 use axum::extract::{Path, Query};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use secrecy::ExposeSecret;
+use secrecy::{ExposeSecret, Secret};
+use serde::Deserialize;
 
 pub async fn new() -> NewUsersTemplate {
     NewUsersTemplate::default()
@@ -126,24 +127,49 @@ pub async fn settings(session: Session, State(db): State<Database>) -> Result<im
     })
 }
 
+#[derive(Clone, Deserialize)]
+pub struct ChangePasswordParams {
+    pub old_password: Secret<String>,
+    pub new_password: Secret<String>,
+    pub new_password_confirm: Secret<String>,
+}
+
 pub async fn change_password(
     session: Session,
     State(db): State<Database>,
     Form(params): Form<ChangePasswordParams>,
 ) -> Result<impl IntoResponse> {
-    let error_template: ChangePasswordFormPartial = params.clone().into();
+    let new_password = HashedPassword::try_from(&params.new_password).map_err(|e| {
+        to_validation_error(e, |msg| ChangePasswordFormPartial {
+            new_password_error_message: Some(msg.to_string()),
+            ..params.clone().into()
+        })
+    })?;
 
-    params
-        .validate()
-        .map_err(|e| handle_params_error(e, error_template.clone()))?;
-    params
-        .authenticate(&session.user)
-        .map_err(|e| handle_params_error(e, error_template))?;
+    if params.new_password.expose_secret() != params.new_password_confirm.expose_secret() {
+        Err(Error::Validation2(Box::new(ChangePasswordFormPartial {
+            new_password_error_message: Some(
+                "New password and password confirmation do not match".into(),
+            ),
+            ..params.clone().into()
+        })))?;
+    }
 
-    session
-        .user
-        .update_password(&db, params.new_password)
-        .await?;
+    let old_password = HashedPassword::try_from(&params.old_password).map_err(|e| {
+        to_validation_error(e, |_| ChangePasswordFormPartial {
+            old_password_error_message: Some("Incorrect password".into()),
+            ..params.clone().into()
+        })
+    })?;
+
+    session.user.verify_password2(&old_password).map_err(|e| {
+        to_validation_error(e, |_| ChangePasswordFormPartial {
+            old_password_error_message: Some("Incorrect password".into()),
+            ..params.into()
+        })
+    })?;
+
+    session.user.update_password2(&db, new_password).await?;
 
     Ok(ChangePasswordFormPartial {
         show_success_message: true,

@@ -29,6 +29,9 @@ pub enum Error {
     #[allow(clippy::enum_variant_names)]
     #[error("internal server error: {0}")]
     InternalServerError(Box<dyn std::error::Error>),
+
+    #[error("failed validation")]
+    Validation2(Box<dyn ErrorTemplate2>),
 }
 
 impl From<ModelsError> for Error {
@@ -46,6 +49,18 @@ impl IntoResponse for Error {
             }
 
             Error::Validation(template) => match template.render_template() {
+                Ok(html) => (StatusCode::OK, html).into_response(),
+                Err(err) => {
+                    tracing::error!(%err, "template rendering error");
+                    (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        InternalServerErrorTemplate { session: None },
+                    )
+                        .into_response()
+                }
+            },
+
+            Error::Validation2(template) => match template.render_template() {
                 Ok(html) => (StatusCode::OK, html).into_response(),
                 Err(err) => {
                     tracing::error!(%err, "template rendering error");
@@ -93,7 +108,22 @@ pub fn handle_params_error(err: ParamsError, mut template: impl ErrorTemplate + 
     }
 }
 
+pub fn to_validation_error<F, T>(err: ModelsError, f: F) -> Error
+where
+    F: FnOnce(&str) -> T,
+    T: ErrorTemplate2 + 'static,
+{
+    match err {
+        ModelsError::Parse(msg) => Error::Validation2(Box::new(f(&msg))),
+        e => Error::InternalServerError(Box::new(e)),
+    }
+}
+
 pub trait ErrorTemplate: std::fmt::Debug {
     fn render_template(&self) -> askama::Result<String>;
     fn with_report(&mut self, report: Report);
+}
+
+pub trait ErrorTemplate2: std::fmt::Debug {
+    fn render_template(&self) -> askama::Result<String>;
 }

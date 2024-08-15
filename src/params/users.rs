@@ -16,7 +16,6 @@ pub const USERNAME_REPORT_KEY: &str = "username";
 pub const EMAIL_REPORT_KEY: &str = "email";
 pub const PASSWORD_REPORT_KEY: &str = "password";
 pub const INVITE_CODE_REPORT_KEY: &str = "invite_code";
-pub const CURRENT_PASSWORD_REPORT_KEY: &str = "current_password";
 
 #[derive(Clone, Debug, Deserialize, From, Into, PartialEq)]
 #[serde(transparent)]
@@ -201,37 +200,5 @@ impl CreateUserParams {
             report.add(INVITE_CODE_REPORT_KEY, "Invalid invite code");
             Err(report.into())
         }
-    }
-}
-
-#[derive(Clone, Deserialize)]
-pub struct ChangePasswordParams {
-    pub current_password: Secret<String>,
-    pub new_password: PasswordParam,
-    pub new_password_confirm: Secret<String>,
-}
-
-impl ChangePasswordParams {
-    pub fn validate(&self) -> Result<()> {
-        let mut report = Report::new();
-
-        report.merge_result(self.new_password.validate())?;
-        if self.new_password.expose_secret() != self.new_password_confirm.expose_secret() {
-            report.add(
-                PASSWORD_REPORT_KEY,
-                "New password and password confirmation do not match",
-            );
-        }
-
-        report.to_result()
-    }
-
-    pub fn authenticate(&self, user: &User) -> Result<()> {
-        user.verify_password(self.current_password.expose_secret())
-            .map_err(|_| {
-                let mut report = Report::new();
-                report.add(CURRENT_PASSWORD_REPORT_KEY, "Incorrect password");
-                Error::Report(report)
-            })
     }
 }

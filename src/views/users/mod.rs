@@ -1,4 +1,5 @@
-use crate::controllers::prelude::ErrorTemplate;
+use crate::controllers::prelude::{ErrorTemplate, ErrorTemplate2};
+use crate::controllers::users::ChangePasswordParams;
 use crate::helpers::pagination::CursorPaginationResponse;
 use crate::models::api_session::ApiKey;
 use crate::models::paste::Paste;
@@ -6,8 +7,8 @@ use crate::models::session::Session;
 use crate::models::user::User;
 use crate::params::prelude::Report;
 use crate::params::users::{
-    ChangePasswordParams, CreateUserParams, CURRENT_PASSWORD_REPORT_KEY, EMAIL_REPORT_KEY,
-    INVITE_CODE_REPORT_KEY, PASSWORD_REPORT_KEY, USERNAME_REPORT_KEY,
+    CreateUserParams, EMAIL_REPORT_KEY, INVITE_CODE_REPORT_KEY, PASSWORD_REPORT_KEY,
+    USERNAME_REPORT_KEY,
 };
 use crate::views::filters;
 use askama_axum::Template;
@@ -80,20 +81,22 @@ pub struct SettingsTemplate {
 #[derive(Clone, Debug, Template)]
 #[template(path = "users/partials/change_password_form.html")]
 pub struct ChangePasswordFormPartial {
-    pub current_password: Secret<String>,
+    pub old_password: Secret<String>,
     pub new_password: Secret<String>,
     pub new_password_confirm: Secret<String>,
-    pub error_report: Report,
+    pub old_password_error_message: Option<String>,
+    pub new_password_error_message: Option<String>,
     pub show_success_message: bool,
 }
 
 impl Default for ChangePasswordFormPartial {
     fn default() -> Self {
         Self {
-            current_password: Secret::new(String::default()),
+            old_password: Secret::new(String::default()),
+            old_password_error_message: Option::default(),
             new_password: Secret::new(String::default()),
+            new_password_error_message: Option::default(),
             new_password_confirm: Secret::new(String::default()),
-            error_report: Report::default(),
             show_success_message: bool::default(),
         }
     }
@@ -102,21 +105,17 @@ impl Default for ChangePasswordFormPartial {
 impl From<ChangePasswordParams> for ChangePasswordFormPartial {
     fn from(params: ChangePasswordParams) -> Self {
         Self {
-            current_password: params.current_password,
-            new_password: params.new_password.into(),
+            old_password: params.old_password,
+            new_password: params.new_password,
             new_password_confirm: params.new_password_confirm,
             ..Default::default()
         }
     }
 }
 
-impl ErrorTemplate for ChangePasswordFormPartial {
+impl ErrorTemplate2 for ChangePasswordFormPartial {
     fn render_template(&self) -> askama::Result<String> {
         self.render()
-    }
-
-    fn with_report(&mut self, report: Report) {
-        self.error_report = report;
     }
 }
 

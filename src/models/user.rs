@@ -8,6 +8,8 @@ use rand::rngs::OsRng;
 use rusqlite::types::{FromSql, FromSqlResult, ToSql, ToSqlOutput, Type, ValueRef};
 use rusqlite::{named_params, Row};
 use secrecy::{ExposeSecret, Secret};
+use std::convert::TryFrom;
+use std::str::FromStr;
 use uuid::Uuid;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -60,6 +62,13 @@ impl User {
         Ok(())
     }
 
+    pub fn verify_password2(&self, password: &HashedPassword) -> Result<()> {
+        Ok(Argon2::default().verify_password(
+            password.expose_secret().as_bytes(),
+            &PasswordHash::new(self.password.expose_secret())?,
+        )?)
+    }
+
     pub async fn insert(self, db: &Database) -> Result<usize> {
         let result = db
             .conn
@@ -95,6 +104,29 @@ impl User {
                     conn.prepare("UPDATE users SET password = :password, updated_at = :updated_at WHERE id = :id;")?;
                 let result = statement.execute(named_params! {
                     ":password": hashed_password,
+                    ":id": id,
+                    ":updated_at": Timestamp::now().as_millisecond(),
+                })?;
+                Ok(result)
+            })
+            .await?;
+
+        Ok(result)
+    }
+
+    pub async fn update_password2(
+        &self,
+        db: &Database,
+        new_password: HashedPassword,
+    ) -> Result<usize> {
+        let id = self.id;
+        let result = db
+            .conn
+            .call(move |conn| {
+                let mut statement =
+                    conn.prepare("UPDATE users SET password = :password, updated_at = :updated_at WHERE id = :id;")?;
+                let result = statement.execute(named_params! {
+                    ":password": new_password,
                     ":id": id,
                     ":updated_at": Timestamp::now().as_millisecond(),
                 })?;
@@ -172,6 +204,50 @@ impl Username {
     }
 }
 
+impl FromStr for Username {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if s.trim().is_empty() {
+            Err(Error::Parse("Username may not be blank".into()))
+        } else if !s.chars().count() > 32 {
+            Err(Error::Parse(
+                "Username is too long (maximum is 32 characters)".into(),
+            ))
+        } else if s.chars().all(|c| c.is_alphanumeric() || c == '-')
+            || s.contains("--")
+            || s.starts_with('-')
+            || s.ends_with('-')
+        {
+            Err(Error::Parse(
+                "Username may only contain alphanumeric characters or single hyphens, and may not begin or end with a hyphen".into(),
+            ))
+        } else if s == "api"
+            || s == "api_sessions"
+            || s == "assets"
+            || s == "health"
+            || s == "login"
+            || s == "logout"
+            || s == "new"
+            || s == "pastes"
+            || s == "settings"
+            || s == "signup"
+        {
+            Err(Error::Parse("Username is unavailable".into()))
+        } else {
+            Ok(Self(s.to_string()))
+        }
+    }
+}
+
+impl TryFrom<String> for Username {
+    type Error = Error;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        value.parse()
+    }
+}
+
 impl ToSql for Username {
     fn to_sql(&self) -> Result<ToSqlOutput<'_>, rusqlite::Error> {
         self.0.to_sql()
@@ -190,6 +266,36 @@ pub struct EmailAddress(String);
 impl EmailAddress {
     fn new(email: impl Into<String>) -> Self {
         Self(email.into().to_lowercase())
+    }
+}
+
+impl FromStr for EmailAddress {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if s.trim().is_empty() {
+            Err(Error::Parse("Email may not be blank".into()))
+        } else if !s.contains('@') {
+            Err(Error::Parse("Email is missing the '@' symbol".into()))
+        } else if s.starts_with('@') {
+            Err(Error::Parse(
+                "Email is missing the username part before the '@' symbol".into(),
+            ))
+        } else if s.ends_with('@') {
+            Err(Error::Parse(
+                "Email is missing the domain part after the '@' symbol".into(),
+            ))
+        } else {
+            Ok(Self(s.to_string()))
+        }
+    }
+}
+
+impl TryFrom<String> for EmailAddress {
+    type Error = Error;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        value.parse()
     }
 }
 
@@ -219,6 +325,33 @@ impl HashedPassword {
                 )?
                 .to_string(),
         )))
+    }
+}
+
+impl TryFrom<&Secret<String>> for HashedPassword {
+    type Error = Error;
+
+    fn try_from(value: &Secret<String>) -> Result<Self, Self::Error> {
+        if value.expose_secret().is_empty() {
+            Err(Error::Parse("Password may not be blank".into()))
+        } else if value.expose_secret().chars().count() < 8 {
+            Err(Error::Parse(
+                "Password is too short (minimum is 8 characters)".into(),
+            ))
+        } else if value.expose_secret().chars().count() > 256 {
+            Err(Error::Parse(
+                "Password is too long (maximum is 256 characters)".into(),
+            ))
+        } else {
+            Ok(HashedPassword(Secret::new(
+                Argon2::default()
+                    .hash_password(
+                        value.expose_secret().as_bytes(),
+                        &SaltString::generate(&mut OsRng),
+                    )?
+                    .to_string(),
+            )))
+        }
     }
 }
 
