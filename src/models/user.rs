@@ -62,7 +62,7 @@ impl User {
         Ok(())
     }
 
-    pub fn verify_password2(&self, password: &HashedPassword) -> Result<()> {
+    pub fn verify_password2(&self, password: &UnhashedPassword) -> Result<()> {
         Ok(Argon2::default().verify_password(
             password.expose_secret().as_bytes(),
             &PasswordHash::new(self.password.expose_secret())?,
@@ -117,16 +117,17 @@ impl User {
     pub async fn update_password2(
         &self,
         db: &Database,
-        new_password: HashedPassword,
+        new_password: UnhashedPassword,
     ) -> Result<usize> {
         let id = self.id;
+        let hashed_password = HashedPassword::try_from(new_password)?;
         let result = db
             .conn
             .call(move |conn| {
                 let mut statement =
                     conn.prepare("UPDATE users SET password = :password, updated_at = :updated_at WHERE id = :id;")?;
                 let result = statement.execute(named_params! {
-                    ":password": new_password,
+                    ":password": hashed_password,
                     ":id": id,
                     ":updated_at": Timestamp::now().as_millisecond(),
                 })?;
@@ -154,6 +155,24 @@ impl User {
             .await?;
 
         Ok(optional_user)
+    }
+
+    pub async fn find_by_email2(db: &Database, email: EmailAddress) -> Result<Option<User>> {
+        let maybe_user = db
+            .conn
+            .call(move |conn| {
+                let mut statement = conn.prepare(
+                    "SELECT id, username, email, password, created_at, updated_at FROM users WHERE email = :email;",
+                )?;
+                let mut rows = statement.query(named_params! {":email": email})?;
+                match rows.next()? {
+                    Some(row) => Ok(Some(User::from_sql_row(row)?)),
+                    None => Ok(None),
+                }
+            })
+            .await?;
+
+        Ok(maybe_user)
     }
 
     pub async fn find_by_username(
@@ -208,6 +227,8 @@ impl FromStr for Username {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let s = s.to_lowercase();
+
         if s.trim().is_empty() {
             Err(Error::Parse("Username may not be blank".into()))
         } else if !s.chars().count() > 32 {
@@ -235,15 +256,15 @@ impl FromStr for Username {
         {
             Err(Error::Parse("Username is unavailable".into()))
         } else {
-            Ok(Self(s.to_string()))
+            Ok(Self(s))
         }
     }
 }
 
-impl TryFrom<String> for Username {
+impl TryFrom<&String> for Username {
     type Error = Error;
 
-    fn try_from(value: String) -> Result<Self, Self::Error> {
+    fn try_from(value: &String) -> Result<Self, Self::Error> {
         value.parse()
     }
 }
@@ -273,6 +294,8 @@ impl FromStr for EmailAddress {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let s = s.to_lowercase();
+
         if s.trim().is_empty() {
             Err(Error::Parse("Email may not be blank".into()))
         } else if !s.contains('@') {
@@ -286,15 +309,15 @@ impl FromStr for EmailAddress {
                 "Email is missing the domain part after the '@' symbol".into(),
             ))
         } else {
-            Ok(Self(s.to_string()))
+            Ok(Self(s))
         }
     }
 }
 
-impl TryFrom<String> for EmailAddress {
+impl TryFrom<&String> for EmailAddress {
     type Error = Error;
 
-    fn try_from(value: String) -> Result<Self, Self::Error> {
+    fn try_from(value: &String) -> Result<Self, Self::Error> {
         value.parse()
     }
 }
@@ -308,6 +331,41 @@ impl ToSql for EmailAddress {
 impl FromSql for EmailAddress {
     fn column_result(value: ValueRef) -> FromSqlResult<Self> {
         String::column_result(value).map(|string| Ok(Self(string)))?
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct UnhashedPassword(Secret<String>);
+
+impl TryFrom<Secret<String>> for UnhashedPassword {
+    type Error = Error;
+
+    fn try_from(value: Secret<String>) -> Result<Self, Self::Error> {
+        if value.expose_secret().is_empty() {
+            Err(Error::Parse("Password may not be blank".into()))
+        } else if value.expose_secret().chars().count() < 8 {
+            Err(Error::Parse(
+                "Password is too short (minimum is 8 characters)".into(),
+            ))
+        } else if value.expose_secret().chars().count() > 256 {
+            Err(Error::Parse(
+                "Password is too long (maximum is 256 characters)".into(),
+            ))
+        } else {
+            Ok(Self(value))
+        }
+    }
+}
+
+impl ExposeSecret<String> for UnhashedPassword {
+    fn expose_secret(&self) -> &String {
+        self.0.expose_secret()
+    }
+}
+
+impl PartialEq for UnhashedPassword {
+    fn eq(&self, other: &UnhashedPassword) -> bool {
+        self.expose_secret() == other.expose_secret()
     }
 }
 
@@ -328,30 +386,18 @@ impl HashedPassword {
     }
 }
 
-impl TryFrom<&Secret<String>> for HashedPassword {
+impl TryFrom<UnhashedPassword> for HashedPassword {
     type Error = Error;
 
-    fn try_from(value: &Secret<String>) -> Result<Self, Self::Error> {
-        if value.expose_secret().is_empty() {
-            Err(Error::Parse("Password may not be blank".into()))
-        } else if value.expose_secret().chars().count() < 8 {
-            Err(Error::Parse(
-                "Password is too short (minimum is 8 characters)".into(),
-            ))
-        } else if value.expose_secret().chars().count() > 256 {
-            Err(Error::Parse(
-                "Password is too long (maximum is 256 characters)".into(),
-            ))
-        } else {
-            Ok(HashedPassword(Secret::new(
-                Argon2::default()
-                    .hash_password(
-                        value.expose_secret().as_bytes(),
-                        &SaltString::generate(&mut OsRng),
-                    )?
-                    .to_string(),
-            )))
-        }
+    fn try_from(value: UnhashedPassword) -> Result<Self, Self::Error> {
+        Ok(HashedPassword(Secret::new(
+            Argon2::default()
+                .hash_password(
+                    value.expose_secret().as_bytes(),
+                    &SaltString::generate(&mut OsRng),
+                )?
+                .to_string(),
+        )))
     }
 }
 

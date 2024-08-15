@@ -4,7 +4,7 @@ use crate::helpers::pagination::{CursorPaginationParams, CursorPaginationRespons
 use crate::models::api_session::ApiKey;
 use crate::models::paste::Paste;
 use crate::models::session::{Session, SessionToken, SESSION_COOKIE_NAME};
-use crate::models::user::{HashedPassword, User};
+use crate::models::user::{UnhashedPassword, User};
 use crate::params::users::{CreateUserParams, UsernameParam};
 use crate::views::users::{
     ChangePasswordFormPartial, EmailAddressInputPartial, NewUsersTemplate, PasswordInputPartial,
@@ -139,7 +139,7 @@ pub async fn change_password(
     State(db): State<Database>,
     Form(params): Form<ChangePasswordParams>,
 ) -> Result<impl IntoResponse> {
-    let new_password = HashedPassword::try_from(&params.new_password).map_err(|e| {
+    let new_password = UnhashedPassword::try_from(params.new_password.clone()).map_err(|e| {
         to_validation_error(e, |msg| ChangePasswordFormPartial {
             new_password_error_message: Some(msg.to_string()),
             ..params.clone().into()
@@ -155,7 +155,7 @@ pub async fn change_password(
         })))?;
     }
 
-    let old_password = HashedPassword::try_from(&params.old_password).map_err(|e| {
+    let old_password = UnhashedPassword::try_from(params.old_password.clone()).map_err(|e| {
         to_validation_error(e, |_| ChangePasswordFormPartial {
             old_password_error_message: Some("Incorrect password".into()),
             ..params.clone().into()

@@ -1,27 +1,50 @@
 use crate::controllers::prelude::*;
 use crate::db::Database;
 use crate::models::session::{Session, SessionToken, SESSION_COOKIE_NAME};
-use crate::params::sessions::CreateSessionParams;
+use crate::models::user::{EmailAddress, UnhashedPassword, User};
 use crate::views::sessions::NewSessionsTemplate;
 use axum::body::Body;
 use axum::extract::{Form, State};
 use axum::http::{header::HeaderMap, HeaderValue, StatusCode};
 use axum::response::{IntoResponse, Response};
-use secrecy::ExposeSecret;
+use secrecy::{ExposeSecret, Secret};
+use serde::Deserialize;
 
 pub async fn new() -> NewSessionsTemplate {
     NewSessionsTemplate::default()
+}
+
+#[derive(Clone, Deserialize)]
+pub struct CreateSessionParams {
+    pub email: String,
+    pub password: Secret<String>,
 }
 
 pub async fn create(
     State(db): State<Database>,
     Form(params): Form<CreateSessionParams>,
 ) -> Result<impl IntoResponse> {
-    let user = params
-        .clone()
-        .authenticate(&db)
-        .await
-        .map_err(|e| handle_params_error(e, NewSessionsTemplate::from(params)))?;
+    let email = EmailAddress::try_from(&params.email).map_err(|e| {
+        to_validation_error(e, |_| NewSessionsTemplate {
+            error_message: Some("Incorrect email or password".into()),
+            ..params.clone().into()
+        })
+    })?;
+
+    let password = UnhashedPassword::try_from(params.password.clone()).map_err(|e| {
+        to_validation_error(e, |_| NewSessionsTemplate {
+            error_message: Some("Incorrect email or password".into()),
+            ..params.clone().into()
+        })
+    })?;
+
+    let user = match User::find_by_email2(&db, email).await? {
+        Some(user) if user.verify_password2(&password).is_ok() => user,
+        _ => Err(Error::Validation2(Box::new(NewSessionsTemplate {
+            error_message: Some("Incorrect email or password".into()),
+            ..params.into()
+        })))?,
+    };
 
     let (unhashed_token, hashed_token) = SessionToken::new(user.id);
     let response = Response::builder()
