@@ -1,15 +1,12 @@
-use crate::controllers::prelude::{ErrorTemplate, ErrorTemplate2};
+use crate::controllers::prelude::ErrorTemplate2;
 use crate::controllers::users::ChangePasswordParams;
+use crate::controllers::users::CreateUserParams;
 use crate::helpers::pagination::CursorPaginationResponse;
 use crate::models::api_session::ApiKey;
 use crate::models::paste::Paste;
 use crate::models::session::Session;
 use crate::models::user::User;
-use crate::params::prelude::Report;
-use crate::params::users::{
-    CreateUserParams, EMAIL_REPORT_KEY, INVITE_CODE_REPORT_KEY, PASSWORD_REPORT_KEY,
-    USERNAME_REPORT_KEY,
-};
+
 use crate::views::filters;
 use askama_axum::Template;
 use secrecy::{ExposeSecret, Secret};
@@ -19,21 +16,27 @@ use secrecy::{ExposeSecret, Secret};
 pub struct NewUsersTemplate {
     pub session: Option<Session>,
     pub username: String,
+    pub username_error_message: Option<String>,
     pub email: String,
+    pub email_error_message: Option<String>,
     pub password: Secret<String>,
+    pub password_error_message: Option<String>,
     pub invite_code: String,
-    pub error_report: Report,
+    pub invite_code_error_message: Option<String>,
 }
 
 impl Default for NewUsersTemplate {
     fn default() -> Self {
         Self {
-            session: Option::default(),
+            session: None,
             username: String::default(),
+            username_error_message: Option::default(),
             email: String::default(),
+            email_error_message: Option::default(),
             password: Secret::new(String::default()),
+            password_error_message: Option::default(),
             invite_code: String::default(),
-            error_report: Report::default(),
+            invite_code_error_message: Option::default(),
         }
     }
 }
@@ -41,23 +44,18 @@ impl Default for NewUsersTemplate {
 impl From<CreateUserParams> for NewUsersTemplate {
     fn from(params: CreateUserParams) -> Self {
         Self {
-            session: None,
-            username: params.username.into(),
-            email: params.email.into(),
-            password: params.password.into(),
+            username: params.username,
+            email: params.email,
+            password: params.password,
             invite_code: params.invite_code,
-            error_report: Report::default(),
+            ..Default::default()
         }
     }
 }
 
-impl ErrorTemplate for NewUsersTemplate {
+impl ErrorTemplate2 for NewUsersTemplate {
     fn render_template(&self) -> askama::Result<String> {
         self.render()
-    }
-
-    fn with_report(&mut self, report: Report) {
-        self.error_report = report;
     }
 }
 
@@ -123,25 +121,21 @@ impl ErrorTemplate2 for ChangePasswordFormPartial {
 #[template(path = "users/partials/username_input.html")]
 pub struct UsernameInputPartial {
     pub username: String,
-    pub error_report: Report,
+    pub username_error_message: Option<String>,
 }
 
 impl From<CreateUserParams> for UsernameInputPartial {
     fn from(params: CreateUserParams) -> Self {
         Self {
-            username: params.username.into(),
-            error_report: Report::default(),
+            username: params.username,
+            ..Default::default()
         }
     }
 }
 
-impl ErrorTemplate for UsernameInputPartial {
+impl ErrorTemplate2 for UsernameInputPartial {
     fn render_template(&self) -> askama::Result<String> {
         self.render()
-    }
-
-    fn with_report(&mut self, report: Report) {
-        self.error_report = report;
     }
 }
 
@@ -149,25 +143,21 @@ impl ErrorTemplate for UsernameInputPartial {
 #[template(path = "users/partials/email_input.html")]
 pub struct EmailAddressInputPartial {
     pub email: String,
-    pub error_report: Report,
+    pub email_error_message: Option<String>,
 }
 
 impl From<CreateUserParams> for EmailAddressInputPartial {
     fn from(params: CreateUserParams) -> Self {
         Self {
-            email: params.email.into(),
-            error_report: Report::default(),
+            email: params.email,
+            ..Default::default()
         }
     }
 }
 
-impl ErrorTemplate for EmailAddressInputPartial {
+impl ErrorTemplate2 for EmailAddressInputPartial {
     fn render_template(&self) -> askama::Result<String> {
         self.render()
-    }
-
-    fn with_report(&mut self, report: Report) {
-        self.error_report = report;
     }
 }
 
@@ -175,14 +165,14 @@ impl ErrorTemplate for EmailAddressInputPartial {
 #[template(path = "users/partials/password_input.html")]
 pub struct PasswordInputPartial {
     pub password: Secret<String>,
-    pub error_report: Report,
+    pub password_error_message: Option<String>,
 }
 
 impl Default for PasswordInputPartial {
     fn default() -> Self {
         Self {
             password: Secret::new(String::default()),
-            error_report: Report::default(),
+            password_error_message: Option::default(),
         }
     }
 }
@@ -190,18 +180,14 @@ impl Default for PasswordInputPartial {
 impl From<CreateUserParams> for PasswordInputPartial {
     fn from(params: CreateUserParams) -> Self {
         Self {
-            password: params.password.into(),
-            error_report: Report::default(),
+            password: params.password,
+            ..Default::default()
         }
     }
 }
 
-impl ErrorTemplate for PasswordInputPartial {
+impl ErrorTemplate2 for PasswordInputPartial {
     fn render_template(&self) -> askama::Result<String> {
         self.render()
-    }
-
-    fn with_report(&mut self, report: Report) {
-        self.error_report = report;
     }
 }

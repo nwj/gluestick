@@ -38,8 +38,8 @@ pub async fn create(
         })
     })?;
 
-    let user = match User::find_by_email2(&db, email).await? {
-        Some(user) if user.verify_password2(&password).is_ok() => user,
+    let user = match User::find_by_email(&db, email).await? {
+        Some(user) if user.verify_password(&password).is_ok() => user,
         _ => Err(Error::Validation2(Box::new(NewSessionsTemplate {
             error_message: Some("Incorrect email or password".into()),
             ..params.into()

@@ -3,9 +3,8 @@ use crate::db::Database;
 use crate::helpers::pagination::{CursorPaginationParams, CursorPaginationResponse};
 use crate::models::paste::Paste;
 use crate::models::session::Session;
-use crate::models::user::User;
+use crate::models::user::{User, Username};
 use crate::params::pastes::{CreatePasteParams, UpdatePasteParams};
-use crate::params::users::UsernameParam;
 use crate::views::pastes::{
     EditPastesTemplate, IndexPastesTemplate, NewPastesTemplate, ShowPastesTemplate,
 };
@@ -78,12 +77,12 @@ pub async fn create(
 pub async fn show(
     session: Option<Session>,
     State(db): State<Database>,
-    Path((username, id)): Path<(UsernameParam, String)>,
+    Path((username, id)): Path<(String, String)>,
 ) -> Result<impl IntoResponse> {
     // Manually parse id here so that we can render NotFound (rather than BadRequest if we let
     // Axum + Serde automatically deserialize to Uuid)
     let id = Uuid::try_parse(&id).map_err(|_| Error::NotFound)?;
-    username.validate().map_err(|_| Error::NotFound)?;
+    let username = Username::try_from(&username).map_err(|_| Error::NotFound)?;
 
     let user = User::find_by_username(&db, username)
         .await?
@@ -112,12 +111,12 @@ pub async fn show(
 
 pub async fn show_raw(
     State(db): State<Database>,
-    Path((username, id)): Path<(UsernameParam, String)>,
+    Path((username, id)): Path<(String, String)>,
 ) -> Result<impl IntoResponse> {
     // Manually parse id here so that we can render NotFound (rather than BadRequest if we let
     // Axum + Serde automatically deserialize to Uuid)
     let id = Uuid::try_parse(&id).map_err(|_| Error::NotFound)?;
-    username.validate().map_err(|_| Error::NotFound)?;
+    let username = Username::try_from(&username).map_err(|_| Error::NotFound)?;
 
     let user = User::find_by_username(&db, username)
         .await?
@@ -136,12 +135,12 @@ pub async fn show_raw(
 
 pub async fn download(
     State(db): State<Database>,
-    Path((username, id)): Path<(UsernameParam, String)>,
+    Path((username, id)): Path<(String, String)>,
 ) -> Result<impl IntoResponse> {
     // Manually parse id here so that we can render NotFound (rather than BadRequest if we let
     // Axum + Serde automatically deserialize to Uuid)
     let id = Uuid::try_parse(&id).map_err(|_| Error::NotFound)?;
-    username.validate().map_err(|_| Error::NotFound)?;
+    let username = Username::try_from(&username).map_err(|_| Error::NotFound)?;
 
     let user = User::find_by_username(&db, username)
         .await?
@@ -166,12 +165,12 @@ pub async fn download(
 pub async fn edit(
     session: Session,
     State(db): State<Database>,
-    Path((username, id)): Path<(UsernameParam, String)>,
+    Path((username, id)): Path<(String, String)>,
 ) -> Result<impl IntoResponse> {
     // Manually parse id here so that we can render NotFound (rather than BadRequest if we let
     // Axum + Serde automatically deserialize to Uuid)
     let id = Uuid::try_parse(&id).map_err(|_| Error::NotFound)?;
-    username.validate().map_err(|_| Error::NotFound)?;
+    let username = Username::try_from(&username).map_err(|_| Error::NotFound)?;
 
     let user = User::find_by_username(&db, username)
         .await?
@@ -205,13 +204,13 @@ pub async fn edit(
 pub async fn update(
     session: Session,
     State(db): State<Database>,
-    Path((username, id)): Path<(UsernameParam, String)>,
+    Path((username, id)): Path<(String, String)>,
     Form(params): Form<UpdatePasteParams>,
 ) -> Result<impl IntoResponse> {
     // Manually parse id here so that we can render NotFound (rather than BadRequest if we let
     // Axum + Serde automatically deserialize to Uuid)
     let id = Uuid::try_parse(&id).map_err(|_| Error::NotFound)?;
-    username.validate().map_err(|_| Error::NotFound)?;
+    let username = Username::try_from(&username).map_err(|_| Error::NotFound)?;
 
     let user = User::find_by_username(&db, username)
         .await?
@@ -253,12 +252,12 @@ pub async fn update(
 pub async fn destroy(
     session: Session,
     State(db): State<Database>,
-    Path((username, id)): Path<(UsernameParam, String)>,
+    Path((username, id)): Path<(String, String)>,
 ) -> Result<impl IntoResponse> {
     // Manually parse id here so that we can render NotFound (rather than BadRequest if we let
     // Axum + Serde automatically deserialize to Uuid)
     let id = Uuid::try_parse(&id).map_err(|_| Error::NotFound)?;
-    username.validate().map_err(|_| Error::NotFound)?;
+    let username = Username::try_from(&username).map_err(|_| Error::NotFound)?;
 
     let user = User::find_by_username(&db, username)
         .await?

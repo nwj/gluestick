@@ -7,8 +7,7 @@
             {% include "partials/username_input.html" %}
             {% include "partials/email_input.html" %}
             {% include "partials/password_input.html" %}
-            {% let error = error_report.get_first(INVITE_CODE_REPORT_KEY) %}
-            <div class="validated-input {% if let Some(error) = error %}invalid{% endif %}">
+            <div class="validated-input {% if invite_code_error_message.is_some() %}invalid{% endif %}">
                 <label>
                     Invite Code
                     <input type="text"
@@ -17,7 +16,7 @@
                            value="{{ invite_code }}" />
                 </label>
                 <div class="error-msg">
-                    {% if let Some(error) = error %}{{ error }}{% endif %}
+                    {% if let Some(msg) = invite_code_error_message %}{{ msg }}{% endif %}
                 </div>
             </div>
             <button class="primary" type="submit">Sign Up</button>

@@ -2,10 +2,11 @@ use crate::controllers::prelude::*;
 use crate::db::Database;
 use crate::helpers::pagination::{CursorPaginationParams, CursorPaginationResponse};
 use crate::models::api_session::ApiKey;
+use crate::models::invite_code::InviteCode;
 use crate::models::paste::Paste;
+use crate::models::prelude::Error as ModelsError;
 use crate::models::session::{Session, SessionToken, SESSION_COOKIE_NAME};
-use crate::models::user::{UnhashedPassword, User};
-use crate::params::users::{CreateUserParams, UsernameParam};
+use crate::models::user::{EmailAddress, UnhashedPassword, User, Username};
 use crate::views::users::{
     ChangePasswordFormPartial, EmailAddressInputPartial, NewUsersTemplate, PasswordInputPartial,
     SettingsTemplate, ShowUsersTemplate, UsernameInputPartial,
@@ -22,23 +23,61 @@ pub async fn new() -> NewUsersTemplate {
     NewUsersTemplate::default()
 }
 
+#[derive(Clone, Deserialize)]
+pub struct CreateUserParams {
+    pub username: String,
+    pub email: String,
+    pub password: Secret<String>,
+    pub invite_code: String,
+}
+
 pub async fn create(
     State(db): State<Database>,
     Form(params): Form<CreateUserParams>,
 ) -> Result<impl IntoResponse> {
-    let error_template: NewUsersTemplate = params.clone().into();
+    let mut error_template: NewUsersTemplate = params.clone().into();
 
-    params
-        .validate_and_check_if_taken(&db)
-        .await
-        .map_err(|e| handle_params_error(e, error_template.clone()))?;
+    let username_result = Username::try_from(&params.username);
+    if let Err(ModelsError::Parse(ref msg)) = username_result {
+        error_template.username_error_message = Some(msg.into());
+    }
+    let email_result = EmailAddress::try_from(&params.email);
+    if let Err(ModelsError::Parse(ref msg)) = email_result {
+        error_template.email_error_message = Some(msg.into());
+    }
+    let password_result = UnhashedPassword::try_from(params.password.clone());
+    if let Err(ModelsError::Parse(ref msg)) = password_result {
+        error_template.password_error_message = Some(msg.into());
+    }
 
-    let invite_code = params
-        .verify_invite_code(&db)
-        .await
-        .map_err(|e| handle_params_error(e, error_template))?;
+    if let Ok(ref username) = username_result {
+        if User::find_by_username(&db, username.clone())
+            .await?
+            .is_some()
+        {
+            error_template.username_error_message = Some("Username is already taken".into());
+        }
+    }
+    if let Ok(ref email) = email_result {
+        if User::find_by_email(&db, email.clone()).await?.is_some() {
+            error_template.email_error_message = Some("Email is already taken".into());
+        }
+    }
 
-    let user: User = User::new(params.username, params.email, params.password)?;
+    if error_template.username_error_message.is_some()
+        || error_template.email_error_message.is_some()
+        || error_template.password_error_message.is_some()
+    {
+        return Err(Error::Validation2(Box::new(error_template)));
+    }
+
+    let Some(invite_code) = InviteCode::find(&db, &params.invite_code).await? else {
+        error_template.invite_code_error_message = Some("Invalid invite code".into());
+        return Err(Error::Validation2(Box::new(error_template)));
+    };
+
+    let (username, email, password) = (username_result?, email_result?, password_result?);
+    let user: User = User::new(username, email, password)?;
     let user_id = user.id;
     user.insert(&db).await?;
 
@@ -66,10 +105,10 @@ pub async fn create(
 pub async fn show(
     session: Option<Session>,
     State(db): State<Database>,
-    Path(username): Path<UsernameParam>,
+    Path(username): Path<String>,
     Query(pagination_params): Query<CursorPaginationParams>,
 ) -> Result<impl IntoResponse> {
-    username.validate().map_err(|_| Error::NotFound)?;
+    let username = Username::try_from(&username).map_err(|_| Error::NotFound)?;
 
     match User::find_by_username(&db, username).await? {
         Some(user) => {
@@ -162,14 +201,14 @@ pub async fn change_password(
         })
     })?;
 
-    session.user.verify_password2(&old_password).map_err(|e| {
+    session.user.verify_password(&old_password).map_err(|e| {
         to_validation_error(e, |_| ChangePasswordFormPartial {
             old_password_error_message: Some("Incorrect password".into()),
             ..params.into()
         })
     })?;
 
-    session.user.update_password2(&db, new_password).await?;
+    session.user.update_password(&db, new_password).await?;
 
     Ok(ChangePasswordFormPartial {
         show_success_message: true,
@@ -181,17 +220,21 @@ pub async fn validate_username(
     State(db): State<Database>,
     Form(params): Form<CreateUserParams>,
 ) -> Result<impl IntoResponse> {
-    let username = params.username.clone();
+    let username = Username::try_from(&params.username).map_err(|e| {
+        to_validation_error(e, |msg| UsernameInputPartial {
+            username_error_message: Some(msg.into()),
+            ..params.clone().into()
+        })
+    })?;
+
+    if User::find_by_username(&db, username).await?.is_some() {
+        Err(Error::Validation2(Box::new(UsernameInputPartial {
+            username_error_message: Some("Username is already taken".into()),
+            ..params.clone().into()
+        })))?;
+    }
+
     let template: UsernameInputPartial = params.into();
-
-    username
-        .validate()
-        .map_err(|e| handle_params_error(e, template.clone()))?;
-    username
-        .check_if_taken(&db)
-        .await
-        .map_err(|e| handle_params_error(e, template.clone()))?;
-
     Ok(template)
 }
 
@@ -199,26 +242,32 @@ pub async fn validate_email(
     State(db): State<Database>,
     Form(params): Form<CreateUserParams>,
 ) -> Result<impl IntoResponse> {
-    let email = params.email.clone();
+    let email = EmailAddress::try_from(&params.email).map_err(|e| {
+        to_validation_error(e, |msg| EmailAddressInputPartial {
+            email_error_message: Some(msg.into()),
+            ..params.clone().into()
+        })
+    })?;
+
+    if User::find_by_email(&db, email).await?.is_some() {
+        Err(Error::Validation2(Box::new(EmailAddressInputPartial {
+            email_error_message: Some("Email is already taken".into()),
+            ..params.clone().into()
+        })))?;
+    }
+
     let template: EmailAddressInputPartial = params.into();
-
-    email
-        .validate()
-        .map_err(|e| handle_params_error(e, template.clone()))?;
-    email
-        .check_if_taken(&db)
-        .await
-        .map_err(|e| handle_params_error(e, template.clone()))?;
-
     Ok(template)
 }
+
 pub async fn validate_password(Form(params): Form<CreateUserParams>) -> Result<impl IntoResponse> {
-    let password = params.password.clone();
+    let _password = UnhashedPassword::try_from(params.password.clone()).map_err(|e| {
+        to_validation_error(e, |msg| PasswordInputPartial {
+            password_error_message: Some(msg.into()),
+            ..params.clone().into()
+        })
+    })?;
+
     let template: PasswordInputPartial = params.into();
-
-    password
-        .validate()
-        .map_err(|e| handle_params_error(e, template.clone()))?;
-
     Ok(template)
 }

@@ -24,16 +24,17 @@ pub struct User {
 
 impl User {
     pub fn new(
-        username: impl Into<String>,
-        email: impl Into<String>,
-        password: impl Into<Secret<String>>,
+        username: Username,
+        email: EmailAddress,
+        password: UnhashedPassword,
     ) -> Result<Self> {
         let now = Timestamp::now();
+        let hashed_password = HashedPassword::try_from(password)?;
         Ok(User {
             id: Uuid::now_v7(),
-            username: Username::new(username),
-            email: EmailAddress::new(email),
-            password: HashedPassword::new(password)?,
+            username,
+            email,
+            password: hashed_password,
             created_at: now,
             updated_at: now,
         })
@@ -54,15 +55,7 @@ impl User {
         })
     }
 
-    pub fn verify_password(&self, password: &String) -> Result<()> {
-        Argon2::default().verify_password(
-            password.as_bytes(),
-            &PasswordHash::new(self.password.expose_secret())?,
-        )?;
-        Ok(())
-    }
-
-    pub fn verify_password2(&self, password: &UnhashedPassword) -> Result<()> {
+    pub fn verify_password(&self, password: &UnhashedPassword) -> Result<()> {
         Ok(Argon2::default().verify_password(
             password.expose_secret().as_bytes(),
             &PasswordHash::new(self.password.expose_secret())?,
@@ -93,30 +86,6 @@ impl User {
     pub async fn update_password(
         &self,
         db: &Database,
-        new_password: impl Into<Secret<String>>,
-    ) -> Result<usize> {
-        let id = self.id;
-        let hashed_password = HashedPassword::new(new_password)?;
-        let result = db
-            .conn
-            .call(move |conn| {
-                let mut statement =
-                    conn.prepare("UPDATE users SET password = :password, updated_at = :updated_at WHERE id = :id;")?;
-                let result = statement.execute(named_params! {
-                    ":password": hashed_password,
-                    ":id": id,
-                    ":updated_at": Timestamp::now().as_millisecond(),
-                })?;
-                Ok(result)
-            })
-            .await?;
-
-        Ok(result)
-    }
-
-    pub async fn update_password2(
-        &self,
-        db: &Database,
         new_password: UnhashedPassword,
     ) -> Result<usize> {
         let id = self.id;
@@ -138,26 +107,7 @@ impl User {
         Ok(result)
     }
 
-    pub async fn find_by_email(db: &Database, email: impl Into<String>) -> Result<Option<User>> {
-        let email = email.into();
-        let optional_user = db
-            .conn
-            .call(move |conn| {
-                let mut statement = conn.prepare(
-                    "SELECT id, username, email, password, created_at, updated_at FROM users WHERE email = :email;",
-                )?;
-                let mut rows = statement.query(named_params! {":email": email.to_lowercase()})?;
-                match rows.next()? {
-                    Some(row) => Ok(Some(User::from_sql_row(row)?)),
-                    None => Ok(None),
-                }
-            })
-            .await?;
-
-        Ok(optional_user)
-    }
-
-    pub async fn find_by_email2(db: &Database, email: EmailAddress) -> Result<Option<User>> {
+    pub async fn find_by_email(db: &Database, email: EmailAddress) -> Result<Option<User>> {
         let maybe_user = db
             .conn
             .call(move |conn| {
@@ -175,19 +125,15 @@ impl User {
         Ok(maybe_user)
     }
 
-    pub async fn find_by_username(
-        db: &Database,
-        username: impl Into<String>,
-    ) -> Result<Option<User>> {
-        let username = username.into();
-        let optional_user = db
+    pub async fn find_by_username(db: &Database, username: Username) -> Result<Option<User>> {
+        let maybe_user = db
             .conn
             .call(move |conn| {
                 let mut statement = conn.prepare(
                     "SELECT id, username, email, password, created_at, updated_at FROM users WHERE username = :username;",
                 )?;
                 let mut rows =
-                    statement.query(named_params! {":username": username.to_lowercase()})?;
+                    statement.query(named_params! {":username": username})?;
                 match rows.next()? {
                     Some(row) => Ok(Some(User::from_sql_row(row)?)),
                     None => Ok(None),
@@ -195,7 +141,7 @@ impl User {
             })
             .await?;
 
-        Ok(optional_user)
+        Ok(maybe_user)
     }
 
     pub async fn delete_sessions(self, db: &Database) -> Result<usize> {
@@ -217,12 +163,6 @@ impl User {
 #[derive(Clone, Debug, Display, PartialEq)]
 pub struct Username(String);
 
-impl Username {
-    fn new(username: impl Into<String>) -> Self {
-        Self(username.into().to_lowercase())
-    }
-}
-
 impl FromStr for Username {
     type Err = Error;
 
@@ -231,11 +171,11 @@ impl FromStr for Username {
 
         if s.trim().is_empty() {
             Err(Error::Parse("Username may not be blank".into()))
-        } else if !s.chars().count() > 32 {
+        } else if s.chars().count() > 32 {
             Err(Error::Parse(
                 "Username is too long (maximum is 32 characters)".into(),
             ))
-        } else if s.chars().all(|c| c.is_alphanumeric() || c == '-')
+        } else if !s.chars().all(|c| c.is_alphanumeric() || c == '-')
             || s.contains("--")
             || s.starts_with('-')
             || s.ends_with('-')
@@ -283,12 +223,6 @@ impl FromSql for Username {
 
 #[derive(Clone, Debug, Display, PartialEq)]
 pub struct EmailAddress(String);
-
-impl EmailAddress {
-    fn new(email: impl Into<String>) -> Self {
-        Self(email.into().to_lowercase())
-    }
-}
 
 impl FromStr for EmailAddress {
     type Err = Error;
@@ -371,20 +305,6 @@ impl PartialEq for UnhashedPassword {
 
 #[derive(Clone, Debug)]
 pub struct HashedPassword(Secret<String>);
-
-impl HashedPassword {
-    #[allow(clippy::needless_pass_by_value)]
-    pub fn new(password: impl Into<Secret<String>>) -> Result<Self, argon2::password_hash::Error> {
-        Ok(HashedPassword(Secret::new(
-            Argon2::default()
-                .hash_password(
-                    password.into().expose_secret().as_bytes(),
-                    &SaltString::generate(&mut OsRng),
-                )?
-                .to_string(),
-        )))
-    }
-}
 
 impl TryFrom<UnhashedPassword> for HashedPassword {
     type Error = Error;
