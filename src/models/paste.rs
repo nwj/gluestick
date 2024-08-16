@@ -4,11 +4,12 @@ use crate::helpers::syntax_highlight;
 use crate::models::prelude::*;
 use crate::models::user::Username;
 use crate::params::pastes::VisibilityParam;
-use derive_more::{AsRef, Display, From, Into, IsVariant};
+use derive_more::{AsRef, Display, IsVariant};
 use jiff::Timestamp;
 use rusqlite::types::{FromSql, FromSqlError, FromSqlResult, ToSql, ToSqlOutput, Type, ValueRef};
 use rusqlite::{named_params, Row, Transaction, TransactionBehavior};
 use serde::Serialize;
+use std::str::FromStr;
 use uuid::Uuid;
 
 #[derive(Clone, Debug, Serialize)]
@@ -26,18 +27,38 @@ pub struct Paste {
 impl Paste {
     pub fn new(
         user_id: Uuid,
-        filename: String,
-        description: String,
-        body: String,
+        filename: &String,
+        description: &String,
+        body: &String,
         visibility: Visibility,
     ) -> Result<Self> {
         let now = Timestamp::now();
         Ok(Self {
             id: Uuid::now_v7(),
             user_id,
-            filename: filename.into(),
-            description: description.into(),
-            body: body.into(),
+            filename: Filename::try_from(filename)?,
+            description: Description::try_from(description)?,
+            body: Body::try_from(body)?,
+            visibility,
+            created_at: now,
+            updated_at: now,
+        })
+    }
+
+    pub fn new2(
+        user_id: Uuid,
+        filename: Filename,
+        description: Description,
+        body: Body,
+        visibility: Visibility,
+    ) -> Result<Self> {
+        let now = Timestamp::now();
+        Ok(Self {
+            id: Uuid::now_v7(),
+            user_id,
+            filename,
+            description,
+            body,
             visibility,
             created_at: now,
             updated_at: now,
@@ -349,13 +370,13 @@ impl Paste {
         let original_body = self.body.clone();
 
         if let Some(filename) = filename {
-            self.filename = filename.into();
+            self.filename = Filename::try_from(&filename)?;
         }
         if let Some(description) = description {
-            self.description = description.into();
+            self.description = Description::try_from(&description)?;
         }
         if let Some(body) = body {
-            self.body = body.into();
+            self.body = Body::try_from(&body)?;
         }
 
         let mut optional_html: Option<String> = None;
@@ -415,7 +436,7 @@ impl HasOrderedId for Paste {
     }
 }
 
-#[derive(Clone, Debug, Display, From, Into, Serialize)]
+#[derive(Clone, Debug, Display, Serialize)]
 #[serde(transparent)]
 pub struct Filename(String);
 
@@ -434,6 +455,41 @@ impl Filename {
     }
 }
 
+impl FromStr for Filename {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if s.trim().is_empty() {
+            Err(Error::Parse("Filename may not be blank".into()))
+        } else if s.chars().count() > 256 {
+            Err(Error::Parse(
+                "Filename may not be longer than 256 characters".into(),
+            ))
+        } else if s
+            .chars()
+            .any(|c| ['<', '>', ':', '"', '/', '\\', '|', '?', '*'].contains(&c))
+        {
+            Err(Error::Parse(
+                "Filename may not contain the following characters: < > : \" / \\ | ? *".into(),
+            ))
+        } else if s.ends_with('.') {
+            Err(Error::Parse(
+                "Filename may not end with a '.' character".into(),
+            ))
+        } else {
+            Ok(Self(s.to_string()))
+        }
+    }
+}
+
+impl TryFrom<&String> for Filename {
+    type Error = Error;
+
+    fn try_from(value: &String) -> Result<Self, Self::Error> {
+        value.parse()
+    }
+}
+
 impl ToSql for Filename {
     fn to_sql(&self) -> Result<ToSqlOutput<'_>, rusqlite::Error> {
         self.0.to_sql()
@@ -442,11 +498,11 @@ impl ToSql for Filename {
 
 impl FromSql for Filename {
     fn column_result(value: ValueRef) -> FromSqlResult<Self> {
-        String::column_result(value).map(Self::from)
+        String::column_result(value).map(Self)
     }
 }
 
-#[derive(Clone, Debug, Display, From, Into, Serialize)]
+#[derive(Clone, Debug, Display, Serialize)]
 #[serde(transparent)]
 pub struct Description(String);
 
@@ -465,6 +521,28 @@ impl Description {
     }
 }
 
+impl FromStr for Description {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if s.chars().count() > 256 {
+            Err(Error::Parse(
+                "Description may not be longer than 256 characters".into(),
+            ))
+        } else {
+            Ok(Self(s.to_string()))
+        }
+    }
+}
+
+impl TryFrom<&String> for Description {
+    type Error = Error;
+
+    fn try_from(value: &String) -> Result<Self, Self::Error> {
+        value.parse()
+    }
+}
+
 impl ToSql for Description {
     fn to_sql(&self) -> Result<ToSqlOutput<'_>, rusqlite::Error> {
         self.0.to_sql()
@@ -473,11 +551,11 @@ impl ToSql for Description {
 
 impl FromSql for Description {
     fn column_result(value: ValueRef) -> FromSqlResult<Self> {
-        String::column_result(value).map(Self::from)
+        String::column_result(value).map(Self)
     }
 }
 
-#[derive(AsRef, Clone, Debug, Display, From, Into, PartialEq, Serialize)]
+#[derive(AsRef, Clone, Debug, Display, PartialEq, Serialize)]
 #[serde(transparent)]
 pub struct Body(String);
 
@@ -485,6 +563,26 @@ impl Body {
     pub fn new(s: &str) -> Result<Self> {
         let body = Self(s.trim().to_string());
         Ok(body)
+    }
+}
+
+impl FromStr for Body {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if s.trim().is_empty() {
+            Err(Error::Parse("Body may not be blank".into()))
+        } else {
+            Ok(Self(s.to_string()))
+        }
+    }
+}
+
+impl TryFrom<&String> for Body {
+    type Error = Error;
+
+    fn try_from(value: &String) -> Result<Self, Self::Error> {
+        value.parse()
     }
 }
 
@@ -496,7 +594,7 @@ impl ToSql for Body {
 
 impl FromSql for Body {
     fn column_result(value: ValueRef) -> FromSqlResult<Self> {
-        String::column_result(value).map(Self::from)
+        String::column_result(value).map(Self)
     }
 }
 
@@ -506,6 +604,26 @@ pub enum Visibility {
     Public,
     #[serde(rename = "secret")]
     Secret,
+}
+
+impl FromStr for Visibility {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "public" => Ok(Self::Public),
+            "secret" => Ok(Self::Secret),
+            _ => Err(Error::Parse("Unrecognized value for visibility".into())),
+        }
+    }
+}
+
+impl TryFrom<&String> for Visibility {
+    type Error = Error;
+
+    fn try_from(value: &String) -> Result<Self, Self::Error> {
+        value.parse()
+    }
 }
 
 impl ToSql for Visibility {
@@ -519,12 +637,9 @@ impl ToSql for Visibility {
 
 impl FromSql for Visibility {
     fn column_result(value: ValueRef) -> FromSqlResult<Self> {
-        String::column_result(value).and_then(|as_string| match as_string.as_str() {
-            "public" => Ok(Self::Public),
-            "secret" => Ok(Self::Secret),
-            _ => Err(FromSqlError::Other(
-                "Unrecognized value for visibility".into(),
-            )),
+        String::column_result(value).and_then(|s| {
+            Self::try_from(&s)
+                .map_err(|_| FromSqlError::Other("Unrecognized value for visibility".into()))
         })
     }
 }

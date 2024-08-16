@@ -105,26 +105,6 @@ impl From<VisibilityParam> for String {
 }
 
 #[derive(Clone, Deserialize)]
-pub struct CreatePasteParams {
-    pub filename: FilenameParam,
-    pub description: DescriptionParam,
-    pub body: BodyParam,
-    pub visibility: VisibilityParam,
-}
-
-impl CreatePasteParams {
-    pub fn validate(&self) -> Result<()> {
-        let mut report = Report::new();
-
-        report.merge_result(self.filename.validate())?;
-        report.merge_result(self.description.validate())?;
-        report.merge_result(self.body.validate())?;
-
-        report.to_result()
-    }
-}
-
-#[derive(Clone, Deserialize)]
 pub struct UpdatePasteParams {
     pub filename: FilenameParam,
     pub description: DescriptionParam,

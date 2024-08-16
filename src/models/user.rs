@@ -217,7 +217,7 @@ impl ToSql for Username {
 
 impl FromSql for Username {
     fn column_result(value: ValueRef) -> FromSqlResult<Self> {
-        String::column_result(value).map(|string| Ok(Self(string)))?
+        String::column_result(value).map(Self)
     }
 }
 
@@ -264,7 +264,7 @@ impl ToSql for EmailAddress {
 
 impl FromSql for EmailAddress {
     fn column_result(value: ValueRef) -> FromSqlResult<Self> {
-        String::column_result(value).map(|string| Ok(Self(string)))?
+        String::column_result(value).map(Self)
     }
 }
 
@@ -335,7 +335,7 @@ impl ToSql for HashedPassword {
 
 impl FromSql for HashedPassword {
     fn column_result(value: ValueRef) -> FromSqlResult<Self> {
-        String::column_result(value).map(|string| Ok(Self(Secret::new(string))))?
+        String::column_result(value).map(|s| Self(Secret::new(s)))
     }
 }
 

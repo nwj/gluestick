@@ -1,16 +1,19 @@
 use crate::controllers::prelude::*;
 use crate::db::Database;
 use crate::helpers::pagination::{CursorPaginationParams, CursorPaginationResponse};
-use crate::models::paste::Paste;
+use crate::models::paste::{Body, Description, Filename, Paste, Visibility};
+use crate::models::prelude::Error as ModelsError;
 use crate::models::session::Session;
 use crate::models::user::{User, Username};
-use crate::params::pastes::{CreatePasteParams, UpdatePasteParams};
+use crate::params::pastes::UpdatePasteParams;
 use crate::views::pastes::{
-    EditPastesTemplate, IndexPastesTemplate, NewPastesTemplate, ShowPastesTemplate,
+    EditPastesTemplate, IndexPastesTemplate, NewPastesFormPartial, NewPastesTemplate,
+    ShowPastesTemplate,
 };
 use axum::extract::{Form, Path, Query, State};
 use axum::http::{header::HeaderMap, HeaderValue, StatusCode};
-use axum::response::{IntoResponse, Redirect};
+use axum::response::IntoResponse;
+use serde::Deserialize;
 use uuid::Uuid;
 
 pub async fn index(
@@ -46,7 +49,15 @@ pub async fn index(
 }
 
 pub async fn new(session: Session) -> NewPastesTemplate {
-    NewPastesTemplate::from_session(session)
+    session.into()
+}
+
+#[derive(Clone, Deserialize)]
+pub struct CreatePasteParams {
+    pub filename: String,
+    pub description: String,
+    pub body: String,
+    pub visibility: String,
 }
 
 pub async fn create(
@@ -56,22 +67,43 @@ pub async fn create(
 ) -> Result<impl IntoResponse> {
     let user_id = session.user.id;
     let username = session.user.username.clone();
-    let error_template = NewPastesTemplate::from_session_and_params(session, params.clone());
-    params
-        .validate()
-        .map_err(|e| handle_params_error(e, error_template))?;
+    let mut error_template: NewPastesFormPartial = (username.clone(), params.clone()).into();
 
-    let paste = Paste::new(
-        user_id,
-        params.filename.into(),
-        params.description.into(),
-        params.body.into(),
-        params.visibility.into(),
-    )?;
-    let id = paste.id;
+    let filename_result = Filename::try_from(&params.filename);
+    if let Err(ModelsError::Parse(ref msg)) = filename_result {
+        error_template.filename_error_message = Some(msg.into());
+    }
+    let description_result = Description::try_from(&params.description);
+    if let Err(ModelsError::Parse(ref msg)) = description_result {
+        error_template.description_error_message = Some(msg.into());
+    }
+    let body_result = Body::try_from(&params.body);
+    if let Err(ModelsError::Parse(ref msg)) = body_result {
+        error_template.body_error_message = Some(msg.into());
+    }
+    let visibility =
+        Visibility::try_from(&params.visibility).map_err(|e| Error::BadRequest(Box::new(e)))?;
+
+    if error_template.filename_error_message.is_some()
+        || error_template.description_error_message.is_some()
+        || error_template.body_error_message.is_some()
+    {
+        return Err(Error::Validation2(Box::new(error_template)));
+    }
+
+    let (filename, description, body) = (filename_result?, description_result?, body_result?);
+    let paste = Paste::new2(user_id, filename, description, body, visibility)?;
+    let paste_id = paste.id;
     paste.insert(&db).await?;
 
-    Ok(Redirect::to(format!("/{username}/{id}").as_str()).into_response())
+    let mut response = HeaderMap::new();
+    response.insert(
+        "HX-Redirect",
+        HeaderValue::from_str(&format!("/{username}/{paste_id}"))
+            .map_err(|e| Error::InternalServerError(Box::new(e)))?,
+    );
+
+    Ok(response)
 }
 
 pub async fn show(
@@ -193,9 +225,9 @@ pub async fn edit(
         EditPastesTemplate {
             session: Some(session),
             paste_id: paste.id,
-            filename: paste.filename.into(),
-            description: paste.description.into(),
-            body: paste.body.into(),
+            filename: paste.filename.to_string(),
+            description: paste.description.to_string(),
+            body: paste.body.to_string(),
             ..Default::default()
         },
     ))

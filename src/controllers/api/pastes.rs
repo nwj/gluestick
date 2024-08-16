@@ -48,9 +48,9 @@ pub async fn create(
 
     let paste = Paste::new(
         session.user.id,
-        params.filename.into(),
-        params.description.into(),
-        params.body.into(),
+        &params.filename.into(),
+        &params.description.into(),
+        &params.body.into(),
         params.visibility.into(),
     )?;
     let id = paste.id;

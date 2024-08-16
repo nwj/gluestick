@@ -237,7 +237,15 @@ async fn create_show_update_destroy_happy_path() -> Result<()> {
     // Create
     let response = client.pastes().post(&paste).await?;
     assert_eq!(response.status(), 200);
-    paste.id = response.url().path().split("/").nth(2).map(String::from);
+
+    let maybe_url = response.headers().get("HX-Redirect");
+    assert!(maybe_url.is_some());
+    paste.id = maybe_url
+        .unwrap()
+        .to_str()?
+        .split("/")
+        .nth(2)
+        .map(String::from);
 
     // Show
     let response = client

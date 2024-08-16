@@ -45,6 +45,6 @@ impl ToSql for InviteCode {
 
 impl FromSql for InviteCode {
     fn column_result(value: ValueRef) -> FromSqlResult<Self> {
-        String::column_result(value).map(|string| Ok(Self(string)))?
+        String::column_result(value).map(Self)
     }
 }
