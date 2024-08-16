@@ -1,6 +1,5 @@
 use crate::controllers::pastes::CreatePasteParams;
 use crate::controllers::pastes::UpdatePasteParams;
-use crate::controllers::prelude::ErrorTemplate;
 use crate::helpers::pagination::CursorPaginationResponse;
 use crate::models::paste::Paste;
 use crate::models::session::Session;
@@ -73,12 +72,6 @@ impl From<(Username, CreatePasteParams)> for NewPastesFormPartial {
             visibility: value.1.visibility,
             ..Default::default()
         }
-    }
-}
-
-impl ErrorTemplate for NewPastesFormPartial {
-    fn render_template(&self) -> askama::Result<String> {
-        self.render()
     }
 }
 
@@ -157,11 +150,5 @@ impl From<(Username, Uuid, UpdatePasteParams)> for EditPastesFormPartial {
             body: params.body,
             ..Default::default()
         }
-    }
-}
-
-impl ErrorTemplate for EditPastesFormPartial {
-    fn render_template(&self) -> askama::Result<String> {
-        self.render()
     }
 }

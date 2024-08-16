@@ -1,4 +1,3 @@
-use crate::controllers::prelude::ErrorTemplate;
 use crate::controllers::sessions::CreateSessionParams;
 use crate::models::session::Session;
 use askama_axum::Template;
@@ -31,11 +30,5 @@ impl From<CreateSessionParams> for NewSessionsTemplate {
             password: params.password,
             ..Default::default()
         }
-    }
-}
-
-impl ErrorTemplate for NewSessionsTemplate {
-    fn render_template(&self) -> askama::Result<String> {
-        self.render()
     }
 }

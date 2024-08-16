@@ -2,8 +2,10 @@ use crate::models::prelude::Error as ModelsError;
 use crate::views::{
     ForbiddenTemplate, InternalServerErrorTemplate, NotFoundTemplate, UnauthorizedTemplate,
 };
+use askama::Template;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
+use std::fmt::Debug;
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
@@ -81,6 +83,16 @@ impl IntoResponse for Error {
     }
 }
 
+pub trait ErrorTemplate: Debug {
+    fn render_template(&self) -> askama::Result<String>;
+}
+
+impl<T: Template + Debug> ErrorTemplate for T {
+    fn render_template(&self) -> askama::Result<String> {
+        self.render()
+    }
+}
+
 pub fn to_validation_error<F, T>(err: ModelsError, f: F) -> Error
 where
     F: FnOnce(&str) -> T,
@@ -90,8 +102,4 @@ where
         ModelsError::Parse(msg) => Error::Validation(Box::new(f(&msg))),
         e => Error::InternalServerError(Box::new(e)),
     }
-}
-
-pub trait ErrorTemplate: std::fmt::Debug {
-    fn render_template(&self) -> askama::Result<String>;
 }
