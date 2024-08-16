@@ -10,6 +10,7 @@ pub type Result<T, E = Error> = std::result::Result<T, E>;
 pub enum Error {
     #[error("malformed request")]
     BadRequest(Box<dyn std::error::Error>),
+
     #[error("invalid authentication credentials")]
     Unauthorized,
 
@@ -32,27 +33,27 @@ impl From<ModelsError> for Error {
 impl IntoResponse for Error {
     fn into_response(self) -> Response {
         let (status, message) = match self {
-            Error::BadRequest(_err) => (StatusCode::BAD_REQUEST, "Invalid request parameters."),
+            Error::BadRequest(err) => (StatusCode::BAD_REQUEST, format!("{err}")),
 
             Error::Unauthorized => (
                 StatusCode::UNAUTHORIZED,
-                "Invalid authentication credentials.",
+                "Invalid authentication credentials.".into(),
             ),
 
-            Error::Forbidden => (StatusCode::FORBIDDEN, "Insufficient privileges"),
+            Error::Forbidden => (StatusCode::FORBIDDEN, "Insufficient privileges".into()),
 
-            Error::NotFound => (StatusCode::NOT_FOUND, "Resource not found."),
+            Error::NotFound => (StatusCode::NOT_FOUND, "Resource not found.".into()),
 
             Error::InternalServerError(err) => {
                 tracing::error!(%err, "internal server error");
                 (
                     StatusCode::INTERNAL_SERVER_ERROR,
-                    "An unexpected error occurred.",
+                    "An unexpected error occurred.".into(),
                 )
             }
         };
 
-        let body = ErrorBody::new(status, message);
+        let body = ErrorBody::new(status, &message);
         (status, Json(body)).into_response()
     }
 }

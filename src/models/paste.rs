@@ -3,7 +3,6 @@ use crate::helpers::pagination::{Direction, HasOrderedId};
 use crate::helpers::syntax_highlight;
 use crate::models::prelude::*;
 use crate::models::user::Username;
-use crate::params::pastes::VisibilityParam;
 use derive_more::{AsRef, Display, IsVariant};
 use jiff::Timestamp;
 use rusqlite::types::{FromSql, FromSqlError, FromSqlResult, ToSql, ToSqlOutput, Type, ValueRef};
@@ -26,26 +25,6 @@ pub struct Paste {
 
 impl Paste {
     pub fn new(
-        user_id: Uuid,
-        filename: &String,
-        description: &String,
-        body: &String,
-        visibility: Visibility,
-    ) -> Result<Self> {
-        let now = Timestamp::now();
-        Ok(Self {
-            id: Uuid::now_v7(),
-            user_id,
-            filename: Filename::try_from(filename)?,
-            description: Description::try_from(description)?,
-            body: Body::try_from(body)?,
-            visibility,
-            created_at: now,
-            updated_at: now,
-        })
-    }
-
-    pub fn new2(
         user_id: Uuid,
         filename: Filename,
         description: Description,
@@ -362,29 +341,28 @@ impl Paste {
     pub async fn update(
         mut self,
         db: &Database,
-        filename: Option<String>,
-        description: Option<String>,
-        body: Option<String>,
+        filename: Option<Filename>,
+        description: Option<Description>,
+        body: Option<Body>,
     ) -> Result<()> {
         let original_filename = self.filename.clone();
         let original_body = self.body.clone();
 
         if let Some(filename) = filename {
-            self.filename = Filename::try_from(&filename)?;
+            self.filename = filename;
         }
         if let Some(description) = description {
-            self.description = Description::try_from(&description)?;
+            self.description = description;
         }
         if let Some(body) = body {
-            self.body = Body::try_from(&body)?;
+            self.body = body;
         }
 
-        let mut optional_html: Option<String> = None;
+        let mut maybe_html: Option<String> = None;
         let body_changed = original_body != self.body;
         let extension_changed = original_filename.extension() != self.filename.extension();
         if body_changed || extension_changed {
-            optional_html =
-                syntax_highlight::generate(self.body.as_ref(), self.filename.extension());
+            maybe_html = syntax_highlight::generate(self.body.as_ref(), self.filename.extension());
         }
 
         db.conn.call(move |conn| {
@@ -404,7 +382,7 @@ impl Paste {
                 })?;
 
                 if body_changed || extension_changed {
-                    if let Some(html) = optional_html {
+                    if let Some(html) = maybe_html {
                         syntax_highlight::tx_cache_set(&tx, &self.id, &html)?;
                     } else {
                         syntax_highlight::tx_cache_expire(&tx, &self.id)?;
@@ -613,7 +591,9 @@ impl FromStr for Visibility {
         match s {
             "public" => Ok(Self::Public),
             "secret" => Ok(Self::Secret),
-            _ => Err(Error::Parse("Unrecognized value for visibility".into())),
+            _ => Err(Error::Parse(
+                "Unrecognized value for visibility. Valid values are 'public' or 'secret'".into(),
+            )),
         }
     }
 }
@@ -641,15 +621,6 @@ impl FromSql for Visibility {
             Self::try_from(&s)
                 .map_err(|_| FromSqlError::Other("Unrecognized value for visibility".into()))
         })
-    }
-}
-
-impl From<VisibilityParam> for Visibility {
-    fn from(value: VisibilityParam) -> Self {
-        match value {
-            VisibilityParam::Public => Self::Public,
-            VisibilityParam::Secret => Self::Secret,
-        }
     }
 }
 

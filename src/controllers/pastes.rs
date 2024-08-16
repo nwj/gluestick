@@ -5,10 +5,9 @@ use crate::models::paste::{Body, Description, Filename, Paste, Visibility};
 use crate::models::prelude::Error as ModelsError;
 use crate::models::session::Session;
 use crate::models::user::{User, Username};
-use crate::params::pastes::UpdatePasteParams;
 use crate::views::pastes::{
-    EditPastesTemplate, IndexPastesTemplate, NewPastesFormPartial, NewPastesTemplate,
-    ShowPastesTemplate,
+    EditPastesFormPartial, EditPastesTemplate, IndexPastesTemplate, NewPastesFormPartial,
+    NewPastesTemplate, ShowPastesTemplate,
 };
 use axum::extract::{Form, Path, Query, State};
 use axum::http::{header::HeaderMap, HeaderValue, StatusCode};
@@ -49,7 +48,7 @@ pub async fn index(
 }
 
 pub async fn new(session: Session) -> NewPastesTemplate {
-    session.into()
+    NewPastesTemplate::from(session)
 }
 
 #[derive(Clone, Deserialize)]
@@ -88,11 +87,11 @@ pub async fn create(
         || error_template.description_error_message.is_some()
         || error_template.body_error_message.is_some()
     {
-        return Err(Error::Validation2(Box::new(error_template)));
+        return Err(Error::Validation(Box::new(error_template)));
     }
 
     let (filename, description, body) = (filename_result?, description_result?, body_result?);
-    let paste = Paste::new2(user_id, filename, description, body, visibility)?;
+    let paste = Paste::new(user_id, filename, description, body, visibility)?;
     let paste_id = paste.id;
     paste.insert(&db).await?;
 
@@ -111,8 +110,6 @@ pub async fn show(
     State(db): State<Database>,
     Path((username, id)): Path<(String, String)>,
 ) -> Result<impl IntoResponse> {
-    // Manually parse id here so that we can render NotFound (rather than BadRequest if we let
-    // Axum + Serde automatically deserialize to Uuid)
     let id = Uuid::try_parse(&id).map_err(|_| Error::NotFound)?;
     let username = Username::try_from(&username).map_err(|_| Error::NotFound)?;
 
@@ -145,8 +142,6 @@ pub async fn show_raw(
     State(db): State<Database>,
     Path((username, id)): Path<(String, String)>,
 ) -> Result<impl IntoResponse> {
-    // Manually parse id here so that we can render NotFound (rather than BadRequest if we let
-    // Axum + Serde automatically deserialize to Uuid)
     let id = Uuid::try_parse(&id).map_err(|_| Error::NotFound)?;
     let username = Username::try_from(&username).map_err(|_| Error::NotFound)?;
 
@@ -169,8 +164,6 @@ pub async fn download(
     State(db): State<Database>,
     Path((username, id)): Path<(String, String)>,
 ) -> Result<impl IntoResponse> {
-    // Manually parse id here so that we can render NotFound (rather than BadRequest if we let
-    // Axum + Serde automatically deserialize to Uuid)
     let id = Uuid::try_parse(&id).map_err(|_| Error::NotFound)?;
     let username = Username::try_from(&username).map_err(|_| Error::NotFound)?;
 
@@ -199,17 +192,17 @@ pub async fn edit(
     State(db): State<Database>,
     Path((username, id)): Path<(String, String)>,
 ) -> Result<impl IntoResponse> {
-    // Manually parse id here so that we can render NotFound (rather than BadRequest if we let
-    // Axum + Serde automatically deserialize to Uuid)
     let id = Uuid::try_parse(&id).map_err(|_| Error::NotFound)?;
     let username = Username::try_from(&username).map_err(|_| Error::NotFound)?;
 
     let user = User::find_by_username(&db, username)
         .await?
         .ok_or(Error::NotFound)?;
+
     if session.user != user {
         return Err(Error::Forbidden);
     }
+
     let paste = Paste::find_scoped_by_user_id(&db, id, session.user.id)
         .await?
         .ok_or(Error::NotFound)?;
@@ -222,43 +215,35 @@ pub async fn edit(
     Ok((
         StatusCode::OK,
         headers,
-        EditPastesTemplate {
-            session: Some(session),
-            paste_id: paste.id,
-            filename: paste.filename.to_string(),
-            description: paste.description.to_string(),
-            body: paste.body.to_string(),
-            ..Default::default()
-        },
+        EditPastesTemplate::from((session, paste)),
     ))
+}
+
+#[derive(Clone, Deserialize)]
+pub struct UpdatePasteParams {
+    pub filename: String,
+    pub description: String,
+    pub body: String,
 }
 
 pub async fn update(
     session: Session,
     State(db): State<Database>,
-    Path((username, id)): Path<(String, String)>,
+    Path((username, paste_id)): Path<(String, String)>,
     Form(params): Form<UpdatePasteParams>,
 ) -> Result<impl IntoResponse> {
-    // Manually parse id here so that we can render NotFound (rather than BadRequest if we let
-    // Axum + Serde automatically deserialize to Uuid)
-    let id = Uuid::try_parse(&id).map_err(|_| Error::NotFound)?;
+    let paste_id = Uuid::try_parse(&paste_id).map_err(|_| Error::NotFound)?;
     let username = Username::try_from(&username).map_err(|_| Error::NotFound)?;
 
-    let user = User::find_by_username(&db, username)
+    let user = User::find_by_username(&db, username.clone())
         .await?
         .ok_or(Error::NotFound)?;
+
     if session.user != user {
         return Err(Error::Forbidden);
     }
-    let username = session.user.username.clone();
-    let user_id = session.user.id;
 
-    let error_template = EditPastesTemplate::from_session_and_params(Some(session), params.clone());
-    params
-        .validate()
-        .map_err(|e| handle_params_error(e, error_template))?;
-
-    let paste = Paste::find_scoped_by_user_id(&db, id, user_id)
+    let paste = Paste::find_scoped_by_user_id(&db, paste_id, session.user.id)
         .await?
         .ok_or(Error::NotFound)?;
 
@@ -269,13 +254,31 @@ pub async fn update(
             .map_err(|e| Error::InternalServerError(Box::new(e)))?,
     );
 
+    let mut error_template = EditPastesFormPartial::from((username, paste_id, params.clone()));
+
+    let filename_result = Filename::try_from(&params.filename);
+    if let Err(ModelsError::Parse(ref msg)) = filename_result {
+        error_template.filename_error_message = Some(msg.into());
+    }
+    let description_result = Description::try_from(&params.description);
+    if let Err(ModelsError::Parse(ref msg)) = description_result {
+        error_template.description_error_message = Some(msg.into());
+    }
+    let body_result = Body::try_from(&params.body);
+    if let Err(ModelsError::Parse(ref msg)) = body_result {
+        error_template.body_error_message = Some(msg.into());
+    }
+
+    if error_template.filename_error_message.is_some()
+        || error_template.description_error_message.is_some()
+        || error_template.body_error_message.is_some()
+    {
+        return Err(Error::Validation(Box::new(error_template)));
+    }
+
+    let (filename, description, body) = (filename_result?, description_result?, body_result?);
     paste
-        .update(
-            &db,
-            Some(params.filename.into()),
-            Some(params.description.into()),
-            Some(params.body.into()),
-        )
+        .update(&db, Some(filename), Some(description), Some(body))
         .await?;
 
     Ok(response)
@@ -286,8 +289,6 @@ pub async fn destroy(
     State(db): State<Database>,
     Path((username, id)): Path<(String, String)>,
 ) -> Result<impl IntoResponse> {
-    // Manually parse id here so that we can render NotFound (rather than BadRequest if we let
-    // Axum + Serde automatically deserialize to Uuid)
     let id = Uuid::try_parse(&id).map_err(|_| Error::NotFound)?;
     let username = Username::try_from(&username).map_err(|_| Error::NotFound)?;
 

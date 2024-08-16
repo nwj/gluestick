@@ -1,13 +1,10 @@
 use crate::controllers::pastes::CreatePasteParams;
-use crate::controllers::prelude::{ErrorTemplate, ErrorTemplate2};
+use crate::controllers::pastes::UpdatePasteParams;
+use crate::controllers::prelude::ErrorTemplate;
 use crate::helpers::pagination::CursorPaginationResponse;
 use crate::models::paste::Paste;
 use crate::models::session::Session;
 use crate::models::user::Username;
-use crate::params::pastes::{
-    UpdatePasteParams, BODY_REPORT_KEY, DESCRIPTION_REPORT_KEY, FILENAME_REPORT_KEY,
-};
-use crate::params::prelude::Report;
 use crate::views::filters;
 use askama_axum::Template;
 use uuid::Uuid;
@@ -24,7 +21,7 @@ impl From<Session> for NewPastesTemplate {
         let username = value.user.username.clone();
         Self {
             session: Some(value),
-            new_pastes_form: username.into(),
+            new_pastes_form: NewPastesFormPartial::from(username),
         }
     }
 }
@@ -79,7 +76,7 @@ impl From<(Username, CreatePasteParams)> for NewPastesFormPartial {
     }
 }
 
-impl ErrorTemplate2 for NewPastesFormPartial {
+impl ErrorTemplate for NewPastesFormPartial {
     fn render_template(&self) -> askama::Result<String> {
         self.render()
     }
@@ -106,31 +103,65 @@ pub struct ShowPastesTemplate {
 #[template(path = "pastes/edit.html")]
 pub struct EditPastesTemplate {
     pub session: Option<Session>,
-    pub paste_id: Uuid,
     pub filename: String,
-    pub description: String,
-    pub body: String,
-    pub error_report: Report,
+    pub edit_pastes_form: EditPastesFormPartial,
 }
 
-impl EditPastesTemplate {
-    pub fn from_session_and_params(session: Option<Session>, params: UpdatePasteParams) -> Self {
+impl From<(Session, Paste)> for EditPastesTemplate {
+    fn from(value: (Session, Paste)) -> Self {
+        let (session, paste) = value;
+        let username = session.user.username.clone();
         Self {
-            session,
-            filename: params.filename.into(),
-            description: params.description.into(),
-            body: params.body.into(),
+            session: Some(session),
+            filename: paste.filename.to_string(),
+            edit_pastes_form: EditPastesFormPartial::from((username, paste)),
+        }
+    }
+}
+
+#[derive(Debug, Default, Template)]
+#[template(path = "pastes/partials/edit_pastes_form.html")]
+pub struct EditPastesFormPartial {
+    pub username: String,
+    pub paste_id: Uuid,
+    pub filename: String,
+    pub filename_error_message: Option<String>,
+    pub description: String,
+    pub description_error_message: Option<String>,
+    pub body: String,
+    pub body_error_message: Option<String>,
+}
+
+impl From<(Username, Paste)> for EditPastesFormPartial {
+    fn from(value: (Username, Paste)) -> Self {
+        let (username, paste) = value;
+        Self {
+            username: username.to_string(),
+            paste_id: paste.id,
+            filename: paste.filename.to_string(),
+            description: paste.description.to_string(),
+            body: paste.body.to_string(),
             ..Default::default()
         }
     }
 }
 
-impl ErrorTemplate for EditPastesTemplate {
+impl From<(Username, Uuid, UpdatePasteParams)> for EditPastesFormPartial {
+    fn from(value: (Username, Uuid, UpdatePasteParams)) -> Self {
+        let (username, paste_id, params) = value;
+        Self {
+            username: username.to_string(),
+            paste_id,
+            filename: params.filename,
+            description: params.description,
+            body: params.body,
+            ..Default::default()
+        }
+    }
+}
+
+impl ErrorTemplate for EditPastesFormPartial {
     fn render_template(&self) -> askama::Result<String> {
         self.render()
-    }
-
-    fn with_report(&mut self, report: Report) {
-        self.error_report = report;
     }
 }

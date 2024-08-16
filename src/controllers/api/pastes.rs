@@ -2,12 +2,11 @@ use crate::controllers::api::prelude::*;
 use crate::db::Database;
 use crate::helpers::pagination::{CursorPaginationParams, CursorPaginationResponse};
 use crate::models::api_session::ApiSession;
-use crate::models::paste::Paste;
-use crate::params::api::pastes::{CreatePasteParams, UpdatePasteParams};
+use crate::models::paste::{Body, Description, Filename, Paste, Visibility};
 use axum::extract::{Path, State};
 use axum::response::IntoResponse;
 use axum::Json;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 #[derive(Serialize)]
@@ -37,22 +36,28 @@ pub async fn index(
     Ok(Json(IndexResponse { pastes, pagination }))
 }
 
+#[derive(Clone, Deserialize)]
+pub struct CreatePasteParams {
+    pub filename: String,
+    pub description: String,
+    pub body: String,
+    pub visibility: String,
+}
+
 pub async fn create(
     session: ApiSession,
     State(db): State<Database>,
     Json(params): Json<CreatePasteParams>,
 ) -> Result<impl IntoResponse> {
-    params
-        .validate()
-        .map_err(|e| Error::BadRequest(Box::new(e)))?;
+    let filename =
+        Filename::try_from(&params.filename).map_err(|e| Error::BadRequest(Box::new(e)))?;
+    let description =
+        Description::try_from(&params.description).map_err(|e| Error::BadRequest(Box::new(e)))?;
+    let body = Body::try_from(&params.body).map_err(|e| Error::BadRequest(Box::new(e)))?;
+    let visibility =
+        Visibility::try_from(&params.visibility).map_err(|e| Error::BadRequest(Box::new(e)))?;
 
-    let paste = Paste::new(
-        session.user.id,
-        &params.filename.into(),
-        &params.description.into(),
-        &params.body.into(),
-        params.visibility.into(),
-    )?;
+    let paste = Paste::new(session.user.id, filename, description, body, visibility)?;
     let id = paste.id;
     paste.insert(&db).await?;
     Ok(Json(id))
@@ -80,15 +85,35 @@ pub async fn show_raw(
     }
 }
 
+#[derive(Clone, Deserialize)]
+pub struct UpdatePasteParams {
+    pub filename: Option<String>,
+    pub description: Option<String>,
+    pub body: Option<String>,
+}
+
 pub async fn update(
     session: ApiSession,
     Path(id): Path<Uuid>,
     State(db): State<Database>,
     Json(params): Json<UpdatePasteParams>,
 ) -> Result<impl IntoResponse> {
-    params
-        .validate()
-        .map_err(|e| Error::BadRequest(Box::new(e)))?;
+    let filename = match params.filename {
+        Some(filename) => {
+            Some(Filename::try_from(&filename).map_err(|e| Error::BadRequest(Box::new(e)))?)
+        }
+        None => None,
+    };
+    let description = match params.description {
+        Some(description) => {
+            Some(Description::try_from(&description).map_err(|e| Error::BadRequest(Box::new(e)))?)
+        }
+        None => None,
+    };
+    let body = match params.body {
+        Some(body) => Some(Body::try_from(&body).map_err(|e| Error::BadRequest(Box::new(e)))?),
+        None => None,
+    };
 
     let optional_paste = Paste::find(&db, id).await?;
 
@@ -97,9 +122,9 @@ pub async fn update(
             paste
                 .update(
                     &db,
-                    params.filename.map(Into::into),
-                    params.description.map(Into::into),
-                    params.body.map(Into::into),
+                    filename,
+                    description,
+                    body,
                 )
                 .await?;
             Ok(())

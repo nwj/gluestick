@@ -68,12 +68,12 @@ pub async fn create(
         || error_template.email_error_message.is_some()
         || error_template.password_error_message.is_some()
     {
-        return Err(Error::Validation2(Box::new(error_template)));
+        return Err(Error::Validation(Box::new(error_template)));
     }
 
     let Some(invite_code) = InviteCode::find(&db, &params.invite_code).await? else {
         error_template.invite_code_error_message = Some("Invalid invite code".into());
-        return Err(Error::Validation2(Box::new(error_template)));
+        return Err(Error::Validation(Box::new(error_template)));
     };
 
     let (username, email, password) = (username_result?, email_result?, password_result?);
@@ -186,7 +186,7 @@ pub async fn change_password(
     })?;
 
     if params.new_password.expose_secret() != params.new_password_confirm.expose_secret() {
-        Err(Error::Validation2(Box::new(ChangePasswordFormPartial {
+        Err(Error::Validation(Box::new(ChangePasswordFormPartial {
             new_password_error_message: Some(
                 "New password and password confirmation do not match".into(),
             ),
@@ -228,7 +228,7 @@ pub async fn validate_username(
     })?;
 
     if User::find_by_username(&db, username).await?.is_some() {
-        Err(Error::Validation2(Box::new(UsernameInputPartial {
+        Err(Error::Validation(Box::new(UsernameInputPartial {
             username_error_message: Some("Username is already taken".into()),
             ..params.clone().into()
         })))?;
@@ -250,7 +250,7 @@ pub async fn validate_email(
     })?;
 
     if User::find_by_email(&db, email).await?.is_some() {
-        Err(Error::Validation2(Box::new(EmailAddressInputPartial {
+        Err(Error::Validation(Box::new(EmailAddressInputPartial {
             email_error_message: Some("Email is already taken".into()),
             ..params.clone().into()
         })))?;

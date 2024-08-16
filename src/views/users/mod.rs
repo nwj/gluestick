@@ -1,4 +1,4 @@
-use crate::controllers::prelude::ErrorTemplate2;
+use crate::controllers::prelude::ErrorTemplate;
 use crate::controllers::users::ChangePasswordParams;
 use crate::controllers::users::CreateUserParams;
 use crate::helpers::pagination::CursorPaginationResponse;
@@ -53,7 +53,7 @@ impl From<CreateUserParams> for NewUsersTemplate {
     }
 }
 
-impl ErrorTemplate2 for NewUsersTemplate {
+impl ErrorTemplate for NewUsersTemplate {
     fn render_template(&self) -> askama::Result<String> {
         self.render()
     }
@@ -111,7 +111,7 @@ impl From<ChangePasswordParams> for ChangePasswordFormPartial {
     }
 }
 
-impl ErrorTemplate2 for ChangePasswordFormPartial {
+impl ErrorTemplate for ChangePasswordFormPartial {
     fn render_template(&self) -> askama::Result<String> {
         self.render()
     }
@@ -133,7 +133,7 @@ impl From<CreateUserParams> for UsernameInputPartial {
     }
 }
 
-impl ErrorTemplate2 for UsernameInputPartial {
+impl ErrorTemplate for UsernameInputPartial {
     fn render_template(&self) -> askama::Result<String> {
         self.render()
     }
@@ -155,7 +155,7 @@ impl From<CreateUserParams> for EmailAddressInputPartial {
     }
 }
 
-impl ErrorTemplate2 for EmailAddressInputPartial {
+impl ErrorTemplate for EmailAddressInputPartial {
     fn render_template(&self) -> askama::Result<String> {
         self.render()
     }
@@ -186,7 +186,7 @@ impl From<CreateUserParams> for PasswordInputPartial {
     }
 }
 
-impl ErrorTemplate2 for PasswordInputPartial {
+impl ErrorTemplate for PasswordInputPartial {
     fn render_template(&self) -> askama::Result<String> {
         self.render()
     }
