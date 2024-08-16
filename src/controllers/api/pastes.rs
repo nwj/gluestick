@@ -21,9 +21,6 @@ pub async fn index(
     pagination_params: Option<Json<CursorPaginationParams>>,
 ) -> Result<impl IntoResponse> {
     let pagination_params = pagination_params.unwrap_or_default();
-    pagination_params
-        .validate()
-        .map_err(|e| Error::BadRequest(Box::new(e)))?;
 
     let mut pastes = Paste::cursor_paginated(
         &db,
@@ -119,14 +116,7 @@ pub async fn update(
 
     match optional_paste {
         Some(paste) if paste.user_id == session.user.id => {
-            paste
-                .update(
-                    &db,
-                    filename,
-                    description,
-                    body,
-                )
-                .await?;
+            paste.update(&db, filename, description, body).await?;
             Ok(())
         }
         Some(_) => Err(Error::Forbidden),

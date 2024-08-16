@@ -20,10 +20,6 @@ pub async fn index(
     Query(pagination_params): Query<CursorPaginationParams>,
     State(db): State<Database>,
 ) -> Result<impl IntoResponse> {
-    pagination_params
-        .validate()
-        .map_err(|e| Error::BadRequest(Box::new(e)))?;
-
     let mut pairs = Paste::cursor_paginated_with_username(
         &db,
         pagination_params.limit_with_lookahead(),

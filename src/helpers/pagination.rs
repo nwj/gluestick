@@ -1,27 +1,24 @@
-use crate::params::prelude::*;
+use derive_more::Into;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-const PER_PAGE_DEFAULT: usize = 10;
-const PER_PAGE_MAX: usize = 100;
-
-#[derive(Clone, Deserialize, Debug)]
+#[derive(Clone, Debug, Default, Deserialize)]
 pub struct CursorPaginationParams {
-    #[serde(default = "CursorPaginationParams::per_page_default")]
-    pub per_page: usize,
+    #[serde(default)]
+    pub per_page: PerPage,
     pub prev_page: Option<Uuid>,
     pub next_page: Option<Uuid>,
 }
 
 impl CursorPaginationParams {
     pub fn limit(&self) -> usize {
-        self.per_page
+        self.per_page.into()
     }
 
     pub fn limit_with_lookahead(&self) -> usize {
         // We add 1 here, so that we can "look ahead" and see if there are results beyond the
         // current page (which can then inform things like `prev_page` and `next_page`).
-        self.per_page + 1
+        self.limit() + 1
     }
 
     pub fn cursor(&self) -> Option<Uuid> {
@@ -34,37 +31,6 @@ impl CursorPaginationParams {
             (Some(_), None) => Direction::Ascending,
             // if both next_page and prev_page are (incorrectly) in the params, then this is Descending
             _ => Direction::Descending,
-        }
-    }
-
-    fn per_page_default() -> usize {
-        PER_PAGE_DEFAULT
-    }
-
-    pub fn validate(&self) -> Result<()> {
-        let mut report = Report::new();
-
-        if self.per_page < 1 {
-            report.add("per_page", "'per_page' must be greater than 0");
-        }
-
-        if self.per_page > PER_PAGE_MAX {
-            report.add(
-                "per_page",
-                format!("'per_page' may not be greater than {PER_PAGE_MAX}"),
-            );
-        }
-
-        report.to_result()
-    }
-}
-
-impl Default for CursorPaginationParams {
-    fn default() -> Self {
-        Self {
-            per_page: PER_PAGE_DEFAULT,
-            prev_page: None,
-            next_page: None,
         }
     }
 }
@@ -103,7 +69,7 @@ impl CursorPaginationResponse {
             None => (None, None),
         };
 
-        if results.len() > params.per_page {
+        if results.len() > params.per_page.into() {
             results.pop();
             next_page = results.last().map(HasOrderedId::ordered_id);
         }
@@ -116,6 +82,26 @@ impl CursorPaginationResponse {
         Self {
             prev_page,
             next_page,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Into, PartialEq, PartialOrd)]
+#[serde(from = "usize")]
+pub struct PerPage(usize);
+
+impl Default for PerPage {
+    fn default() -> Self {
+        Self(10)
+    }
+}
+
+impl From<usize> for PerPage {
+    fn from(value: usize) -> Self {
+        if (1..=100).contains(&value) {
+            Self(value)
+        } else {
+            Self::default()
         }
     }
 }

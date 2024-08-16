@@ -22,7 +22,6 @@ pub mod db;
 pub mod extractors;
 pub mod helpers;
 pub mod models;
-pub mod params;
 pub mod views;
 
 pub fn router(db: Database) -> Router {

@@ -112,10 +112,6 @@ pub async fn show(
 
     match User::find_by_username(&db, username).await? {
         Some(user) => {
-            pagination_params
-                .validate()
-                .map_err(|e| Error::BadRequest(Box::new(e)))?;
-
             let mut pastes = if Some(&user) == session.as_ref().map(|s| &s.user) {
                 Paste::cursor_paginated_for_user_id_with_secrets(
                     &db,
