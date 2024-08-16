@@ -8,6 +8,8 @@ use rand::rngs::OsRng;
 use rusqlite::types::{FromSql, FromSqlResult, ToSql, ToSqlOutput, Type, ValueRef};
 use rusqlite::{named_params, Row};
 use secrecy::{ExposeSecret, Secret};
+use std::convert::TryFrom;
+use std::str::FromStr;
 use uuid::Uuid;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -22,16 +24,17 @@ pub struct User {
 
 impl User {
     pub fn new(
-        username: impl Into<String>,
-        email: impl Into<String>,
-        password: impl Into<Secret<String>>,
+        username: Username,
+        email: EmailAddress,
+        password: UnhashedPassword,
     ) -> Result<Self> {
         let now = Timestamp::now();
+        let hashed_password = HashedPassword::try_from(password)?;
         Ok(User {
             id: Uuid::now_v7(),
-            username: Username::new(username),
-            email: EmailAddress::new(email),
-            password: HashedPassword::new(password)?,
+            username,
+            email,
+            password: hashed_password,
             created_at: now,
             updated_at: now,
         })
@@ -52,12 +55,11 @@ impl User {
         })
     }
 
-    pub fn verify_password(&self, password: &String) -> Result<()> {
-        Argon2::default().verify_password(
-            password.as_bytes(),
+    pub fn verify_password(&self, password: &UnhashedPassword) -> Result<()> {
+        Ok(Argon2::default().verify_password(
+            password.expose_secret().as_bytes(),
             &PasswordHash::new(self.password.expose_secret())?,
-        )?;
-        Ok(())
+        )?)
     }
 
     pub async fn insert(self, db: &Database) -> Result<usize> {
@@ -84,10 +86,10 @@ impl User {
     pub async fn update_password(
         &self,
         db: &Database,
-        new_password: impl Into<Secret<String>>,
+        new_password: UnhashedPassword,
     ) -> Result<usize> {
         let id = self.id;
-        let hashed_password = HashedPassword::new(new_password)?;
+        let hashed_password = HashedPassword::try_from(new_password)?;
         let result = db
             .conn
             .call(move |conn| {
@@ -105,15 +107,14 @@ impl User {
         Ok(result)
     }
 
-    pub async fn find_by_email(db: &Database, email: impl Into<String>) -> Result<Option<User>> {
-        let email = email.into();
-        let optional_user = db
+    pub async fn find_by_email(db: &Database, email: EmailAddress) -> Result<Option<User>> {
+        let maybe_user = db
             .conn
             .call(move |conn| {
                 let mut statement = conn.prepare(
                     "SELECT id, username, email, password, created_at, updated_at FROM users WHERE email = :email;",
                 )?;
-                let mut rows = statement.query(named_params! {":email": email.to_lowercase()})?;
+                let mut rows = statement.query(named_params! {":email": email})?;
                 match rows.next()? {
                     Some(row) => Ok(Some(User::from_sql_row(row)?)),
                     None => Ok(None),
@@ -121,22 +122,18 @@ impl User {
             })
             .await?;
 
-        Ok(optional_user)
+        Ok(maybe_user)
     }
 
-    pub async fn find_by_username(
-        db: &Database,
-        username: impl Into<String>,
-    ) -> Result<Option<User>> {
-        let username = username.into();
-        let optional_user = db
+    pub async fn find_by_username(db: &Database, username: Username) -> Result<Option<User>> {
+        let maybe_user = db
             .conn
             .call(move |conn| {
                 let mut statement = conn.prepare(
                     "SELECT id, username, email, password, created_at, updated_at FROM users WHERE username = :username;",
                 )?;
                 let mut rows =
-                    statement.query(named_params! {":username": username.to_lowercase()})?;
+                    statement.query(named_params! {":username": username})?;
                 match rows.next()? {
                     Some(row) => Ok(Some(User::from_sql_row(row)?)),
                     None => Ok(None),
@@ -144,7 +141,7 @@ impl User {
             })
             .await?;
 
-        Ok(optional_user)
+        Ok(maybe_user)
     }
 
     pub async fn delete_sessions(self, db: &Database) -> Result<usize> {
@@ -166,9 +163,49 @@ impl User {
 #[derive(Clone, Debug, Display, PartialEq)]
 pub struct Username(String);
 
-impl Username {
-    fn new(username: impl Into<String>) -> Self {
-        Self(username.into().to_lowercase())
+impl FromStr for Username {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let s = s.to_lowercase();
+
+        if s.trim().is_empty() {
+            Err(Error::Parse("Username may not be blank".into()))
+        } else if s.chars().count() > 32 {
+            Err(Error::Parse(
+                "Username is too long (maximum is 32 characters)".into(),
+            ))
+        } else if !s.chars().all(|c| c.is_alphanumeric() || c == '-')
+            || s.contains("--")
+            || s.starts_with('-')
+            || s.ends_with('-')
+        {
+            Err(Error::Parse(
+                "Username may only contain alphanumeric characters or single hyphens, and may not begin or end with a hyphen".into(),
+            ))
+        } else if s == "api"
+            || s == "api_sessions"
+            || s == "assets"
+            || s == "health"
+            || s == "login"
+            || s == "logout"
+            || s == "new"
+            || s == "pastes"
+            || s == "settings"
+            || s == "signup"
+        {
+            Err(Error::Parse("Username is unavailable".into()))
+        } else {
+            Ok(Self(s))
+        }
+    }
+}
+
+impl TryFrom<&String> for Username {
+    type Error = Error;
+
+    fn try_from(value: &String) -> Result<Self, Self::Error> {
+        value.parse()
     }
 }
 
@@ -180,16 +217,42 @@ impl ToSql for Username {
 
 impl FromSql for Username {
     fn column_result(value: ValueRef) -> FromSqlResult<Self> {
-        String::column_result(value).map(|string| Ok(Self(string)))?
+        String::column_result(value).map(Self)
     }
 }
 
 #[derive(Clone, Debug, Display, PartialEq)]
 pub struct EmailAddress(String);
 
-impl EmailAddress {
-    fn new(email: impl Into<String>) -> Self {
-        Self(email.into().to_lowercase())
+impl FromStr for EmailAddress {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let s = s.to_lowercase();
+
+        if s.trim().is_empty() {
+            Err(Error::Parse("Email may not be blank".into()))
+        } else if !s.contains('@') {
+            Err(Error::Parse("Email is missing the '@' symbol".into()))
+        } else if s.starts_with('@') {
+            Err(Error::Parse(
+                "Email is missing the username part before the '@' symbol".into(),
+            ))
+        } else if s.ends_with('@') {
+            Err(Error::Parse(
+                "Email is missing the domain part after the '@' symbol".into(),
+            ))
+        } else {
+            Ok(Self(s))
+        }
+    }
+}
+
+impl TryFrom<&String> for EmailAddress {
+    type Error = Error;
+
+    fn try_from(value: &String) -> Result<Self, Self::Error> {
+        value.parse()
     }
 }
 
@@ -201,20 +264,56 @@ impl ToSql for EmailAddress {
 
 impl FromSql for EmailAddress {
     fn column_result(value: ValueRef) -> FromSqlResult<Self> {
-        String::column_result(value).map(|string| Ok(Self(string)))?
+        String::column_result(value).map(Self)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct UnhashedPassword(Secret<String>);
+
+impl TryFrom<Secret<String>> for UnhashedPassword {
+    type Error = Error;
+
+    fn try_from(value: Secret<String>) -> Result<Self, Self::Error> {
+        if value.expose_secret().is_empty() {
+            Err(Error::Parse("Password may not be blank".into()))
+        } else if value.expose_secret().chars().count() < 8 {
+            Err(Error::Parse(
+                "Password is too short (minimum is 8 characters)".into(),
+            ))
+        } else if value.expose_secret().chars().count() > 256 {
+            Err(Error::Parse(
+                "Password is too long (maximum is 256 characters)".into(),
+            ))
+        } else {
+            Ok(Self(value))
+        }
+    }
+}
+
+impl ExposeSecret<String> for UnhashedPassword {
+    fn expose_secret(&self) -> &String {
+        self.0.expose_secret()
+    }
+}
+
+impl PartialEq for UnhashedPassword {
+    fn eq(&self, other: &UnhashedPassword) -> bool {
+        self.expose_secret() == other.expose_secret()
     }
 }
 
 #[derive(Clone, Debug)]
 pub struct HashedPassword(Secret<String>);
 
-impl HashedPassword {
-    #[allow(clippy::needless_pass_by_value)]
-    pub fn new(password: impl Into<Secret<String>>) -> Result<Self, argon2::password_hash::Error> {
+impl TryFrom<UnhashedPassword> for HashedPassword {
+    type Error = Error;
+
+    fn try_from(value: UnhashedPassword) -> Result<Self, Self::Error> {
         Ok(HashedPassword(Secret::new(
             Argon2::default()
                 .hash_password(
-                    password.into().expose_secret().as_bytes(),
+                    value.expose_secret().as_bytes(),
                     &SaltString::generate(&mut OsRng),
                 )?
                 .to_string(),
@@ -236,7 +335,7 @@ impl ToSql for HashedPassword {
 
 impl FromSql for HashedPassword {
     fn column_result(value: ValueRef) -> FromSqlResult<Self> {
-        String::column_result(value).map(|string| Ok(Self(Secret::new(string))))?
+        String::column_result(value).map(|s| Self(Secret::new(s)))
     }
 }
 

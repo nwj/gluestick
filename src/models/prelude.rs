@@ -9,6 +9,9 @@ pub enum Error {
 
     #[error(transparent)]
     Jiff(#[from] jiff::Error),
+
+    #[error("{0}")]
+    Parse(String),
 }
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;

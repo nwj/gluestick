@@ -26,8 +26,6 @@ pub async fn destroy(
     State(db): State<Database>,
     Path(id): Path<String>,
 ) -> Result<impl IntoResponse> {
-    // Manually parse id here so that we can render NotFound (rather than BadRequest if we let
-    // Axum + Serde automatically deserialize to Uuid)
     let id = Uuid::try_parse(&id).map_err(|_| Error::NotFound)?;
 
     let api_key = ApiKey::find_scoped_by_user_id(&db, id, session.user.id)

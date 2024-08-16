@@ -103,7 +103,7 @@ async fn index_uses_per_page_when_provided() -> Result<()> {
 }
 
 #[tokio::test]
-async fn index_400s_if_per_page_more_than_100() -> Result<()> {
+async fn index_falls_back_to_default_if_per_page_more_than_100() -> Result<()> {
     let app = TestApp::spawn().await?;
     let user = TestUser::builder().random()?.build().seed(&app).await?;
     let client = TestClient::new(app.address, None)?;
@@ -118,7 +118,9 @@ async fn index_400s_if_per_page_more_than_100() -> Result<()> {
 
     let params = PaginationParams::builder().per_page(per_page).build();
     let response = client.pastes().get(Some(params)).await?;
-    assert_eq!(response.status(), 400);
+    assert_eq!(response.status(), 200);
+    let html = response.text().await?;
+    assert_eq!(html.matches("<li class=\"paste\">").count(), 10);
     Ok(())
 }
 
@@ -237,7 +239,15 @@ async fn create_show_update_destroy_happy_path() -> Result<()> {
     // Create
     let response = client.pastes().post(&paste).await?;
     assert_eq!(response.status(), 200);
-    paste.id = response.url().path().split("/").nth(2).map(String::from);
+
+    let maybe_url = response.headers().get("HX-Redirect");
+    assert!(maybe_url.is_some());
+    paste.id = maybe_url
+        .unwrap()
+        .to_str()?
+        .split("/")
+        .nth(2)
+        .map(String::from);
 
     // Show
     let response = client

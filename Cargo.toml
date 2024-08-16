@@ -18,7 +18,7 @@ askama = { version = "0.12.1", features = ["with-axum"] }
 askama_axum = "0.4.0"
 axum = { version = "0.7.5", features = ["macros"] }
 axum-extra = { version = "0.9.3", features = ["cookie"] }
-derive_more = { version = "1.0.0", features = ["from", "as_ref", "into", "display", "is_variant"] }
+derive_more = { version = "1.0.0", features = ["as_ref", "display", "from", "into", "is_variant"] }
 dotenvy = "0.15.7"
 jiff = { version = "0.1.5", features = ["serde"] }
 memory-serve = "0.6.0"
@@ -33,10 +33,10 @@ syntect = "5.2.0"
 thiserror = "1.0.61"
 tokio = { version = "1.39.2", features = ["macros", "rt-multi-thread", "signal"] }
 tokio-rusqlite = "0.5.1"
-tower-http = { version = "0.5.2", features = ["trace", "compression-full", "timeout"] }
+tower-http = { version = "0.5.2", features = ["compression-full", "timeout", "trace"] }
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
-uuid = { version = "1.8.0", features = ["v7", "fast-rng", "serde"] }
+uuid = { version = "1.8.0", features = ["fast-rng", "serde", "v7"] }
 
 [dev-dependencies]
-reqwest = { version = "0.12.4", features = ["json", "cookies"] }
+reqwest = { version = "0.12.4", features = ["cookies", "json"] }

@@ -133,7 +133,7 @@ async fn index_uses_per_page_when_provided() -> Result<()> {
 }
 
 #[tokio::test]
-async fn index_400s_if_per_page_more_than_100() -> Result<()> {
+async fn index_falls_back_to_default_if_per_page_more_than_100() -> Result<()> {
     let app = TestApp::spawn().await?;
     let (user, api_key) = TestUser::builder()
         .random()?
@@ -152,7 +152,10 @@ async fn index_400s_if_per_page_more_than_100() -> Result<()> {
 
     let params = PaginationParams::builder().per_page(per_page).build();
     let response = client.api_pastes().get(Some(params)).await?;
-    assert_eq!(response.status(), 400);
+    assert_eq!(response.status(), 200);
+    let response_data: IndexResponse = response.json().await?;
+    assert_eq!(response_data.pastes.len(), 10);
+
     Ok(())
 }
 

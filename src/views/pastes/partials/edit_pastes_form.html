@@ -1,0 +1,34 @@
+<form hx-put="/{{ username }}/{{ paste_id }}">
+    <div class="filename-bar">
+        <a href="{{ username }}">{{ username }}</a><span>/</span>
+        <div class="validated-input filename {% if filename_error_message.is_some() %}invalid{% endif %}">
+            <input type="text"
+                   name="filename"
+                   placeholder="Filename with extension..."
+                   value="{{ filename }}" />
+            <div class="error-msg">
+                {% if let Some(msg) = filename_error_message %}{{ msg }}{% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="validated-input description {% if description_error_message.is_some() %}invalid{% endif %}">
+        <label>
+            Description
+            <input type="text"
+                   name="description"
+                   placeholder="(Optional) Description..."
+                   value="{{ description }}" />
+        </label>
+        <div class="error-msg">
+            {% if let Some(msg) = description_error_message %}{{ msg }}{% endif %}
+        </div>
+    </div>
+    <div class="validated-input body {% if body_error_message.is_some() %}invalid{% endif %}">
+        <label for="body">Body</label>
+        <textarea id="body" name="body" placeholder="Body...">{{ body }}</textarea>
+        <div class="error-msg">
+            {% if let Some(msg) = body_error_message %}{{ msg }}{% endif %}
+        </div>
+    </div>
+    <button class="primary" type="submit">Save</button>
+</form>

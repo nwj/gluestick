@@ -1,7 +1,5 @@
-use crate::controllers::prelude::ErrorTemplate;
+use crate::controllers::sessions::CreateSessionParams;
 use crate::models::session::Session;
-use crate::params::prelude::Report;
-use crate::params::sessions::{CreateSessionParams, SELF_REPORT_KEY};
 use askama_axum::Template;
 use secrecy::{ExposeSecret, Secret};
 
@@ -11,16 +9,16 @@ pub struct NewSessionsTemplate {
     pub session: Option<Session>,
     pub email: String,
     pub password: Secret<String>,
-    pub error_report: Report,
+    pub error_message: Option<String>,
 }
 
 impl Default for NewSessionsTemplate {
     fn default() -> Self {
         Self {
-            session: Option::default(),
+            session: None,
             email: String::default(),
             password: Secret::new(String::default()),
-            error_report: Report::default(),
+            error_message: Option::default(),
         }
     }
 }
@@ -28,20 +26,9 @@ impl Default for NewSessionsTemplate {
 impl From<CreateSessionParams> for NewSessionsTemplate {
     fn from(params: CreateSessionParams) -> Self {
         Self {
-            session: None,
             email: params.email,
             password: params.password,
-            error_report: Report::default(),
+            ..Default::default()
         }
-    }
-}
-
-impl ErrorTemplate for NewSessionsTemplate {
-    fn render_template(&self) -> askama::Result<String> {
-        self.render()
-    }
-
-    fn with_report(&mut self, report: Report) {
-        self.error_report = report;
     }
 }
