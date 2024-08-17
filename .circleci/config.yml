@@ -79,10 +79,10 @@ jobs:
       - run:
           name: Verifying
           command: |
-            CSS_FILE="/src/assets/css/main.css"
+            CSS_FILE="./src/assets/css/main.css"
             MD5_HASH=$(md5sum "$CSS_FILE" | awk '{ print $1 }')
 
-            CACHE_BUSTED_CSS_FILE="/src/assets/css/main.${MD5_HASH}.css"
+            CACHE_BUSTED_CSS_FILE="./src/assets/css/main.${MD5_HASH}.css"
             if [ ! -f "$CACHE_BUSTED_CSS_FILE" ]; then
               echo "Error: Cache busted CSS file not found at $CACHE_BUSTED_CSS_FILE"
               exit 1
@@ -94,7 +94,7 @@ jobs:
               exit 1
             fi
 
-            BASE_TEMPLATE="/src/views/base.html"
+            BASE_TEMPLATE="./src/views/base.html"
             if ! grep -q "main.${MD5_HASH}.css" "$BASE_TEMPLATE"; then
               echo "Error: Base template does not contain a reference to the cache busted CSS file"
               exit 1
