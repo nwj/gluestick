@@ -71,13 +71,13 @@ jobs:
           name: Licenses auditing
           command: cargo deny check licenses
 
-  verify_css_cache_bust:
+  verify-css:
     docker:
       - image: cimg/base:current
     steps:
       - checkout
       - run:
-          name: Check CSS cache bust
+          name: Verifying
           command: |
             CSS_FILE="/src/assets/css/main.css"
             MD5_HASH=$(md5sum "$CSS_FILE" | awk '{ print $1 }')
