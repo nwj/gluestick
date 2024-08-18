@@ -1,11 +1,13 @@
 <form hx-post="/pastes">
-    <div class="filename-bar">
-        <a href="{{ username }}">{{ username }}</a><span>/</span>
+    <div class="filename">
         <div class="validated-input filename {% if filename_error_message.is_some() %}invalid{% endif %}">
-            <input type="text"
-                   name="filename"
-                   placeholder="Filename with extension..."
-                   value="{{ filename }}" />
+            <label>
+                Filename
+                <input type="text"
+                       name="filename"
+                       placeholder="Filename with extension..."
+                       value="{{ filename }}" />
+            </label>
             <div class="error-msg">
                 {% if let Some(msg) = filename_error_message %}{{ msg }}{% endif %}
             </div>

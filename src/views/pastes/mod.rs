@@ -8,7 +8,7 @@ use crate::views::filters;
 use askama_axum::Template;
 use uuid::Uuid;
 
-#[derive(Debug, Template)]
+#[derive(Debug, Default, Template)]
 #[template(path = "pastes/new.html")]
 pub struct NewPastesTemplate {
     pub session: Option<Session>,
@@ -17,10 +17,9 @@ pub struct NewPastesTemplate {
 
 impl From<Session> for NewPastesTemplate {
     fn from(value: Session) -> Self {
-        let username = value.user.username.clone();
         Self {
             session: Some(value),
-            new_pastes_form: NewPastesFormPartial::from(username),
+            ..Default::default()
         }
     }
 }
@@ -28,7 +27,6 @@ impl From<Session> for NewPastesTemplate {
 #[derive(Debug, Template)]
 #[template(path = "pastes/partials/new_pastes_form.html")]
 pub struct NewPastesFormPartial {
-    pub username: String,
     pub filename: String,
     pub filename_error_message: Option<String>,
     pub description: String,
@@ -41,7 +39,6 @@ pub struct NewPastesFormPartial {
 impl Default for NewPastesFormPartial {
     fn default() -> Self {
         Self {
-            username: String::default(),
             filename: String::default(),
             filename_error_message: Option::default(),
             description: String::default(),
@@ -53,19 +50,9 @@ impl Default for NewPastesFormPartial {
     }
 }
 
-impl From<Username> for NewPastesFormPartial {
-    fn from(value: Username) -> Self {
-        Self {
-            username: value.to_string(),
-            ..Default::default()
-        }
-    }
-}
-
 impl From<(Username, CreatePasteParams)> for NewPastesFormPartial {
     fn from(value: (Username, CreatePasteParams)) -> Self {
         Self {
-            username: value.0.to_string(),
             filename: value.1.filename,
             description: value.1.description,
             body: value.1.body,
