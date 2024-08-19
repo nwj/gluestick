@@ -2,7 +2,7 @@
 {% block title %}Login{% endblock %}
 {% block main %}
     <main class="login">
-        <h1>Sign-in to Gluestick</h1>
+        <h1>Sign in to Gluestick</h1>
         <form action="/login" method="post">
             <div class="validated-input {% if error_message.is_some() %}invalid{% endif %}">
                 <label>
@@ -25,7 +25,10 @@
                     {% if let Some(msg) = error_message %}{{ msg }}{% endif %}
                 </div>
             </div>
-            <button class="primary" type="submit">Sign In</button>
+            <div>
+                <button class="primary" type="submit">Sign In</button>
+                or <a href="/signup">Sign Up</a>
+            </div>
         </form>
     </main>
 {% endblock %}

@@ -2,6 +2,14 @@
 {% block title %}Edit {{ filename }}{% endblock %}
 {% block main %}
     <main class="pastes-edit">
-        {% if let Some(session) = session %}{{ edit_pastes_form|safe }}{% endif %}
+        {% if let Some(session) = session %}
+            <h1>
+                Edit
+                <a href="/{{ session.user.username }}">{{ session.user.username }}</a>
+                /
+                <a href="/{{ session.user.username }}/{{ paste_id }}">{{ filename }}</a>
+            </h1>
+            {{ edit_pastes_form|safe }}
+        {% endif %}
     </main>
 {% endblock %}

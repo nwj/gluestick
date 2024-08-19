@@ -2,26 +2,15 @@
 {% block title %}Forbidden{% endblock %}
 {% block main %}
     <main class="forbidden">
-        <div class="image-content-pair">
-            <div class="progressive-image-container" id="padlock">
-                <picture class="preview-image">
-                    <source type="image/avif" srcset="/assets/images/padlock-preview.avif" />
-                    <img src="/assets/images/padlock-preview.png"
-                         alt="die-cut sticker of a padlock, pixelated preview"
-                         width="250"
-                         height="381" />
-                </picture>
-                <picture class="main-image">
-                    <source type="image/avif" srcset="/assets/images/padlock.avif" />
-                    <img src="/assets/images/padlock.png"
-                         alt="die-cut sticker of a padlock"
-                         width="250"
-                         height="381"
-                         loading="lazy"
-                         onload="this.parentElement.style.opacity = 1; this.parentElement.previousElementSibling.style.opacity = 0;" />
-                </picture>
-            </div>
-            <div>
+        <div class="content-pair">
+            <picture class="item-1">
+                <source type="image/avif" srcset="/assets/images/padlock.avif" />
+                <img src="/assets/images/padlock.png"
+                     alt="die-cut sticker of a padlock"
+                     width="250"
+                     height="381" />
+            </picture>
+            <div class="item-2">
                 <h1>403 Forbidden</h1>
                 <p>Sorry, you're not authorized to access this page...</p>
                 <a href="/" class="button primary">Back to homepage</a>

@@ -41,24 +41,13 @@
             </div>
         {% else %}
             <section class="empty-state">
-                <div class="progressive-image-container" id="desert-skull">
-                    <picture class="preview-image">
-                        <source type="image/avif" srcset="/assets/images/desert-skull-preview.avif" />
-                        <img src="/assets/images/desert-skull-preview.png"
-                             alt="die-cut sticker of an animal skull lying in the desert, pixelated preview"
-                             width="350"
-                             height="268" />
-                    </picture>
-                    <picture class="main-image">
-                        <source type="image/avif" srcset="/assets/images/desert-skull.avif" />
-                        <img src="/assets/images/desert-skull.png"
-                             alt="die-cut sticker of an animal skull lying in the desert"
-                             width="350"
-                             height="268"
-                             loading="lazy"
-                             onload="this.parentElement.style.opacity = 1; this.parentElement.previousElementSibling.style.opacity = 0;" />
-                    </picture>
-                </div>
+                <picture>
+                    <source type="image/avif" srcset="/assets/images/desert-skull.avif" />
+                    <img src="/assets/images/desert-skull.png"
+                         alt="die-cut sticker of an animal skull lying in the desert"
+                         width="350"
+                         height="268" />
+                </picture>
                 <p>There doesn't appear to be anything out here yet.</p>
                 {% if let Some(session) = session %}
                     <a href="/new" class="button primary">Create a new paste</a>

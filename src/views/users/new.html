@@ -2,7 +2,7 @@
 {% block title %}Sign Up{% endblock %}
 {% block main %}
     <main class="signup">
-        <h1>Sign-up for Gluestick</h1>
+        <h1>Sign up for Gluestick</h1>
         <form action="/signup" method="post">
             {% include "partials/username_input.html" %}
             {% include "partials/email_input.html" %}
@@ -19,7 +19,10 @@
                     {% if let Some(msg) = invite_code_error_message %}{{ msg }}{% endif %}
                 </div>
             </div>
-            <button class="primary" type="submit">Sign Up</button>
+            <div>
+                <button class="primary" type="submit">Sign Up</button>
+                or <a href="login">Sign In</a>
+            </div>
         </form>
     </main>
 {% endblock %}
