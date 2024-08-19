@@ -235,7 +235,7 @@ main {
   h2 {
     line-height: var(--line-height-heading);
     font-weight: normal;
-    margin-bottom: var(--spacing-md);
+    margin-bottom: var(--spacing-sm);
   }
 
   h1 {
@@ -340,39 +340,44 @@ main {
     }
   }
 
-  .image-content-pair {
-    display: flex;
+  .content-pair {
+    display: grid;
+    grid-template-areas:
+      "item1"
+      "item2";
     justify-content: center;
     align-items: center;
-    gap: var(--spacing-xl);
+    gap: var(--spacing-md);
 
-    p {
-      font-size: var(--font-size-lg);
-      margin-bottom: var(--spacing-md);
-    }
-
-    .button {
-      display: inline-flex;
+    .item-1,
+    .item-2 {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      text-align: center;
       align-items: center;
       gap: var(--spacing-xs);
-      font-size: var(--font-size-lg);
-      padding: var(--spacing-sm) var(--spacing-md);
+    }
+
+    .item-1 {
+      grid-area: item1;
+    }
+
+    .item-2 {
+      grid-area: item2;
     }
   }
 
-  .progressive-image-container {
-    flex-shrink: 0;
-    position: relative;
+  @media (min-width: 640px) {
+    .content-pair {
+      grid-template-areas: "item1 item2";
+      gap: var(--spacing-lg);
 
-    .preview-image {
-      position: absolute;
-      image-rendering: pixelated;
-      opacity: 1;
-    }
-
-    .main-image {
-      position: absolute;
-      opacity: 0;
+      .item-1,
+      .item-2 {
+        align-items: flex-start;
+        text-align: unset;
+      }
     }
   }
 }
@@ -380,6 +385,7 @@ main {
 .login,
 .signup {
   align-items: center;
+  font-size: var(--font-size-lg);
 
   .validated-input {
     margin-bottom: var(--spacing-md);
@@ -394,29 +400,20 @@ main {
 .forbidden,
 .not-found,
 .internal-server-error {
-  #padlock {
-    flex-basis: 250px;
-    height: 381px;
-  }
-
-  #lost-james {
-    flex-basis: 275px;
-    height: 321px;
-  }
-
-  #exploding-console {
-    flex-basis: 325px;
-    height: 301px;
-  }
+  font-size: var(--font-size-lg);
 }
 
 .about {
-  #hero {
-    margin-bottom: var(--spacing-3xl);
+  gap: var(--spacing-xl);
+
+  .hero {
+    img {
+      width: 250px;
+      height: 298px;
+    }
 
     h1 {
-      font-size: var(--font-size-4xl);
-      margin-bottom: var(--spacing-lg);
+      font-size: var(--font-size-3xl);
     }
 
     .logo {
@@ -431,39 +428,35 @@ main {
     }
   }
 
-  .image-content-pair {
-    margin-bottom: var(--spacing-md);
+  .content-pair {
+    font-size: var(--font-size-lg);
   }
 
-  .image-content-pair:nth-of-type(even) {
-    flex-direction: row-reverse;
+  @media (min-width: 640px) {
+    .hero {
+      grid-template-areas: "item1 item1 item2";
+
+      h1 {
+        font-size: var(--font-size-4xl);
+      }
+    }
+    .content-pair:nth-of-type(even) {
+      grid-template-areas: "item2 item1";
+    }
   }
 
-  #james {
-    flex-basis: 300px;
-    height: 357px;
-  }
-
-  #monstera {
-    flex-basis: 211px;
-    height: 250px;
-  }
-
-  #sneaker {
-    flex-basis: 235px;
-    height: 209px;
-  }
-
-  #console {
-    flex-basis: 250px;
-    height: 217px;
+  @media (min-width: 768px) {
+    .hero img {
+      width: 300px;
+      height: 357px;
+    }
   }
 }
 
 .pastes-index,
 .users-show {
   .paste {
-    margin-bottom: var(--spacing-xl);
+    margin-bottom: var(--spacing-lg);
 
     .filename-bar {
       font-size: var(--font-size-lg);
@@ -505,17 +498,10 @@ main {
     flex-direction: column;
     justify-content: center;
     align-items: center;
+    text-align: center;
     gap: var(--spacing-md);
     margin: var(--spacing-xl) 0 var(--spacing-2xl);
-
-    p {
-      font-size: var(--font-size-lg);
-    }
-
-    #desert-skull {
-      flex-basis: 268px;
-      width: 350px;
-    }
+    font-size: var(--font-size-lg);
   }
 
   .pagination {
