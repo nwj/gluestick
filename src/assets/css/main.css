@@ -169,6 +169,12 @@ header {
 
     .highlight-nav {
       grid-area: right;
+
+      .with-border {
+        border: 2px solid var(--color-black);
+        border-radius: 5%;
+        padding: var(--spacing-2xs);
+      }
     }
 
     #menu-state {
@@ -373,6 +379,8 @@ main {
 
 .login,
 .signup {
+  align-items: center;
+
   .validated-input {
     margin-bottom: var(--spacing-md);
 
