@@ -188,7 +188,8 @@ header {
         grid-area: left;
       }
 
-      .main-nav {
+      .main-nav,
+      #menu-state:checked + .main-nav {
         grid-area: right;
         display: flex;
         flex-direction: row;
@@ -219,7 +220,7 @@ main {
   max-width: 100%;
   margin: 0 auto;
   width: var(--content-width);
-  padding: var(--spacing-md) var(--spacing-md) var(--spacing-2xl);
+  padding: var(--spacing-md);
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -303,7 +304,6 @@ main {
     .error-msg {
       color: var(--color-fusion-red);
       font-size: var(--font-size-sm);
-      height: var(--spacing-md);
     }
 
     &.invalid {
@@ -374,7 +374,7 @@ main {
 .login,
 .signup {
   .validated-input {
-    margin-bottom: var(--spacing-xs);
+    margin-bottom: var(--spacing-md);
 
     input {
       font-size: var(--font-size-xl);
@@ -548,12 +548,14 @@ main {
   .metadata-bar {
     --metadata-bar-font-size: var(--font-size-sm);
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
     font-size: var(--metadata-bar-font-size);
     margin-bottom: var(--spacing-sm);
 
     .actions {
       display: flex;
+      flex-wrap: wrap;
 
       a,
       button {
@@ -605,7 +607,7 @@ main {
 
       input {
         width: 100%;
-        font-size: var(--font-size-xl);
+        font-size: var(--font-size-lg);
       }
     }
 
