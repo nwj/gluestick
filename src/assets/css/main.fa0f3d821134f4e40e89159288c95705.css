@@ -658,6 +658,7 @@ main {
     .key {
       display: flex;
       justify-content: space-between;
+      flex-wrap: wrap;
       background-color: var(--color-input-background);
       border: 1px solid var(--color-grey-500);
       padding: var(--spacing-sm);
