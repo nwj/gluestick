@@ -83,6 +83,7 @@ pub struct ShowPastesTemplate {
 #[template(path = "pastes/edit.html")]
 pub struct EditPastesTemplate {
     pub session: Option<Session>,
+    pub paste_id: Uuid,
     pub filename: String,
     pub edit_pastes_form: EditPastesFormPartial,
 }
@@ -93,6 +94,7 @@ impl From<(Session, Paste)> for EditPastesTemplate {
         let username = session.user.username.clone();
         Self {
             session: Some(session),
+            paste_id: paste.id,
             filename: paste.filename.to_string(),
             edit_pastes_form: EditPastesFormPartial::from((username, paste)),
         }
