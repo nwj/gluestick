@@ -5,7 +5,6 @@
 
 ### A self-hosted pastebin that makes it easy to share code, notes, and text snippets.
 
-
 - [Features](#features)
 - [Installation](#installation)
 - [Administration](#installation)
