@@ -1,19 +1,20 @@
 # Gluestick
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![CircleCI](https://dl.circleci.com/status-badge/img/circleci/VM8enYtRd7z5ktxpDSNF3i/AqwWXTi1cJw4FVs2Pt1g2Z/tree/main.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/circleci/VM8enYtRd7z5ktxpDSNF3i/AqwWXTi1cJw4FVs2Pt1g2Z/tree/main)
 
 ### A self-hosted pastebin that makes it easy to share code, notes, and text snippets.
+
+
+- [Features](#features)
+- [Installation](#installation)
+- [Administration](#installation)
 
 ## Disclaimer
 
 - ⚠️ The project is under active development and has not yet reached a stable release.
 - ⚠️ Expect bugs and breaking changes. Especially breaking changes.
 - ⚠️ Do not use the app as the only way to store your data. Keep multiple, independent backups of everything you store in the app.
-
-- [Features](#features)
-- [Installation](#installation)
-- [Administration](#installation)
 
 ## Features
 
