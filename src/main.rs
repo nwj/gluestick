@@ -1,4 +1,3 @@
-#[cfg(debug_assertions)]
 use dotenvy::dotenv;
 use gluestick::{background_tasks, config, db, router};
 use tokio::net::TcpListener;
@@ -15,8 +14,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with(tracing_subscriber::fmt::layer())
         .init();
 
-    // We won't use .env files in production, so only compile this in non-release builds
-    #[cfg(debug_assertions)]
     dotenv()
         .map_err(|e| {
             if e.not_found() {
