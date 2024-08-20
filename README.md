@@ -2,6 +2,13 @@
 
 ### A self-hosted pastebin that makes it easy to share code, notes, and text snippets.
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![CircleCI](https://dl.circleci.com/status-badge/img/circleci/VM8enYtRd7z5ktxpDSNF3i/AqwWXTi1cJw4FVs2Pt1g2Z/tree/main.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/circleci/VM8enYtRd7z5ktxpDSNF3i/AqwWXTi1cJw4FVs2Pt1g2Z/tree/main)
+
+- [Features](#features)
+- [Instalation](#installation)
+- [Administration](#installation)
+
 ## Disclaimer
 
 - ⚠️ The project is under development and has not yet reached a stable release.
