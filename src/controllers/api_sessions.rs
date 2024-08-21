@@ -26,11 +26,11 @@ pub async fn destroy(
     State(db): State<Database>,
     Path(id): Path<String>,
 ) -> Result<impl IntoResponse> {
-    let id = Uuid::try_parse(&id).map_err(|_| Error::NotFound)?;
+    let id = Uuid::try_parse(&id).map_err(|_| Error::NotFound(Some(session.clone())))?;
 
     let api_key = ApiKey::find_scoped_by_user_id(&db, id, session.user.id)
         .await?
-        .ok_or(Error::NotFound)?;
+        .ok_or(Error::NotFound(Some(session)))?;
     api_key.delete(&db).await?;
 
     Ok(())

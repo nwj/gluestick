@@ -25,14 +25,14 @@ pub async fn create(
     Form(params): Form<CreateSessionParams>,
 ) -> Result<impl IntoResponse> {
     let email = EmailAddress::try_from(&params.email).map_err(|e| {
-        to_validation_error(e, |_| NewSessionsTemplate {
+        to_validation_error(None, e, |_| NewSessionsTemplate {
             error_message: Some("Incorrect email or password".into()),
             ..params.clone().into()
         })
     })?;
 
     let password = UnhashedPassword::try_from(params.password.clone()).map_err(|e| {
-        to_validation_error(e, |_| NewSessionsTemplate {
+        to_validation_error(None, e, |_| NewSessionsTemplate {
             error_message: Some("Incorrect email or password".into()),
             ..params.clone().into()
         })
@@ -59,7 +59,10 @@ pub async fn create(
             ),
         )
         .body(Body::empty())
-        .map_err(|e| Error::InternalServerError(Box::new(e)))?;
+        .map_err(|e| Error::InternalServerError {
+            session: None,
+            source: Box::new(e),
+        })?;
     hashed_token.insert(&db).await?;
 
     Ok(response)

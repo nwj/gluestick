@@ -16,5 +16,5 @@ pub async fn about(session: Option<Session>) -> Result<impl IntoResponse> {
 }
 
 pub async fn not_found() -> Result<()> {
-    Err(Error::NotFound)
+    Err(Error::NotFound(None))
 }

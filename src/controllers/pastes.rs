@@ -94,8 +94,12 @@ pub async fn create(
     let mut response = HeaderMap::new();
     response.insert(
         "HX-Redirect",
-        HeaderValue::from_str(&format!("/{username}/{paste_id}"))
-            .map_err(|e| Error::InternalServerError(Box::new(e)))?,
+        HeaderValue::from_str(&format!("/{username}/{paste_id}")).map_err(|e| {
+            Error::InternalServerError {
+                session: Some(session),
+                source: Box::new(e),
+            }
+        })?,
     );
 
     Ok(response)
@@ -106,15 +110,15 @@ pub async fn show(
     State(db): State<Database>,
     Path((username, id)): Path<(String, String)>,
 ) -> Result<impl IntoResponse> {
-    let id = Uuid::try_parse(&id).map_err(|_| Error::NotFound)?;
-    let username = Username::try_from(&username).map_err(|_| Error::NotFound)?;
+    let id = Uuid::try_parse(&id).map_err(|_| Error::NotFound(session.clone()))?;
+    let username = Username::try_from(&username).map_err(|_| Error::NotFound(session.clone()))?;
 
     let user = User::find_by_username(&db, username)
         .await?
-        .ok_or(Error::NotFound)?;
+        .ok_or(Error::NotFound(session.clone()))?;
     let paste = Paste::find_scoped_by_user_id(&db, id, user.id)
         .await?
-        .ok_or(Error::NotFound)?;
+        .ok_or(Error::NotFound(session.clone()))?;
     let syntax_highlighted_html = paste.syntax_highlight(&db).await?;
 
     let mut headers = HeaderMap::new();
@@ -135,18 +139,19 @@ pub async fn show(
 }
 
 pub async fn show_raw(
+    session: Option<Session>,
     State(db): State<Database>,
     Path((username, id)): Path<(String, String)>,
 ) -> Result<impl IntoResponse> {
-    let id = Uuid::try_parse(&id).map_err(|_| Error::NotFound)?;
-    let username = Username::try_from(&username).map_err(|_| Error::NotFound)?;
+    let id = Uuid::try_parse(&id).map_err(|_| Error::NotFound(session.clone()))?;
+    let username = Username::try_from(&username).map_err(|_| Error::NotFound(session.clone()))?;
 
     let user = User::find_by_username(&db, username)
         .await?
-        .ok_or(Error::NotFound)?;
+        .ok_or(Error::NotFound(session.clone()))?;
     let paste = Paste::find_scoped_by_user_id(&db, id, user.id)
         .await?
-        .ok_or(Error::NotFound)?;
+        .ok_or(Error::NotFound(session))?;
 
     let mut headers = HeaderMap::new();
     if paste.visibility.is_secret() {
@@ -157,24 +162,29 @@ pub async fn show_raw(
 }
 
 pub async fn download(
+    session: Option<Session>,
     State(db): State<Database>,
     Path((username, id)): Path<(String, String)>,
 ) -> Result<impl IntoResponse> {
-    let id = Uuid::try_parse(&id).map_err(|_| Error::NotFound)?;
-    let username = Username::try_from(&username).map_err(|_| Error::NotFound)?;
+    let id = Uuid::try_parse(&id).map_err(|_| Error::NotFound(session.clone()))?;
+    let username = Username::try_from(&username).map_err(|_| Error::NotFound(session.clone()))?;
 
     let user = User::find_by_username(&db, username)
         .await?
-        .ok_or(Error::NotFound)?;
+        .ok_or(Error::NotFound(session.clone()))?;
     let paste = Paste::find_scoped_by_user_id(&db, id, user.id)
         .await?
-        .ok_or(Error::NotFound)?;
+        .ok_or(Error::NotFound(session.clone()))?;
 
     let mut headers = HeaderMap::new();
     headers.insert(
         "Content-Disposition",
-        HeaderValue::from_str(&format!("attachment; filename=\"{}\"", paste.filename))
-            .map_err(|e| Error::InternalServerError(Box::new(e)))?,
+        HeaderValue::from_str(&format!("attachment; filename=\"{}\"", paste.filename)).map_err(
+            |e| Error::InternalServerError {
+                session,
+                source: Box::new(e),
+            },
+        )?,
     );
     if paste.visibility.is_secret() {
         headers.insert("X-Robots-Tag", HeaderValue::from_static("noindex"));
@@ -188,20 +198,21 @@ pub async fn edit(
     State(db): State<Database>,
     Path((username, id)): Path<(String, String)>,
 ) -> Result<impl IntoResponse> {
-    let id = Uuid::try_parse(&id).map_err(|_| Error::NotFound)?;
-    let username = Username::try_from(&username).map_err(|_| Error::NotFound)?;
+    let id = Uuid::try_parse(&id).map_err(|_| Error::NotFound(Some(session.clone())))?;
+    let username =
+        Username::try_from(&username).map_err(|_| Error::NotFound(Some(session.clone())))?;
 
     let user = User::find_by_username(&db, username)
         .await?
-        .ok_or(Error::NotFound)?;
+        .ok_or(Error::NotFound(Some(session.clone())))?;
 
     if session.user != user {
-        return Err(Error::Forbidden);
+        return Err(Error::Forbidden(Some(session.clone())));
     }
 
     let paste = Paste::find_scoped_by_user_id(&db, id, session.user.id)
         .await?
-        .ok_or(Error::NotFound)?;
+        .ok_or(Error::NotFound(Some(session.clone())))?;
 
     let mut headers = HeaderMap::new();
     if paste.visibility.is_secret() {
@@ -228,26 +239,32 @@ pub async fn update(
     Path((username, paste_id)): Path<(String, String)>,
     Form(params): Form<UpdatePasteParams>,
 ) -> Result<impl IntoResponse> {
-    let paste_id = Uuid::try_parse(&paste_id).map_err(|_| Error::NotFound)?;
-    let username = Username::try_from(&username).map_err(|_| Error::NotFound)?;
+    let paste_id =
+        Uuid::try_parse(&paste_id).map_err(|_| Error::NotFound(Some(session.clone())))?;
+    let username =
+        Username::try_from(&username).map_err(|_| Error::NotFound(Some(session.clone())))?;
 
     let user = User::find_by_username(&db, username.clone())
         .await?
-        .ok_or(Error::NotFound)?;
+        .ok_or(Error::NotFound(Some(session.clone())))?;
 
     if session.user != user {
-        return Err(Error::Forbidden);
+        return Err(Error::Forbidden(Some(session.clone())));
     }
 
     let paste = Paste::find_scoped_by_user_id(&db, paste_id, session.user.id)
         .await?
-        .ok_or(Error::NotFound)?;
+        .ok_or(Error::NotFound(Some(session.clone())))?;
 
     let mut response = HeaderMap::new();
     response.insert(
         "HX-Redirect",
-        HeaderValue::from_str(&format!("/{username}/{}", &paste.id))
-            .map_err(|e| Error::InternalServerError(Box::new(e)))?,
+        HeaderValue::from_str(&format!("/{username}/{}", &paste.id)).map_err(|e| {
+            Error::InternalServerError {
+                session: Some(session),
+                source: Box::new(e),
+            }
+        })?,
     );
 
     let mut error_template = EditPastesFormPartial::from((username, paste_id, params.clone()));
@@ -285,19 +302,20 @@ pub async fn destroy(
     State(db): State<Database>,
     Path((username, id)): Path<(String, String)>,
 ) -> Result<impl IntoResponse> {
-    let id = Uuid::try_parse(&id).map_err(|_| Error::NotFound)?;
-    let username = Username::try_from(&username).map_err(|_| Error::NotFound)?;
+    let id = Uuid::try_parse(&id).map_err(|_| Error::NotFound(Some(session.clone())))?;
+    let username =
+        Username::try_from(&username).map_err(|_| Error::NotFound(Some(session.clone())))?;
 
     let user = User::find_by_username(&db, username)
         .await?
-        .ok_or(Error::NotFound)?;
+        .ok_or(Error::NotFound(Some(session.clone())))?;
     if session.user != user {
-        return Err(Error::Forbidden);
+        return Err(Error::Forbidden(Some(session.clone())));
     }
 
     let paste = Paste::find_scoped_by_user_id(&db, id, session.user.id)
         .await?
-        .ok_or(Error::NotFound)?;
+        .ok_or(Error::NotFound(Some(session)))?;
     paste.delete(&db).await?;
 
     let mut response = HeaderMap::new();
