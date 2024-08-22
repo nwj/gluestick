@@ -68,12 +68,12 @@ pub async fn create(
         || error_template.email_error_message.is_some()
         || error_template.password_error_message.is_some()
     {
-        return Err(Error::Validation(Box::new(error_template)));
+        return Err(Error::Invalid(Box::new(error_template)));
     }
 
     let Some(invite_code) = InviteCode::find(&db, &params.invite_code).await? else {
         error_template.invite_code_error_message = Some("Invalid invite code".into());
-        return Err(Error::Validation(Box::new(error_template)));
+        return Err(Error::Invalid(Box::new(error_template)));
     };
 
     let (username, email, password) = (username_result?, email_result?, password_result?);
@@ -94,7 +94,10 @@ pub async fn create(
             ),
         )
         .body(Body::empty())
-        .map_err(|e| Error::InternalServerError(Box::new(e)))?;
+        .map_err(|e| Error::InternalServerError {
+            session: None,
+            source: Box::new(e),
+        })?;
     hashed_token.insert(&db).await?;
 
     invite_code.delete(&db).await?;
@@ -108,7 +111,7 @@ pub async fn show(
     Path(username): Path<String>,
     Query(pagination_params): Query<CursorPaginationParams>,
 ) -> Result<impl IntoResponse> {
-    let username = Username::try_from(&username).map_err(|_| Error::NotFound)?;
+    let username = Username::try_from(&username).map_err(|_| Error::NotFound(session.clone()))?;
 
     match User::find_by_username(&db, username).await? {
         Some(user) => {
@@ -147,7 +150,7 @@ pub async fn show(
                 pagination: pagination_response,
             })
         }
-        None => Err(Error::NotFound),
+        None => Err(Error::NotFound(session)),
     }
 }
 
@@ -175,14 +178,14 @@ pub async fn change_password(
     Form(params): Form<ChangePasswordParams>,
 ) -> Result<impl IntoResponse> {
     let new_password = UnhashedPassword::try_from(params.new_password.clone()).map_err(|e| {
-        to_validation_error(e, |msg| ChangePasswordFormPartial {
+        to_validation_error(Some(session.clone()), e, |msg| ChangePasswordFormPartial {
             new_password_error_message: Some(msg.to_string()),
             ..params.clone().into()
         })
     })?;
 
     if params.new_password.expose_secret() != params.new_password_confirm.expose_secret() {
-        Err(Error::Validation(Box::new(ChangePasswordFormPartial {
+        Err(Error::Invalid(Box::new(ChangePasswordFormPartial {
             new_password_error_message: Some(
                 "New password and password confirmation do not match".into(),
             ),
@@ -191,14 +194,14 @@ pub async fn change_password(
     }
 
     let old_password = UnhashedPassword::try_from(params.old_password.clone()).map_err(|e| {
-        to_validation_error(e, |_| ChangePasswordFormPartial {
+        to_validation_error(Some(session.clone()), e, |_| ChangePasswordFormPartial {
             old_password_error_message: Some("Incorrect password".into()),
             ..params.clone().into()
         })
     })?;
 
     session.user.verify_password(&old_password).map_err(|e| {
-        to_validation_error(e, |_| ChangePasswordFormPartial {
+        to_validation_error(Some(session.clone()), e, |_| ChangePasswordFormPartial {
             old_password_error_message: Some("Incorrect password".into()),
             ..params.into()
         })
@@ -213,18 +216,19 @@ pub async fn change_password(
 }
 
 pub async fn validate_username(
+    session: Option<Session>,
     State(db): State<Database>,
     Form(params): Form<CreateUserParams>,
 ) -> Result<impl IntoResponse> {
     let username = Username::try_from(&params.username).map_err(|e| {
-        to_validation_error(e, |msg| UsernameInputPartial {
+        to_validation_error(session, e, |msg| UsernameInputPartial {
             username_error_message: Some(msg.into()),
             ..params.clone().into()
         })
     })?;
 
     if User::find_by_username(&db, username).await?.is_some() {
-        Err(Error::Validation(Box::new(UsernameInputPartial {
+        Err(Error::Invalid(Box::new(UsernameInputPartial {
             username_error_message: Some("Username is already taken".into()),
             ..params.clone().into()
         })))?;
@@ -235,18 +239,19 @@ pub async fn validate_username(
 }
 
 pub async fn validate_email(
+    session: Option<Session>,
     State(db): State<Database>,
     Form(params): Form<CreateUserParams>,
 ) -> Result<impl IntoResponse> {
     let email = EmailAddress::try_from(&params.email).map_err(|e| {
-        to_validation_error(e, |msg| EmailAddressInputPartial {
+        to_validation_error(session, e, |msg| EmailAddressInputPartial {
             email_error_message: Some(msg.into()),
             ..params.clone().into()
         })
     })?;
 
     if User::find_by_email(&db, email).await?.is_some() {
-        Err(Error::Validation(Box::new(EmailAddressInputPartial {
+        Err(Error::Invalid(Box::new(EmailAddressInputPartial {
             email_error_message: Some("Email is already taken".into()),
             ..params.clone().into()
         })))?;
@@ -256,9 +261,12 @@ pub async fn validate_email(
     Ok(template)
 }
 
-pub async fn validate_password(Form(params): Form<CreateUserParams>) -> Result<impl IntoResponse> {
+pub async fn validate_password(
+    session: Option<Session>,
+    Form(params): Form<CreateUserParams>,
+) -> Result<impl IntoResponse> {
     let _password = UnhashedPassword::try_from(params.password.clone()).map_err(|e| {
-        to_validation_error(e, |msg| PasswordInputPartial {
+        to_validation_error(session, e, |msg| PasswordInputPartial {
             password_error_message: Some(msg.into()),
             ..params.clone().into()
         })

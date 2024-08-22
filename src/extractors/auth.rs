@@ -20,7 +20,10 @@ where
         let db = parts
             .extract_with_state::<Database, _>(state)
             .await
-            .map_err(|e| ControllerError::InternalServerError(Box::new(e)))?;
+            .map_err(|e| ControllerError::InternalServerError {
+                session: None,
+                source: Box::new(e),
+            })?;
 
         let cookie = CookieJar::from_request_parts(parts, state)
             .await
