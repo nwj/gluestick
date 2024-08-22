@@ -34,6 +34,7 @@ pub struct NewPastesFormPartial {
     pub body: String,
     pub body_error_message: Option<String>,
     pub visibility: String,
+    pub visibility_error_message: Option<String>,
 }
 
 impl Default for NewPastesFormPartial {
@@ -46,6 +47,7 @@ impl Default for NewPastesFormPartial {
             body: String::default(),
             body_error_message: Option::default(),
             visibility: "secret".into(),
+            visibility_error_message: Option::default(),
         }
     }
 }

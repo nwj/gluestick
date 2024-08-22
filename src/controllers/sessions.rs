@@ -40,7 +40,7 @@ pub async fn create(
 
     let user = match User::find_by_email(&db, email).await? {
         Some(user) if user.verify_password(&password).is_ok() => user,
-        _ => Err(Error::Validation(Box::new(NewSessionsTemplate {
+        _ => Err(Error::Invalid(Box::new(NewSessionsTemplate {
             error_message: Some("Incorrect email or password".into()),
             ..params.into()
         })))?,

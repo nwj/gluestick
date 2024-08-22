@@ -13,9 +13,6 @@ pub type Result<T, E = Error> = std::result::Result<T, E>;
 #[allow(clippy::large_enum_variant)]
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error("malformed request")]
-    BadRequest(Box<dyn std::error::Error>),
-
     #[error("invalid authentication credentials")]
     Unauthorized,
 
@@ -32,8 +29,8 @@ pub enum Error {
         source: Box<dyn std::error::Error>,
     },
 
-    #[error("failed validation")]
-    Validation(Box<dyn ErrorTemplate>),
+    #[error("request failed validation")]
+    Invalid(Box<dyn ErrorTemplate>),
 }
 
 impl From<ModelsError> for Error {
@@ -48,11 +45,6 @@ impl From<ModelsError> for Error {
 impl IntoResponse for Error {
     fn into_response(self) -> Response {
         match self {
-            Error::BadRequest(err) => {
-                tracing::error!(%err, "bad request");
-                (StatusCode::BAD_REQUEST, err.to_string()).into_response()
-            }
-
             Error::Unauthorized => (
                 StatusCode::UNAUTHORIZED,
                 UnauthorizedTemplate { session: None },
@@ -89,7 +81,7 @@ impl IntoResponse for Error {
                     .into_response()
             }
 
-            Error::Validation(template) => match template.render_template() {
+            Error::Invalid(template) => match template.render_template() {
                 Ok(html) => (StatusCode::OK, html).into_response(),
                 Err(err) => {
                     tracing::error!(%err, "template rendering error");
@@ -120,7 +112,7 @@ where
     T: ErrorTemplate + 'static,
 {
     match err {
-        ModelsError::Parse(msg) => Error::Validation(Box::new(f(&msg))),
+        ModelsError::Parse(msg) => Error::Invalid(Box::new(f(&msg))),
         e => Error::InternalServerError {
             session,
             source: Box::new(e),

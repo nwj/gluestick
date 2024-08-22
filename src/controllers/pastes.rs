@@ -76,17 +76,25 @@ pub async fn create(
     if let Err(ModelsError::Parse(ref msg)) = body_result {
         error_template.body_error_message = Some(msg.into());
     }
-    let visibility =
-        Visibility::try_from(&params.visibility).map_err(|e| Error::BadRequest(Box::new(e)))?;
+    let visibility_result = Visibility::try_from(&params.visibility);
+    if let Err(ModelsError::Parse(ref msg)) = visibility_result {
+        error_template.visibility_error_message = Some(msg.into());
+    }
 
     if error_template.filename_error_message.is_some()
         || error_template.description_error_message.is_some()
         || error_template.body_error_message.is_some()
+        || error_template.visibility_error_message.is_some()
     {
-        return Err(Error::Validation(Box::new(error_template)));
+        return Err(Error::Invalid(Box::new(error_template)));
     }
 
-    let (filename, description, body) = (filename_result?, description_result?, body_result?);
+    let (filename, description, body, visibility) = (
+        filename_result?,
+        description_result?,
+        body_result?,
+        visibility_result?,
+    );
     let paste = Paste::new(user_id, filename, description, body, visibility)?;
     let paste_id = paste.id;
     paste.insert(&db).await?;
@@ -286,7 +294,7 @@ pub async fn update(
         || error_template.description_error_message.is_some()
         || error_template.body_error_message.is_some()
     {
-        return Err(Error::Validation(Box::new(error_template)));
+        return Err(Error::Invalid(Box::new(error_template)));
     }
 
     let (filename, description, body) = (filename_result?, description_result?, body_result?);
