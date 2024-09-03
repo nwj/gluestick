@@ -116,18 +116,11 @@ body {
 }
 
 header {
-  --svg-border-height: 65px;
-
-  background-color: var(--color-feather-yellow);
-  color: var(--color-black);
-  position: relative;
-  padding-bottom: var(--svg-border-height);
-
   nav {
     max-width: 100%;
     margin: 0 auto;
     width: var(--content-width);
-    padding: var(--spacing-sm) var(--spacing-sm) var(--spacing-md);
+    padding: var(--spacing-xs);
     display: grid;
     grid-template-areas:
       "left center right"
@@ -135,12 +128,17 @@ header {
     justify-content: space-between;
     align-items: center;
     gap: var(--spacing-xs);
+    border-bottom: 2px solid var(--color-white);
 
     a {
-      color: var(--color-black);
-      font-size: var(--font-size-xl);
+      color: var(--color-white);
+      font-size: var(--font-size-md);
       line-height: var(--line-height-heading);
       text-decoration: none;
+
+      &:hover {
+        color: var(--color-feather-yellow);
+      }
     }
 
     .menu-button {
@@ -151,6 +149,13 @@ header {
         background: transparent;
         border: none;
         pointer-events: none;
+        color: var(--color-white);
+      }
+
+      &:hover {
+        button {
+          color: var(--color-feather-yellow);
+        }
       }
     }
 
@@ -159,7 +164,7 @@ header {
       font-family:
         Madimi One,
         sans-serif;
-      font-size: var(--font-size-3xl);
+      font-size: var(--font-size-2xl);
     }
 
     .main-nav {
@@ -190,6 +195,8 @@ header {
 
   @media (min-width: 768px) {
     nav {
+      gap: unset;
+
       .logo {
         grid-area: left;
       }
@@ -198,6 +205,7 @@ header {
       #menu-state:checked + .main-nav {
         grid-area: right;
         display: flex;
+        align-items: center;
         flex-direction: row;
         gap: var(--spacing-md);
       }
@@ -210,13 +218,6 @@ header {
         display: none;
       }
     }
-  }
-
-  .svg-border {
-    position: absolute;
-    bottom: -1px;
-    width: 100%;
-    height: var(--svg-border-height);
   }
 }
 
