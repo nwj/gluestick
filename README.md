@@ -8,6 +8,7 @@
 - [Features](#features)
 - [Installation](#installation)
 - [Administration](#installation)
+- [API Documentation](docs/json-api.md)
 
 ## Disclaimer
 
@@ -59,3 +60,4 @@ Gluestick stores all of its data in a SQLite database file, located by default a
 To take a manual backup: `sqlite3 gluestick.db ".backup 'backup.db'"`. Then backup the resulting `backup.db` file.
 
 Backup can be further improved by automating and scheduling the manual backup process above, or by using [Litestream](https://litestream.io/) to continuously replicate the database to external file storage.
+
