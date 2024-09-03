@@ -62,9 +62,10 @@ pub async fn create(
 
 pub async fn show(
     _session: ApiSession,
-    Path(id): Path<Uuid>,
+    Path(id): Path<String>,
     State(db): State<Database>,
 ) -> Result<impl IntoResponse> {
+    let id = Uuid::try_parse(&id).map_err(|_| Error::NotFound)?;
     match Paste::find(&db, id).await? {
         Some(paste) => Ok(Json(paste)),
         None => Err(Error::NotFound),
@@ -73,9 +74,10 @@ pub async fn show(
 
 pub async fn show_raw(
     _session: ApiSession,
-    Path(id): Path<Uuid>,
+    Path(id): Path<String>,
     State(db): State<Database>,
 ) -> Result<impl IntoResponse> {
+    let id = Uuid::try_parse(&id).map_err(|_| Error::NotFound)?;
     match Paste::find(&db, id).await? {
         Some(paste) => Ok(paste.body.to_string()),
         None => Err(Error::NotFound),
@@ -91,10 +93,11 @@ pub struct UpdatePasteParams {
 
 pub async fn update(
     session: ApiSession,
-    Path(id): Path<Uuid>,
+    Path(id): Path<String>,
     State(db): State<Database>,
     Json(params): Json<UpdatePasteParams>,
 ) -> Result<impl IntoResponse> {
+    let id = Uuid::try_parse(&id).map_err(|_| Error::NotFound)?;
     let filename = match params.filename {
         Some(filename) => {
             Some(Filename::try_from(&filename).map_err(|e| Error::BadRequest(Box::new(e)))?)
@@ -126,9 +129,10 @@ pub async fn update(
 
 pub async fn destroy(
     session: ApiSession,
-    Path(id): Path<Uuid>,
+    Path(id): Path<String>,
     State(db): State<Database>,
 ) -> Result<impl IntoResponse> {
+    let id = Uuid::try_parse(&id).map_err(|_| Error::NotFound)?;
     let optional_paste = Paste::find(&db, id).await?;
 
     match optional_paste {

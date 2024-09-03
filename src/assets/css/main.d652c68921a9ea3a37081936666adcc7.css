@@ -653,6 +653,10 @@ main {
   }
 
   .api-keys {
+    p {
+      margin-bottom: var(--spacing-md);
+    }
+
     button.primary {
       margin-bottom: var(--spacing-lg);
     }

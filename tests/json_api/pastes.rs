@@ -388,7 +388,7 @@ async fn show_responds_with_404_when_paste_doesnt_exist() -> Result<()> {
 }
 
 #[tokio::test]
-async fn show_responds_with_400_when_invalid_input() -> Result<()> {
+async fn show_responds_with_404_when_invalid_id() -> Result<()> {
     let app = TestApp::spawn().await?;
     let (_user, api_key) = TestUser::builder()
         .random()?
@@ -399,7 +399,7 @@ async fn show_responds_with_400_when_invalid_input() -> Result<()> {
     let paste = TestPaste::builder().random()?.id("garbage").build();
 
     let response = client.api_pastes().get_by_id(&paste).await?;
-    assert_eq!(response.status(), 400);
+    assert_eq!(response.status(), 404);
     Ok(())
 }
 
@@ -456,7 +456,10 @@ async fn update_responds_with_400_when_invalid_input() -> Result<()> {
         .seed_with_api_key(&app)
         .await?;
     let client = TestClient::new(app.address, Some(&api_key))?;
-    let paste = TestPaste::builder().random()?.id("garbage").build();
+    let paste = TestPaste::builder()
+        .random()?
+        .filename("illegal/filename.")
+        .build();
 
     let response = client.api_pastes().patch_by_id(&paste).await?;
     assert_eq!(response.status(), 400);
@@ -573,7 +576,7 @@ async fn destroy_responds_with_404_when_paste_doesnt_exist() -> Result<()> {
 }
 
 #[tokio::test]
-async fn destroy_responds_with_400_when_invalid_input() -> Result<()> {
+async fn destroy_responds_with_404_when_invalid_id() -> Result<()> {
     let app = TestApp::spawn().await?;
     let (_user, api_key) = TestUser::builder()
         .random()?
@@ -584,7 +587,7 @@ async fn destroy_responds_with_400_when_invalid_input() -> Result<()> {
     let paste = TestPaste::builder().random()?.id("garbage").build();
 
     let response = client.api_pastes().delete_by_id(&paste).await?;
-    assert_eq!(response.status(), 400);
+    assert_eq!(response.status(), 404);
     Ok(())
 }
 
