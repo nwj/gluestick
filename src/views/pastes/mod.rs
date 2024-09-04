@@ -114,6 +114,8 @@ pub struct EditPastesFormPartial {
     pub description_error_message: Option<String>,
     pub body: String,
     pub body_error_message: Option<String>,
+    pub visibility: String,
+    pub visibility_error_message: Option<String>,
 }
 
 impl From<(Username, Paste)> for EditPastesFormPartial {
@@ -125,6 +127,7 @@ impl From<(Username, Paste)> for EditPastesFormPartial {
             filename: paste.filename.to_string(),
             description: paste.description.to_string(),
             body: paste.body.to_string(),
+            visibility: paste.visibility.to_string(),
             ..Default::default()
         }
     }

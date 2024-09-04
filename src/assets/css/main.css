@@ -71,8 +71,9 @@ svg.icon {
   --color-midnight-blue: #242836;
   --color-space-cadet-blue: #303446;
   --color-jigglypuff-pink: #ffa7ee;
-  --color-fusion-red: #ff565b;
   --color-celery-green: #bffea4;
+  --color-banana-pepper-yellow: #ffcb3d;
+  --color-fusion-red: #ff565b;
 
   --font-monospace: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo,
     Consolas, "DejaVu Sans Mono", monospace;
@@ -625,6 +626,15 @@ main {
       label {
         display: block;
       }
+    }
+
+    .visibility-warning {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-2xs);
+      font-size: var(--font-size-sm);
+      color: var(--color-banana-pepper-yellow);
+      margin-bottom: var(--spacing-xs);
     }
 
     button.primary {

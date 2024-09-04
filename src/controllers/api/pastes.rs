@@ -89,6 +89,7 @@ pub struct UpdatePasteParams {
     pub filename: Option<String>,
     pub description: Option<String>,
     pub body: Option<String>,
+    pub visibility: Option<String>,
 }
 
 pub async fn update(
@@ -114,13 +115,31 @@ pub async fn update(
         Some(body) => Some(Body::try_from(&body).map_err(|e| Error::BadRequest(Box::new(e)))?),
         None => None,
     };
+    let visibility = match params.visibility {
+        Some(visibility) => {
+            Some(Visibility::try_from(&visibility).map_err(|e| Error::BadRequest(Box::new(e)))?)
+        }
+        None => None,
+    };
 
     let optional_paste = Paste::find(&db, id).await?;
 
     match optional_paste {
         Some(paste) if paste.user_id == session.user.id => {
-            paste.update(&db, filename, description, body).await?;
-            Ok(())
+            // Once a paste is public, we don't let people update it back to secret because the
+            // paste could have been indexed (or otherwise seen/recorded by someone) and we don't
+            // want to give the impression that we can somehow undo the paste's public disclosure
+            if paste.visibility.is_public()
+                && visibility.as_ref().map_or(false, Visibility::is_secret)
+            {
+                let e = ValidationError("Cannot change from public to secret visibility".into());
+                Err(Error::BadRequest(Box::new(e)))
+            } else {
+                paste
+                    .update(&db, filename, description, body, visibility)
+                    .await?;
+                Ok(())
+            }
         }
         Some(_) => Err(Error::Forbidden),
         None => Err(Error::NotFound),

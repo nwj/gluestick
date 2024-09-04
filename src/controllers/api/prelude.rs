@@ -7,6 +7,10 @@ use serde::Serialize;
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
 #[derive(Debug, thiserror::Error)]
+#[error("{0}")]
+pub struct ValidationError(pub String);
+
+#[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("malformed request")]
     BadRequest(Box<dyn std::error::Error>),
