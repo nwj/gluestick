@@ -536,6 +536,50 @@ async fn cannot_update_other_users_pastes() -> Result<()> {
 }
 
 #[tokio::test]
+async fn cannot_update_public_paste_to_secret() -> Result<()> {
+    let app = TestApp::spawn().await?;
+    let (user, api_key) = TestUser::builder()
+        .random()?
+        .build()
+        .seed_with_api_key(&app)
+        .await?;
+    let client = TestClient::new(app.address, Some(&api_key))?;
+    let mut paste = TestPaste::builder()
+        .random()?
+        .visibility("public")
+        .build()
+        .seed(&app, &user)
+        .await?;
+
+    paste.visibility = "secret".into();
+    let response = client.api_pastes().patch_by_id(&paste).await?;
+    assert_eq!(response.status(), 400);
+    Ok(())
+}
+
+#[tokio::test]
+async fn can_update_secret_paste_to_public() -> Result<()> {
+    let app = TestApp::spawn().await?;
+    let (user, api_key) = TestUser::builder()
+        .random()?
+        .build()
+        .seed_with_api_key(&app)
+        .await?;
+    let client = TestClient::new(app.address, Some(&api_key))?;
+    let mut paste = TestPaste::builder()
+        .random()?
+        .visibility("secret")
+        .build()
+        .seed(&app, &user)
+        .await?;
+
+    paste.visibility = "public".into();
+    let response = client.api_pastes().patch_by_id(&paste).await?;
+    assert_eq!(response.status(), 200);
+    Ok(())
+}
+
+#[tokio::test]
 async fn destroy_requires_an_api_key() -> Result<()> {
     let app = TestApp::spawn().await?;
     let (user, api_key) = TestUser::builder()

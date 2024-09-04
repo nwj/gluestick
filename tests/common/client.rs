@@ -387,6 +387,7 @@ impl<'c> UsernameEndpoint<'c> {
                 ("filename", &paste.filename),
                 ("description", &paste.description),
                 ("body", &paste.body),
+                ("visibility", &paste.visibility),
             ])
             .send()
             .await?)

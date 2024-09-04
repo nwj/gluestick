@@ -344,6 +344,7 @@ impl Paste {
         filename: Option<Filename>,
         description: Option<Description>,
         body: Option<Body>,
+        visibility: Option<Visibility>,
     ) -> Result<()> {
         let original_filename = self.filename.clone();
         let original_body = self.body.clone();
@@ -356,6 +357,9 @@ impl Paste {
         }
         if let Some(body) = body {
             self.body = body;
+        }
+        if let Some(visibility) = visibility {
+            self.visibility = visibility;
         }
 
         let mut maybe_html: Option<String> = None;
@@ -370,13 +374,14 @@ impl Paste {
             {
                 let mut pastes_stmt = tx.prepare(
                     r"UPDATE pastes
-                    SET filename = :filename, description = :desc, body = :body, updated_at = :updated_at
+                    SET filename = :filename, description = :desc, body = :body, visibility = :visibility, updated_at = :updated_at
                     WHERE id = :id;"
                 )?;
                 pastes_stmt.execute(named_params! {
                     ":filename": self.filename,
                     ":desc": self.description,
                     ":body": self.body,
+                    ":visibility": self.visibility,
                     ":updated_at": Timestamp::now().as_millisecond(),
                     ":id": self.id,
                 })?;
@@ -606,12 +611,24 @@ impl TryFrom<&String> for Visibility {
     }
 }
 
+impl From<&Visibility> for String {
+    fn from(value: &Visibility) -> String {
+        match value {
+            Visibility::Public => "public".into(),
+            Visibility::Secret => "secret".into(),
+        }
+    }
+}
+
+impl std::fmt::Display for Visibility {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", String::from(self))
+    }
+}
+
 impl ToSql for Visibility {
     fn to_sql(&self) -> Result<ToSqlOutput<'_>, rusqlite::Error> {
-        match self {
-            Self::Public => Ok("public".into()),
-            Self::Secret => Ok("secret".into()),
-        }
+        Ok(self.to_string().into())
     }
 }
 

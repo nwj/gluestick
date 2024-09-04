@@ -636,6 +636,70 @@ async fn cannot_update_other_users_pastes() -> Result<()> {
 }
 
 #[tokio::test]
+async fn cannot_update_public_paste_to_secret() -> Result<()> {
+    let app = TestApp::spawn().await?;
+    let (user, api_key) = TestUser::builder()
+        .random()?
+        .build()
+        .seed_with_api_key(&app)
+        .await?;
+    let client = TestClient::new(app.address, Some(&api_key))?;
+    client.login().post(&user).await?;
+    let mut paste = TestPaste::builder()
+        .random()?
+        .random_id()
+        .visibility("public")
+        .build()
+        .seed(&app, &user)
+        .await?;
+
+    paste.visibility = "secret".into();
+    let response = client
+        .username(&user.username)
+        .put_by_paste_id(&paste)
+        .await?;
+    assert_eq!(response.status(), 200);
+
+    let response = client.api_pastes().get_by_id(&paste).await?;
+    assert_eq!(response.status(), 200);
+    let persisted_paste: TestPaste = response.json().await?;
+    assert_eq!(persisted_paste.visibility, "public".to_string());
+    Ok(())
+}
+
+#[tokio::test]
+async fn can_update_secret_paste_to_public() -> Result<()> {
+    let app = TestApp::spawn().await?;
+    let (user, api_key) = TestUser::builder()
+        .random()?
+        .build()
+        .seed_with_api_key(&app)
+        .await?;
+    let client = TestClient::new(app.address, Some(&api_key))?;
+    client.login().post(&user).await?;
+    let mut paste = TestPaste::builder()
+        .random()?
+        .random_id()
+        .visibility("secret")
+        .build()
+        .seed(&app, &user)
+        .await?;
+
+    paste.visibility = "public".into();
+    let response = client
+        .username(&user.username)
+        .put_by_paste_id(&paste)
+        .await?;
+    assert_eq!(response.status(), 200);
+
+    let response = client.api_pastes().get_by_id(&paste).await?;
+    assert_eq!(response.status(), 200);
+    let persisted_paste: TestPaste = response.json().await?;
+    assert_eq!(persisted_paste.visibility, "public".to_string());
+    Ok(())
+}
+
+#[tokio::test]
 async fn destroy_requires_a_session() -> Result<()> {
     let app = TestApp::spawn().await?;
     let (user, api_key) = TestUser::builder()
