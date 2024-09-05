@@ -10,7 +10,6 @@ use std::fmt::Debug;
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
-#[allow(clippy::large_enum_variant)]
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("invalid authentication credentials")]
@@ -22,7 +21,6 @@ pub enum Error {
     #[error("resource not found")]
     NotFound(Option<Session>),
 
-    #[allow(clippy::enum_variant_names)]
     #[error("internal server error: {source}")]
     InternalServerError {
         session: Option<Session>,

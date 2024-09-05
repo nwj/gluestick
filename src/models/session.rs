@@ -70,7 +70,7 @@ impl Session {
     }
 }
 
-#[allow(clippy::module_name_repetitions)]
+#[expect(clippy::module_name_repetitions)]
 #[derive(Clone, Debug)]
 pub struct SessionToken {
     pub token: HashedToken,

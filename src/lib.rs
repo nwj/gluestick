@@ -1,5 +1,6 @@
 #![deny(clippy::all)]
 #![deny(clippy::pedantic)]
+#![warn(clippy::allow_attributes)]
 #![allow(clippy::missing_errors_doc)]
 #![allow(clippy::must_use_candidate)]
 

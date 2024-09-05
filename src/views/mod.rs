@@ -36,7 +36,6 @@ pub struct InternalServerErrorTemplate {
     pub session: Option<Session>,
 }
 
-#[allow(clippy::unnecessary_wraps)]
 pub mod filters {
     use jiff::{tz::TimeZone, SpanRound, Timestamp, Unit, Zoned};
     use std::fmt::Write;
@@ -120,7 +119,7 @@ pub mod filters {
         linewise_truncate_html(s, 10)
     }
 
-    #[allow(
+    #[expect(
         clippy::cast_precision_loss,
         clippy::cast_sign_loss,
         clippy::cast_possible_truncation
@@ -148,7 +147,7 @@ pub mod filters {
         Ok(datetime.strftime("%b %d, %Y at %-I:%M%P %Z").to_string())
     }
 
-    #[allow(clippy::cast_lossless)]
+    #[expect(clippy::cast_lossless)]
     pub fn format_timestamp_relative(ts: &Timestamp) -> askama::Result<String> {
         let now = Zoned::new(Timestamp::now(), TimeZone::UTC);
         let then = Zoned::new(*ts, TimeZone::UTC);
