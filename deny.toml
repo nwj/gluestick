@@ -8,10 +8,7 @@
 # A list of advisory IDs to ignore. Note that ignored advisories will still
 # output a note when they are encountered.
 ignore = [
-    {
-        id = "RUSTSEC-2024-0320",
-        reason = "Syntect uses yaml-rust, which is unmaintained, though they intend to upgrade to yaml-rust2 in v6.0.0. For now, this is fine."
-    },
+    { id = "RUSTSEC-2024-0320", reason = "Syntect uses yaml-rust, which is unmaintained, though they intend to upgrade to yaml-rust2 in v6.0.0. For now, this is fine." },
 ]
 
 # This section is considered when running `cargo deny check licenses`
