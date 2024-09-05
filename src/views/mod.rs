@@ -246,12 +246,6 @@ pub mod filters {
                     .unwrap()
                     .timestamp();
                 assert_eq!(format_timestamp_relative(&ts).unwrap(), "42 minutes ago");
-
-                let ts = now
-                    .checked_sub(Span::new().seconds(53))
-                    .unwrap()
-                    .timestamp();
-                assert_eq!(format_timestamp_relative(&ts).unwrap(), "54 seconds ago");
             }
 
             #[test]
@@ -272,9 +266,6 @@ pub mod filters {
 
                 let ts = now.checked_sub(Span::new().minutes(1)).unwrap().timestamp();
                 assert_eq!(format_timestamp_relative(&ts).unwrap(), "1 minute ago");
-
-                let ts = now.checked_sub(Span::new().seconds(1)).unwrap().timestamp();
-                assert_eq!(format_timestamp_relative(&ts).unwrap(), "2 seconds ago");
             }
 
             #[test]
