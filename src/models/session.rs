@@ -68,6 +68,13 @@ impl Session {
             None => Ok(None),
         }
     }
+
+    pub fn format_for_trace(&self) -> String {
+        format!(
+            "{{user_id={} username={} email={}}}",
+            self.user.id, self.user.username, self.user.email
+        )
+    }
 }
 
 #[expect(clippy::module_name_repetitions)]
@@ -106,7 +113,7 @@ impl SessionToken {
 
     pub async fn expire_absolute(db: &Database) -> Result<usize> {
         let expiration_ttl = ABSOLUTE_SESSION_TTL_SECONDS.seconds();
-        tracing::trace!(
+        tracing::info!(
             "expiring sessions older than {} days",
             expiration_ttl.total(Unit::Day)?
         );
@@ -124,13 +131,13 @@ impl SessionToken {
             })
             .await?;
 
-        tracing::trace!("done expiring old sessions, expired {result} sessions");
+        tracing::info!("done expiring old sessions, expired {result} sessions");
         Ok(result)
     }
 
     pub async fn expire_idle(db: &Database) -> Result<usize> {
         let expiration_ttl = IDLE_SESSION_TTL_SECONDS.seconds();
-        tracing::trace!(
+        tracing::info!(
             "expiring sessions idle for more than {} hours",
             expiration_ttl.total(Unit::Hour)?
         );
@@ -148,7 +155,7 @@ impl SessionToken {
             })
             .await?;
 
-        tracing::trace!("done expiring idle sessions, expired {result} sessions");
+        tracing::info!("done expiring idle sessions, expired {result} sessions");
         Ok(result)
     }
 

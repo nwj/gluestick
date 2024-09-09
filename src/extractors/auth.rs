@@ -38,7 +38,13 @@ where
         let maybe_session = Session::find_by_unhashed_token(&db, &token).await?;
 
         match maybe_session {
-            Some(session) => Ok(session),
+            Some(session) => {
+                tracing::Span::current().record(
+                    "session",
+                    tracing::field::display(&session.format_for_trace()),
+                );
+                Ok(session)
+            }
             None => Err(ControllerError::Unauthorized),
         }
     }
@@ -71,7 +77,13 @@ where
         let maybe_api_session = ApiSession::find_by_unhashed_key(&db, &unhashed_key).await?;
 
         match maybe_api_session {
-            Some(api_session) => Ok(api_session),
+            Some(api_session) => {
+                tracing::Span::current().record(
+                    "api_session",
+                    tracing::field::display(&api_session.format_for_trace()),
+                );
+                Ok(api_session)
+            }
             None => Err(ApiControllerError::Unauthorized),
         }
     }

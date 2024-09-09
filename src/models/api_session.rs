@@ -62,6 +62,13 @@ impl ApiSession {
             None => Ok(None),
         }
     }
+
+    pub fn format_for_trace(&self) -> String {
+        format!(
+            "{{user_id={} username={} email={} key_id={}}}",
+            self.user.id, self.user.username, self.user.email, self.api_key.id
+        )
+    }
 }
 
 pub struct ApiKey {
