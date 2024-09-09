@@ -86,7 +86,7 @@ pub async fn create(
         || error_template.body_error_message.is_some()
         || error_template.visibility_error_message.is_some()
     {
-        return Err(Error::Invalid(Box::new(error_template)));
+        return Err(Error::Unprocessable(Box::new(error_template)));
     }
 
     let (filename, description, body, visibility) = (
@@ -300,7 +300,7 @@ pub async fn update(
         || error_template.body_error_message.is_some()
         || error_template.visibility_error_message.is_some()
     {
-        return Err(Error::Invalid(Box::new(error_template)));
+        return Err(Error::Unprocessable(Box::new(error_template)));
     }
 
     let (filename, description, body, visibility) = (
@@ -316,7 +316,7 @@ pub async fn update(
     if paste.visibility.is_public() && visibility.is_secret() {
         error_template.visibility_error_message =
             Some("Cannot change from public to secret visibility".into());
-        return Err(Error::Invalid(Box::new(error_template)));
+        return Err(Error::Unprocessable(Box::new(error_template)));
     }
 
     paste

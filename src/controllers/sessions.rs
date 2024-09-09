@@ -25,14 +25,14 @@ pub async fn create(
     Form(params): Form<CreateSessionParams>,
 ) -> Result<impl IntoResponse> {
     let email = EmailAddress::try_from(&params.email).map_err(|e| {
-        to_validation_error(None, e, |_| NewSessionsTemplate {
+        to_unauthorized_error(None, e, |_| NewSessionsTemplate {
             error_message: Some("Incorrect email or password".into()),
             ..params.clone().into()
         })
     })?;
 
     let password = UnhashedPassword::try_from(params.password.clone()).map_err(|e| {
-        to_validation_error(None, e, |_| NewSessionsTemplate {
+        to_unauthorized_error(None, e, |_| NewSessionsTemplate {
             error_message: Some("Incorrect email or password".into()),
             ..params.clone().into()
         })
@@ -40,7 +40,7 @@ pub async fn create(
 
     let user = match User::find_by_email(&db, email).await? {
         Some(user) if user.verify_password(&password).is_ok() => user,
-        _ => Err(Error::Invalid(Box::new(NewSessionsTemplate {
+        _ => Err(Error::UnauthorizedInline(Box::new(NewSessionsTemplate {
             error_message: Some("Incorrect email or password".into()),
             ..params.into()
         })))?,

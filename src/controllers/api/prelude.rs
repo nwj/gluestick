@@ -13,7 +13,7 @@ pub struct ValidationError(pub String);
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("malformed request")]
-    BadRequest(Box<dyn std::error::Error>),
+    Unprocessable(Box<dyn std::error::Error>),
 
     #[error("invalid authentication credentials")]
     Unauthorized,
@@ -37,8 +37,6 @@ impl From<ModelsError> for Error {
 impl IntoResponse for Error {
     fn into_response(self) -> Response {
         let (status, message) = match self {
-            Error::BadRequest(err) => (StatusCode::BAD_REQUEST, format!("{err}")),
-
             Error::Unauthorized => (
                 StatusCode::UNAUTHORIZED,
                 "Invalid authentication credentials.".into(),
@@ -47,6 +45,8 @@ impl IntoResponse for Error {
             Error::Forbidden => (StatusCode::FORBIDDEN, "Insufficient privileges".into()),
 
             Error::NotFound => (StatusCode::NOT_FOUND, "Resource not found.".into()),
+
+            Error::Unprocessable(err) => (StatusCode::UNPROCESSABLE_ENTITY, format!("{err}")),
 
             Error::InternalServerError(err) => {
                 tracing::error!(%err, "internal server error");

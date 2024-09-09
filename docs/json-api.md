@@ -164,15 +164,6 @@ curl -X DELETE \
 
 The API returns appropriate HTTP status codes along with JSON error messages for various error scenarios. Some common error responses include:
 
-### 400 Bad Request
-```json
-{
-    "status": 400,
-    "error": "Bad Request",
-    "message": "Filename may not contain the following characters: < > : \" / \\ | ? *"
-}
-```
-
 ### 401 Unauthorized
 ```json
 {
@@ -197,5 +188,14 @@ The API returns appropriate HTTP status codes along with JSON error messages for
     "status": 404,
     "error": "Not Found",
     "message": "Resource not found."
+}
+```
+
+### 422 Unprocessable Entity
+```json
+{
+    "status": 422,
+    "error": "Unprocessable Entity",
+    "message": "Filename may not contain the following characters: < > : \" / \\ | ? *"
 }
 ```

@@ -322,7 +322,7 @@ async fn create_responds_with_400_when_missing_required_fields() -> Result<()> {
 
     for bad_paste in bad_pastes {
         let response = client.api_pastes().post(&bad_paste).await?;
-        assert_eq!(response.status(), 400)
+        assert_eq!(response.status(), 422)
     }
     Ok(())
 }
@@ -350,7 +350,7 @@ async fn create_responds_with_400_when_invalid_fields() -> Result<()> {
 
     for bad_paste in bad_pastes {
         let response = client.api_pastes().post(&bad_paste).await?;
-        assert_eq!(response.status(), 400)
+        assert_eq!(response.status(), 422)
     }
     Ok(())
 }
@@ -462,7 +462,7 @@ async fn update_responds_with_400_when_invalid_input() -> Result<()> {
         .build();
 
     let response = client.api_pastes().patch_by_id(&paste).await?;
-    assert_eq!(response.status(), 400);
+    assert_eq!(response.status(), 422);
     Ok(())
 }
 
@@ -497,7 +497,7 @@ async fn update_responds_with_400_when_invalid_fields() -> Result<()> {
 
     for bad_paste in bad_pastes {
         let response = client.api_pastes().patch_by_id(&bad_paste).await?;
-        assert_eq!(response.status(), 400)
+        assert_eq!(response.status(), 422)
     }
     Ok(())
 }
@@ -553,7 +553,7 @@ async fn cannot_update_public_paste_to_secret() -> Result<()> {
 
     paste.visibility = "secret".into();
     let response = client.api_pastes().patch_by_id(&paste).await?;
-    assert_eq!(response.status(), 400);
+    assert_eq!(response.status(), 422);
     Ok(())
 }
 

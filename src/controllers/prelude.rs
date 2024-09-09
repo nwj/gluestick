@@ -15,20 +15,23 @@ pub enum Error {
     #[error("invalid authentication credentials")]
     Unauthorized,
 
+    #[error("invalid authentication credentials")]
+    UnauthorizedInline(Box<dyn ErrorTemplate>),
+
     #[error("insufficient privileges")]
     Forbidden(Option<Session>),
 
     #[error("resource not found")]
     NotFound(Option<Session>),
 
+    #[error("unprocessable content")]
+    Unprocessable(Box<dyn ErrorTemplate>),
+
     #[error("internal server error: {source}")]
     InternalServerError {
         session: Option<Session>,
         source: Box<dyn std::error::Error>,
     },
-
-    #[error("request failed validation")]
-    Invalid(Box<dyn ErrorTemplate>),
 }
 
 impl From<ModelsError> for Error {
@@ -49,6 +52,18 @@ impl IntoResponse for Error {
             )
                 .into_response(),
 
+            Error::UnauthorizedInline(template) => match template.render_template() {
+                Ok(html) => (StatusCode::UNAUTHORIZED, html).into_response(),
+                Err(err) => {
+                    tracing::error!(%err, "template rendering error");
+                    (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        InternalServerErrorTemplate { session: None },
+                    )
+                        .into_response()
+                }
+            },
+
             Error::Forbidden(maybe_session) => (
                 StatusCode::FORBIDDEN,
                 ForbiddenTemplate {
@@ -65,6 +80,18 @@ impl IntoResponse for Error {
             )
                 .into_response(),
 
+            Error::Unprocessable(template) => match template.render_template() {
+                Ok(html) => (StatusCode::UNPROCESSABLE_ENTITY, html).into_response(),
+                Err(err) => {
+                    tracing::error!(%err, "template rendering error");
+                    (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        InternalServerErrorTemplate { session: None },
+                    )
+                        .into_response()
+                }
+            },
+
             Error::InternalServerError {
                 session: maybe_session,
                 source,
@@ -78,18 +105,6 @@ impl IntoResponse for Error {
                 )
                     .into_response()
             }
-
-            Error::Invalid(template) => match template.render_template() {
-                Ok(html) => (StatusCode::OK, html).into_response(),
-                Err(err) => {
-                    tracing::error!(%err, "template rendering error");
-                    (
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        InternalServerErrorTemplate { session: None },
-                    )
-                        .into_response()
-                }
-            },
         }
     }
 }
@@ -110,7 +125,21 @@ where
     T: ErrorTemplate + 'static,
 {
     match err {
-        ModelsError::Parse(msg) => Error::Invalid(Box::new(f(&msg))),
+        ModelsError::Parse(msg) => Error::Unprocessable(Box::new(f(&msg))),
+        e => Error::InternalServerError {
+            session,
+            source: Box::new(e),
+        },
+    }
+}
+
+pub fn to_unauthorized_error<F, T>(session: Option<Session>, err: ModelsError, f: F) -> Error
+where
+    F: FnOnce(&str) -> T,
+    T: ErrorTemplate + 'static,
+{
+    match err {
+        ModelsError::Parse(msg) => Error::UnauthorizedInline(Box::new(f(&msg))),
         e => Error::InternalServerError {
             session,
             source: Box::new(e),

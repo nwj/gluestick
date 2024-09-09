@@ -47,12 +47,12 @@ pub async fn create(
     Json(params): Json<CreatePasteParams>,
 ) -> Result<impl IntoResponse> {
     let filename =
-        Filename::try_from(&params.filename).map_err(|e| Error::BadRequest(Box::new(e)))?;
-    let description =
-        Description::try_from(&params.description).map_err(|e| Error::BadRequest(Box::new(e)))?;
-    let body = Body::try_from(&params.body).map_err(|e| Error::BadRequest(Box::new(e)))?;
+        Filename::try_from(&params.filename).map_err(|e| Error::Unprocessable(Box::new(e)))?;
+    let description = Description::try_from(&params.description)
+        .map_err(|e| Error::Unprocessable(Box::new(e)))?;
+    let body = Body::try_from(&params.body).map_err(|e| Error::Unprocessable(Box::new(e)))?;
     let visibility =
-        Visibility::try_from(&params.visibility).map_err(|e| Error::BadRequest(Box::new(e)))?;
+        Visibility::try_from(&params.visibility).map_err(|e| Error::Unprocessable(Box::new(e)))?;
 
     let paste = Paste::new(session.user.id, filename, description, body, visibility)?;
     let id = paste.id;
@@ -101,23 +101,23 @@ pub async fn update(
     let id = Uuid::try_parse(&id).map_err(|_| Error::NotFound)?;
     let filename = match params.filename {
         Some(filename) => {
-            Some(Filename::try_from(&filename).map_err(|e| Error::BadRequest(Box::new(e)))?)
+            Some(Filename::try_from(&filename).map_err(|e| Error::Unprocessable(Box::new(e)))?)
         }
         None => None,
     };
     let description = match params.description {
-        Some(description) => {
-            Some(Description::try_from(&description).map_err(|e| Error::BadRequest(Box::new(e)))?)
-        }
+        Some(description) => Some(
+            Description::try_from(&description).map_err(|e| Error::Unprocessable(Box::new(e)))?,
+        ),
         None => None,
     };
     let body = match params.body {
-        Some(body) => Some(Body::try_from(&body).map_err(|e| Error::BadRequest(Box::new(e)))?),
+        Some(body) => Some(Body::try_from(&body).map_err(|e| Error::Unprocessable(Box::new(e)))?),
         None => None,
     };
     let visibility = match params.visibility {
         Some(visibility) => {
-            Some(Visibility::try_from(&visibility).map_err(|e| Error::BadRequest(Box::new(e)))?)
+            Some(Visibility::try_from(&visibility).map_err(|e| Error::Unprocessable(Box::new(e)))?)
         }
         None => None,
     };
@@ -133,7 +133,7 @@ pub async fn update(
                 && visibility.as_ref().map_or(false, Visibility::is_secret)
             {
                 let e = ValidationError("Cannot change from public to secret visibility".into());
-                Err(Error::BadRequest(Box::new(e)))
+                Err(Error::Unprocessable(Box::new(e)))
             } else {
                 paste
                     .update(&db, filename, description, body, visibility)
