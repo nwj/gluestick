@@ -39,10 +39,7 @@ where
 
         match maybe_session {
             Some(session) => {
-                tracing::Span::current().record(
-                    "session",
-                    tracing::field::display(&session.format_for_trace()),
-                );
+                tracing::Span::current().record("session", tracing::field::display(&session));
                 Ok(session)
             }
             None => Err(ControllerError::Unauthorized),
@@ -78,10 +75,8 @@ where
 
         match maybe_api_session {
             Some(api_session) => {
-                tracing::Span::current().record(
-                    "api_session",
-                    tracing::field::display(&api_session.format_for_trace()),
-                );
+                tracing::Span::current()
+                    .record("api_session", tracing::field::display(&api_session));
                 Ok(api_session)
             }
             None => Err(ApiControllerError::Unauthorized),

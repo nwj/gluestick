@@ -83,12 +83,14 @@ pub fn tx_cache_get(tx: &Transaction, paste_id: &Uuid) -> rusqlite::Result<Optio
 }
 
 pub fn tx_cache_set(tx: &Transaction, paste_id: &Uuid, html: &str) -> rusqlite::Result<()> {
+    tracing::info!("setting cached syntax highlighting for paste_id: {paste_id}");
     let mut stmt = tx.prepare("INSERT INTO syntax_highlight_cache VALUES (:paste_id, :html) ON CONFLICT DO UPDATE SET html = :html;")?;
     stmt.execute(named_params! {":paste_id": paste_id, ":html": html})?;
     Ok(())
 }
 
 pub fn tx_cache_expire(tx: &Transaction, paste_id: &Uuid) -> rusqlite::Result<()> {
+    tracing::info!("expiring cached syntax highlighting for paste_id: {paste_id}");
     let mut stmt = tx.prepare("DELETE FROM syntax_highlight_cache WHERE paste_id = :paste_id;")?;
     stmt.execute(named_params! {":paste_id": paste_id})?;
     Ok(())

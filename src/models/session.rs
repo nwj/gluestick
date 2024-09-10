@@ -1,7 +1,7 @@
 use crate::db::Database;
 use crate::models::prelude::*;
 use crate::models::user::User;
-use derive_more::From;
+use derive_more::{Display, From};
 use jiff::{Timestamp, ToSpan, Unit};
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
@@ -16,7 +16,8 @@ pub const SESSION_COOKIE_NAME: &str = "session_token";
 const ABSOLUTE_SESSION_TTL_SECONDS: i64 = 1_209_600; // 14 days
 const IDLE_SESSION_TTL_SECONDS: i64 = 28_800; // 8 hours
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Display)]
+#[display("{{ user: {user} }}")]
 pub struct Session {
     pub session_token: SessionToken,
     pub user: User,
@@ -68,17 +69,11 @@ impl Session {
             None => Ok(None),
         }
     }
-
-    pub fn format_for_trace(&self) -> String {
-        format!(
-            "{{user_id={} username={} email={}}}",
-            self.user.id, self.user.username, self.user.email
-        )
-    }
 }
 
 #[expect(clippy::module_name_repetitions)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Display)]
+#[display("{{ user_id: {user_id} }}")]
 pub struct SessionToken {
     pub token: HashedToken,
     pub user_id: Uuid,
@@ -160,6 +155,7 @@ impl SessionToken {
     }
 
     pub async fn insert(self, db: &Database) -> Result<usize> {
+        tracing::info!("inserting session token {self}");
         let result = db
             .conn
             .call(move |conn| {

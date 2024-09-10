@@ -12,7 +12,8 @@ use std::convert::TryFrom;
 use std::str::FromStr;
 use uuid::Uuid;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Display)]
+#[display("{{ id: {id}, username: {username}, email: {email} }}")]
 pub struct User {
     pub id: Uuid,
     pub username: Username,
@@ -63,6 +64,7 @@ impl User {
     }
 
     pub async fn insert(self, db: &Database) -> Result<usize> {
+        tracing::info!("inserting user {self}");
         let result = db
             .conn
             .call(move |conn| {
@@ -88,6 +90,7 @@ impl User {
         db: &Database,
         new_password: UnhashedPassword,
     ) -> Result<usize> {
+        tracing::info!("updating password for user {self}");
         let id = self.id;
         let hashed_password = HashedPassword::try_from(new_password)?;
         let result = db
@@ -145,6 +148,7 @@ impl User {
     }
 
     pub async fn delete_sessions(self, db: &Database) -> Result<usize> {
+        tracing::info!("deleting all sessions for user {self}");
         let result = db
             .conn
             .call(move |conn| {

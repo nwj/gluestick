@@ -1,9 +1,10 @@
 use crate::db::Database;
 use crate::models::prelude::*;
+use derive_more::Display;
 use rusqlite::named_params;
 use rusqlite::types::{FromSql, FromSqlResult, ToSql, ToSqlOutput, ValueRef};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Display)]
 pub struct InviteCode(String);
 
 impl InviteCode {
@@ -25,6 +26,7 @@ impl InviteCode {
     }
 
     pub async fn delete(self, db: &Database) -> Result<usize> {
+        tracing::info!("deleting invite code: {self}");
         let result = db
             .conn
             .call(move |conn| {
