@@ -1,7 +1,7 @@
 use crate::db::Database;
 use crate::models::prelude::*;
 use crate::models::user::User;
-use derive_more::From;
+use derive_more::{Display, From};
 use jiff::Timestamp;
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
@@ -14,6 +14,8 @@ use uuid::Uuid;
 
 pub const API_KEY_HEADER_NAME: &str = "X-GLUESTICK-API-KEY";
 
+#[derive(Debug, Display)]
+#[display("{{ api_key: {api_key}, user: {user} }}")]
 pub struct ApiSession {
     pub api_key: ApiKey,
     pub user: User,
@@ -64,6 +66,8 @@ impl ApiSession {
     }
 }
 
+#[derive(Debug, Display)]
+#[display("{{ id: {id}, user_id: {user_id} }}")]
 pub struct ApiKey {
     pub id: Uuid,
     pub name: String,
@@ -147,6 +151,7 @@ impl ApiKey {
     }
 
     pub async fn insert(self, db: &Database) -> Result<usize> {
+        tracing::info!("inserting api key {self}");
         let result = db
             .conn
             .call(move |conn| {
@@ -169,6 +174,7 @@ impl ApiKey {
     }
 
     pub async fn delete(self, db: &Database) -> Result<usize> {
+        tracing::info!("deleting api key {self}");
         let result = db
             .conn
             .call(move |conn| {
@@ -228,6 +234,12 @@ impl From<&UnhashedKey> for HashedKey {
 impl ExposeSecret<Vec<u8>> for HashedKey {
     fn expose_secret(&self) -> &Vec<u8> {
         self.0.expose_secret()
+    }
+}
+
+impl std::fmt::Debug for HashedKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("[REDACTED HashedKey]")
     }
 }
 

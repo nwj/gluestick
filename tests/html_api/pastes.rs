@@ -326,7 +326,7 @@ async fn create_does_not_persist_paste_when_missing_required_fields() -> Result<
 
     for bad_paste in bad_pastes {
         let response = client.pastes().post(&bad_paste).await?;
-        assert_eq!(response.status(), 200);
+        assert_eq!(response.status(), 422);
 
         let response_data = client.api_pastes().get_and_deserialize(None).await?;
         assert_eq!(response_data.pastes.len(), 0);
@@ -358,7 +358,7 @@ async fn create_does_not_persist_paste_when_invalid_fields() -> Result<()> {
 
     for bad_paste in bad_pastes {
         let response = client.pastes().post(&bad_paste).await?;
-        assert_eq!(response.status(), 200);
+        assert_eq!(response.status(), 422);
 
         let response_data = client.api_pastes().get_and_deserialize(None).await?;
         assert_eq!(response_data.pastes.len(), 0);
@@ -589,7 +589,7 @@ async fn update_does_not_persist_paste_when_invalid_fields() -> Result<()> {
             .username(&user.username)
             .put_by_paste_id(&bad_paste)
             .await?;
-        assert_eq!(response.status(), 200);
+        assert_eq!(response.status(), 422);
 
         let response = client.api_pastes().get_by_id(&bad_paste).await?;
         let persisted_paste: TestPaste = response.json().await?;
@@ -658,7 +658,7 @@ async fn cannot_update_public_paste_to_secret() -> Result<()> {
         .username(&user.username)
         .put_by_paste_id(&paste)
         .await?;
-    assert_eq!(response.status(), 200);
+    assert_eq!(response.status(), 422);
 
     let response = client.api_pastes().get_by_id(&paste).await?;
     assert_eq!(response.status(), 200);

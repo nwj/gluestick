@@ -11,7 +11,8 @@ use serde::Serialize;
 use std::str::FromStr;
 use uuid::Uuid;
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Display, Serialize)]
+#[display("{{ id: {id}, filename: {filename} }}")]
 pub struct Paste {
     pub id: Uuid,
     pub user_id: Uuid,
@@ -248,6 +249,7 @@ impl Paste {
     }
 
     pub async fn insert(self, db: &Database) -> Result<()> {
+        tracing::info!("inserting paste {self}");
         let optional_html =
             syntax_highlight::generate(self.body.as_ref(), self.filename.extension());
 
@@ -346,6 +348,7 @@ impl Paste {
         body: Option<Body>,
         visibility: Option<Visibility>,
     ) -> Result<()> {
+        tracing::info!("updating paste {self}");
         let original_filename = self.filename.clone();
         let original_body = self.body.clone();
 
@@ -401,6 +404,7 @@ impl Paste {
     }
 
     pub async fn delete(self, db: &Database) -> Result<usize> {
+        tracing::info!("deleting paste {self}");
         let result = db
             .conn
             .call(move |conn| {

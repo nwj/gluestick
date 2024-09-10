@@ -17,9 +17,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenv()
         .map_err(|e| {
             if e.not_found() {
-                tracing::debug!("no .env file found, continuing with normal execution");
+                tracing::info!("no .env file found, continuing with normal execution");
             } else {
-                tracing::debug!(
+                tracing::error!(
                     "error with .env file: {}, continuing with normal execution",
                     e
                 );
@@ -53,7 +53,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let app = router(db);
     let listener = TcpListener::bind(("127.0.0.1", config.port())).await?;
-    tracing::debug!("listening on {}", listener.local_addr()?);
+    tracing::info!("listening on {}", listener.local_addr()?);
     axum::serve(listener, app)
         .with_graceful_shutdown(shutdown_signal(shutdown_tx))
         .await?;

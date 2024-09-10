@@ -142,6 +142,7 @@ impl From<(Username, Uuid, UpdatePasteParams)> for EditPastesFormPartial {
             filename: params.filename,
             description: params.description,
             body: params.body,
+            visibility: params.visibility,
             ..Default::default()
         }
     }

@@ -16,6 +16,7 @@ use tokio::sync::mpsc;
 use tokio::task::JoinHandle;
 use tokio::time::{interval, Duration};
 use tower_http::{compression::CompressionLayer, timeout::TimeoutLayer, trace::TraceLayer};
+use tracing::Level;
 
 pub mod config;
 pub mod controllers;
@@ -96,12 +97,14 @@ pub fn router(db: Database) -> Router {
                         "request",
                         method = tracing::field::display(request.method()),
                         uri = tracing::field::display(request.uri()),
-                        version = tracing::field::debug(request.version()),
                         request_id = tracing::field::display(request_id),
+                        session = tracing::field::Empty,
+                        api_session = tracing::field::Empty,
                     )
                 })
-                // disable failure tracing here since we'll log errors via controllers::Error
-                .on_failure(()),
+                .on_request(tower_http::trace::DefaultOnRequest::new().level(Level::TRACE))
+                .on_response(tower_http::trace::DefaultOnResponse::new().level(Level::TRACE))
+                .on_failure(tower_http::trace::DefaultOnFailure::new().level(Level::ERROR)),
         )
         .layer(TimeoutLayer::new(Duration::from_secs(10)))
         .layer(CompressionLayer::new())
@@ -115,7 +118,7 @@ pub fn background_tasks(mut shutdown_rx: mpsc::Receiver<()>, db: Database) -> Jo
         loop {
             tokio::select! {
                 _ = shutdown_rx.recv() => {
-                    tracing::trace!("received graceful shutdown signal. Telling background tasks to shutdown");
+                    tracing::info!("received graceful shutdown signal. Telling background tasks to shutdown");
                     break;
                 },
                 _ = every_minute.tick() => {
@@ -133,6 +136,6 @@ pub fn background_tasks(mut shutdown_rx: mpsc::Receiver<()>, db: Database) -> Jo
             }
         }
 
-        tracing::trace!("shutting down background tasks");
+        tracing::info!("shutting down background tasks");
     })
 }
