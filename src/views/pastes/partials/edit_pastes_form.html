@@ -59,6 +59,9 @@
         <div class="error-msg">
             {% if let Some(msg) = visibility_error_message %}{{ msg }}{% endif %}
         </div>
+        {# This is a bit of a hack so that our form always posts the visibility field #}
+        {# even when the main visibility fieldset is disabled #}
+        {% if visibility == "public" %}<input type="hidden" name="visibility" value="public" />{% endif %}
     </div>
     <button class="primary" type="submit">Save</button>
 </form>
