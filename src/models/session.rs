@@ -17,7 +17,7 @@ const ABSOLUTE_SESSION_TTL_SECONDS: i64 = 1_209_600; // 14 days
 const IDLE_SESSION_TTL_SECONDS: i64 = 28_800; // 8 hours
 
 #[derive(Clone, Debug, Display)]
-#[display("{{ user: {user} }}")]
+#[display("{{ token: {session_token}, user: {user} }}")]
 pub struct Session {
     pub session_token: SessionToken,
     pub user: User,
@@ -52,7 +52,7 @@ impl Session {
         let mut stmt = tx.prepare(
             r"SELECT
                 users.id, users.username, users.email, users.password, users.created_at, users.updated_at,
-                session_tokens.token, session_tokens.user_id, session_tokens.created_at, session_tokens.last_used_at
+                session_tokens.id, session_tokens.token, session_tokens.user_id, session_tokens.created_at, session_tokens.last_used_at
             FROM users JOIN session_tokens ON users.id = session_tokens.user_id
             WHERE session_tokens.token = :token;",
         )?;
@@ -73,8 +73,9 @@ impl Session {
 
 #[expect(clippy::module_name_repetitions)]
 #[derive(Clone, Debug, Display)]
-#[display("{{ user_id: {user_id} }}")]
+#[display("{{ id: {id}, user_id: {user_id} }}")]
 pub struct SessionToken {
+    pub id: Uuid,
     pub token: HashedToken,
     pub user_id: Uuid,
     pub created_at: Timestamp,
@@ -85,6 +86,7 @@ impl SessionToken {
     pub fn new(user_id: Uuid) -> (UnhashedToken, Self) {
         let unhashed_token = UnhashedToken::generate();
         let session_token = Self {
+            id: Uuid::now_v7(),
             token: HashedToken::from(&unhashed_token),
             user_id,
             created_at: Timestamp::now(),
@@ -95,13 +97,14 @@ impl SessionToken {
 
     pub fn from_sql_row(row: &Row, offset: usize) -> rusqlite::Result<Self> {
         Ok(Self {
-            token: row.get(offset)?,
-            user_id: row.get(1 + offset)?,
-            created_at: Timestamp::from_millisecond(row.get(2 + offset)?).map_err(|e| {
-                rusqlite::Error::FromSqlConversionFailure(2 + offset, Type::Integer, Box::new(e))
-            })?,
-            last_used_at: Timestamp::from_millisecond(row.get(3 + offset)?).map_err(|e| {
+            id: row.get(offset)?,
+            token: row.get(1 + offset)?,
+            user_id: row.get(2 + offset)?,
+            created_at: Timestamp::from_millisecond(row.get(3 + offset)?).map_err(|e| {
                 rusqlite::Error::FromSqlConversionFailure(3 + offset, Type::Integer, Box::new(e))
+            })?,
+            last_used_at: Timestamp::from_millisecond(row.get(4 + offset)?).map_err(|e| {
+                rusqlite::Error::FromSqlConversionFailure(4 + offset, Type::Integer, Box::new(e))
             })?,
         })
     }
@@ -160,9 +163,10 @@ impl SessionToken {
             .conn
             .call(move |conn| {
                 let mut statement = conn.prepare(
-                    "INSERT INTO session_tokens VALUES (:token, :user_id, :created_at, :last_used_at);",
+                    "INSERT INTO session_tokens VALUES (:id, :token, :user_id, :created_at, :last_used_at);",
                 )?;
                 let result = statement.execute(named_params! {
+                    ":id": self.id,
                     ":token": self.token,
                     ":user_id": self.user_id,
                     ":created_at": self.created_at.as_millisecond(),
@@ -176,11 +180,10 @@ impl SessionToken {
     }
 
     pub fn tx_touch(&self, tx: &Transaction) -> tokio_rusqlite::Result<()> {
-        let mut stmt = tx.prepare(
-            "UPDATE session_tokens SET last_used_at = :last_used_at WHERE token = :token;",
-        )?;
+        let mut stmt =
+            tx.prepare("UPDATE session_tokens SET last_used_at = :last_used_at WHERE id = :id;")?;
         stmt.execute(
-            named_params! {":last_used_at": Timestamp::now().as_millisecond(), ":token": self.token},
+            named_params! {":last_used_at": Timestamp::now().as_millisecond(), ":id": self.id},
         )?;
         Ok(())
     }
