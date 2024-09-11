@@ -80,27 +80,29 @@ jobs:
           name: Checking CSS
           command: |
             CSS_FILE="./src/assets/css/main.css"
-            MD5_HASH=$(md5sum "$CSS_FILE" | awk '{ print $1 }')
+            HTML_FILE="./src/views/base.html"
+            CSS_HASH=$(md5sum "$CSS_FILE" | awk '{ print $1 }')
 
-            CACHE_BUSTED_CSS_FILE="./src/assets/css/main.${MD5_HASH}.css"
-            if [ ! -f "$CACHE_BUSTED_CSS_FILE" ]; then
-              echo "Error: Cache busted CSS file not found at $CACHE_BUSTED_CSS_FILE"
+            if [ ! -f "$CSS_FILE" ]; then
+              echo "Error: Could not find $CSS_FILE"
               exit 1
             fi
 
-            CACHE_BUSTED_MD5_HASH=$(md5sum "$CACHE_BUSTED_CSS_FILE" | awk '{ print $1 }')
-            if [ "$MD5_HASH" != "$CACHE_BUSTED_MD5_HASH" ]; then
-              echo "Error: MD5 hash of the cache busted CSS file does not match the original"
+            if [ ! -f "$HTML_FILE" ]; then
+              echo "Error: Could not find $HTML_FILE"
               exit 1
             fi
 
-            BASE_TEMPLATE="./src/views/base.html"
-            if ! grep -q "main.${MD5_HASH}.css" "$BASE_TEMPLATE"; then
-              echo "Error: Base template does not contain a reference to the cache busted CSS file"
+            HTML_HASH=$(grep -o 'href="/assets/css/main.css?h=[^"]*"' "$HTML_FILE" | sed 's/.*h=\([^"]*\).*/\1/' || echo "NOT FOUND")
+
+            if [ "$CSS_HASH" != "$HTML_HASH" ]; then
+              echo "Error: Hash mismatch"
+              echo "CSS file hash: $CSS_HASH"
+              echo "HTML reference hash: $HTML_HASH"
               exit 1
             fi
 
-            echo "Verification successful: Cache busted CSS file exists, its content integrity is verified, and it is referenced in the base template"
+            echo "Verification successful: CSS file hash matches the reference in $HTML_FILE"
 
 workflows:
   main:
