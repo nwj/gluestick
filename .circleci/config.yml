@@ -93,28 +93,7 @@ jobs:
               exit 1
             fi
 
-            CSS_REFERENCE=$(grep -o 'href="/assets/css/main.css[^"]*"' "$HTML_FILE")
-            if [ -z "$CSS_REFERENCE" ]; then
-              echo "Error: CSS file reference not found in $HTML_FILE"
-              echo "Expected to find: href=\"/assets/css/main.css\" (with or without hash parameter)"
-              exit 1
-            fi
-            
-            if [[ $CSS_REFERENCE == *"?h="* ]]; then
-              HTML_HASH=$(echo "$CSS_REFERENCE" | sed 's/.*h=\([^"]*\).*/\1/')
-              if [ -z "$HTML_HASH" ]; then
-                echo "Error: Hash parameter is present but empty in HTML file"
-                echo "Found reference: $CSS_REFERENCE"
-                echo "Expected format: href=\"/assets/css/main.css?h=<hash>\""
-                exit 1
-              fi
-            else
-              echo "Error: CSS file is referenced without a hash parameter"
-              echo "Found reference: $CSS_REFERENCE"
-              echo "Expected format: href=\"/assets/css/main.css?h=<hash>\""
-              echo "Please add a hash parameter for cache busting."
-              exit 1
-            fi
+            HTML_HASH=$(grep -o 'href="/assets/css/main.css?h=[^"]*"' "$HTML_FILE" | sed 's/.*h=\([^"]*\).*/\1/' || echo "NOT FOUND")
 
             if [ "$CSS_HASH" != "$HTML_HASH" ]; then
               echo "Error: Hash mismatch"
