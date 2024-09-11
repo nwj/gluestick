@@ -93,10 +93,18 @@ jobs:
               exit 1
             fi
 
-            HTML_HASH=$(grep 'href="/assets/css/main.css?h=' "$HTML_FILE" | sed 's/.*h=\([a-f0-9]\{32\}\).*/\1/')
-
-            if [ -z "$HTML_HASH" ]; then
+            if grep -q 'href="/assets/css/main.css?h=' "$HTML_FILE"; then
+              HTML_HASH=$(grep 'href="/assets/css/main.css?h=' "$HTML_FILE" | sed 's/.*h=\([^"]*\).*/\1/')
+              
+              if [ -z "$HTML_HASH" ]; then
+                echo "Error: Found CSS file reference, but couldn't extract the hash"
+                echo "Please check if the hash is present in the HTML file"
+                exit 1
+              fi
+            else
               echo "Error: Could not find CSS file reference with hash in $HTML_FILE"
+              echo "Expected pattern: href=\"/assets/css/main.css?h=<hash>\""
+              echo "Please check if the CSS file is correctly referenced in the HTML file."
               exit 1
             fi
 
