@@ -194,14 +194,14 @@ pub async fn change_password(
     }
 
     let old_password = UnhashedPassword::try_from(params.old_password.clone()).map_err(|e| {
-        to_validation_error(Some(session.clone()), e, |_| ChangePasswordFormPartial {
+        to_unauthorized_error(Some(session.clone()), e, |_| ChangePasswordFormPartial {
             old_password_error_message: Some("Incorrect password".into()),
             ..params.clone().into()
         })
     })?;
 
     session.user.verify_password(&old_password).map_err(|e| {
-        to_validation_error(Some(session.clone()), e, |_| ChangePasswordFormPartial {
+        to_unauthorized_error(Some(session.clone()), e, |_| ChangePasswordFormPartial {
             old_password_error_message: Some("Incorrect password".into()),
             ..params.into()
         })
