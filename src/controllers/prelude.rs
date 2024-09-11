@@ -140,6 +140,7 @@ where
 {
     match err {
         ModelsError::Parse(msg) => Error::UnauthorizedInline(Box::new(f(&msg))),
+        ModelsError::Argon2(e) => Error::UnauthorizedInline(Box::new(f(&e.to_string()))),
         e => Error::InternalServerError {
             session,
             source: Box::new(e),
