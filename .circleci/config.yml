@@ -93,7 +93,7 @@ jobs:
               exit 1
             fi
 
-            HTML_HASH=$(grep -oP 'href="/assets/css/main\.css\?h=\K[a-f0-9]{32}' "$HTML_FILE")
+            HTML_HASH=$(grep 'href="/assets/css/main.css?h=' "$HTML_FILE" | sed 's/.*h=\([a-f0-9]\{32\}\).*/\1/')
 
             if [ -z "$HTML_HASH" ]; then
               echo "Error: Could not find CSS file reference with hash in $HTML_FILE"
