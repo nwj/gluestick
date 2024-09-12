@@ -7,8 +7,8 @@ pub mod sessions;
 pub mod users;
 
 #[derive(Template)]
-#[template(path = "about.html")]
-pub struct AboutTemplate {
+#[template(path = "index.html")]
+pub struct IndexTemplate {
     pub session: Option<Session>,
 }
 

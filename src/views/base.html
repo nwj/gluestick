@@ -6,7 +6,7 @@
         <meta name="htmx-config" content='{"responseTargetPrefersExisting":"true"}'>
         <title>
             {% block title %}{% endblock %}
-            - Gluestick
+            Gluestick
         </title>
         <link rel="stylesheet"
               href="/assets/css/main.css?h=8d75a17ada200487f10d45db866edf6c">
@@ -30,7 +30,7 @@
                 <a class="logo" href="/">Gluestick</a>
                 <input id="menu-state" type="checkbox" />
                 <ul class="main-nav">
-                    <a href="/pastes">All Pastes</a>
+                    <a href="/pastes">Public Pastes</a>
                     {% if let Some(session) = session %}
                         <li>
                             <a href="/{{ session.user.username }}">Your Pastes</a>

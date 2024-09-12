@@ -1,9 +1,9 @@
 {% extends "base.html" %}
-{% block title %}Recent Pastes{% endblock %}
+{% block title %}Public Pastes -{% endblock %}
 {% block main %}
     <main class="pastes-index">
         {% if paste_username_html_triples.len() > 0 %}
-            <h1>Recent Pastes</h1>
+            <h1>Public Pastes</h1>
             <ul>
                 {% for (paste, username, syntax_highlighted_html) in paste_username_html_triples %}
                     <li class="paste">

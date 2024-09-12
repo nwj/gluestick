@@ -56,7 +56,7 @@ pub fn router(db: Database) -> Router {
     Router::new()
         .nest("/api/v1", json_api_router)
         .nest("/assets", assets_router)
-        .route("/", get(controllers::application_controller::about))
+        .route("/", get(controllers::application_controller::index))
         .route(
             "/health",
             get(controllers::application_controller::health_check),
