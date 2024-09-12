@@ -57,7 +57,10 @@ pub fn router(db: Database) -> Router {
         .nest("/api/v1", json_api_router)
         .nest("/assets", assets_router)
         .route("/", get(controllers::application_controller::about))
-        .route("/health", get(controllers::application_controller::check))
+        .route(
+            "/health",
+            get(controllers::application_controller::health_check),
+        )
         .route("/signup", get(controllers::users_controller::new))
         .route("/signup", post(controllers::users_controller::create))
         .route(

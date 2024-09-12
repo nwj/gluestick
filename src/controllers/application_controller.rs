@@ -4,7 +4,7 @@ use crate::views::AboutTemplate;
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 
-pub async fn check() -> StatusCode {
+pub async fn health_check() -> StatusCode {
     StatusCode::OK
 }
 
