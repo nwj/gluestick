@@ -1,6 +1,6 @@
 use crate::controllers::prelude::*;
 use crate::db::Database;
-use crate::helpers::pagination::{CursorPaginationParams, CursorPaginationResponse};
+use crate::helpers::pagination_helper::{CursorPaginationParams, CursorPaginationResponse};
 use crate::models::paste::{Body, Description, Filename, Paste, Visibility};
 use crate::models::prelude::Error as ModelsError;
 use crate::models::session::Session;

@@ -1,6 +1,6 @@
 use crate::controllers::pastes_controller::CreatePasteParams;
 use crate::controllers::pastes_controller::UpdatePasteParams;
-use crate::helpers::pagination::CursorPaginationResponse;
+use crate::helpers::pagination_helper::CursorPaginationResponse;
 use crate::models::paste::Paste;
 use crate::models::session::Session;
 use crate::models::user::Username;
