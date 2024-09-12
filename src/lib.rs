@@ -34,17 +34,29 @@ pub fn router(db: Database) -> Router {
     let json_api_router = Router::new()
         .route("/pastes", get(controllers::api::pastes_controller::index))
         .route("/pastes", post(controllers::api::pastes_controller::create))
-        .route("/pastes/:id", get(controllers::api::pastes_controller::show))
-        .route("/pastes/:id/raw", get(controllers::api::pastes_controller::show_raw))
-        .route("/pastes/:id", patch(controllers::api::pastes_controller::update))
-        .route("/pastes/:id", delete(controllers::api::pastes_controller::destroy))
+        .route(
+            "/pastes/:id",
+            get(controllers::api::pastes_controller::show),
+        )
+        .route(
+            "/pastes/:id/raw",
+            get(controllers::api::pastes_controller::show_raw),
+        )
+        .route(
+            "/pastes/:id",
+            patch(controllers::api::pastes_controller::update),
+        )
+        .route(
+            "/pastes/:id",
+            delete(controllers::api::pastes_controller::destroy),
+        )
         .fallback(controllers::api::not_found);
 
     Router::new()
         .nest("/api/v1", json_api_router)
         .nest("/assets", assets_router)
-        .route("/", get(controllers::about))
-        .route("/health", get(controllers::health_controller::check))
+        .route("/", get(controllers::application_controller::about))
+        .route("/health", get(controllers::application_controller::check))
         .route("/signup", get(controllers::users_controller::new))
         .route("/signup", post(controllers::users_controller::create))
         .route(
@@ -67,7 +79,10 @@ pub fn router(db: Database) -> Router {
             "/settings/change_password",
             post(controllers::users_controller::change_password),
         )
-        .route("/api_sessions", post(controllers::api_sessions_controller::create))
+        .route(
+            "/api_sessions",
+            post(controllers::api_sessions_controller::create),
+        )
         .route(
             "/api_sessions/:api_key_id",
             delete(controllers::api_sessions_controller::destroy),
@@ -76,7 +91,10 @@ pub fn router(db: Database) -> Router {
         .route("/pastes", get(controllers::pastes_controller::index))
         .route("/pastes", post(controllers::pastes_controller::create))
         .route("/:username", get(controllers::users_controller::show))
-        .route("/:username/:paste_id", get(controllers::pastes_controller::show))
+        .route(
+            "/:username/:paste_id",
+            get(controllers::pastes_controller::show),
+        )
         .route(
             "/:username/:paste_id/raw",
             get(controllers::pastes_controller::show_raw),
@@ -85,10 +103,19 @@ pub fn router(db: Database) -> Router {
             "/:username/:paste_id/download",
             get(controllers::pastes_controller::download),
         )
-        .route("/:username/:paste_id", put(controllers::pastes_controller::update))
-        .route("/:username/:paste_id/edit", get(controllers::pastes_controller::edit))
-        .route("/:username/:paste_id", delete(controllers::pastes_controller::destroy))
-        .fallback(controllers::not_found)
+        .route(
+            "/:username/:paste_id",
+            put(controllers::pastes_controller::update),
+        )
+        .route(
+            "/:username/:paste_id/edit",
+            get(controllers::pastes_controller::edit),
+        )
+        .route(
+            "/:username/:paste_id",
+            delete(controllers::pastes_controller::destroy),
+        )
+        .fallback(controllers::application_controller::not_found)
         .layer(
             TraceLayer::new_for_http()
                 .make_span_with(|request: &Request<_>| {
