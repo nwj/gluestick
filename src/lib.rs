@@ -51,7 +51,7 @@ pub fn router(db: Database) -> Router {
             "/pastes/:id",
             delete(controllers::api::pastes_controller::destroy),
         )
-        .fallback(controllers::api::not_found);
+        .fallback(controllers::api::application_controller::not_found);
 
     Router::new()
         .nest("/api/v1", json_api_router)
