@@ -1,5 +1,5 @@
-use crate::controllers::users::ChangePasswordParams;
-use crate::controllers::users::CreateUserParams;
+use crate::controllers::users_controller::ChangePasswordParams;
+use crate::controllers::users_controller::CreateUserParams;
 use crate::helpers::pagination::CursorPaginationResponse;
 use crate::models::api_session::ApiKey;
 use crate::models::paste::Paste;

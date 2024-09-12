@@ -1,4 +1,4 @@
-use crate::controllers::sessions::CreateSessionParams;
+use crate::controllers::sessions_controller::CreateSessionParams;
 use crate::models::session::Session;
 use askama_axum::Template;
 use secrecy::{ExposeSecret, Secret};
