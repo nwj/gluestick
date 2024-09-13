@@ -1,11 +1,11 @@
-use crate::common::api_key_helper::TestApiKey;
-use crate::common::app::TestApp;
+use crate::common::mocks::mock_api_key::MockApiKey;
 use crate::common::rand_helper;
+use crate::common::test_app::TestApp;
 use crate::prelude::*;
 use uuid::Uuid;
 
 #[derive(Clone, Debug)]
-pub struct TestUser {
+pub struct MockUser {
     pub id: Option<String>,
     pub username: String,
     pub email: String,
@@ -13,15 +13,15 @@ pub struct TestUser {
 }
 
 #[derive(Clone, Default)]
-pub struct TestUserBuilder {
+pub struct MockUserBuilder {
     username: Option<String>,
     email: Option<String>,
     password: Option<String>,
 }
 
-impl TestUser {
-    pub fn builder() -> TestUserBuilder {
-        TestUserBuilder::new()
+impl MockUser {
+    pub fn builder() -> MockUserBuilder {
+        MockUserBuilder::new()
     }
 
     pub async fn seed(mut self, app: &TestApp) -> Result<Self> {
@@ -30,17 +30,17 @@ impl TestUser {
         Ok(self)
     }
 
-    pub async fn seed_with_api_key(mut self, app: &TestApp) -> Result<(Self, TestApiKey)> {
+    pub async fn seed_with_api_key(mut self, app: &TestApp) -> Result<(Self, MockApiKey)> {
         let id = Uuid::now_v7().to_string();
         self.id = Some(id.clone());
-        let api_key = TestApiKey::builder().random()?.build();
+        let api_key = MockApiKey::builder().random()?.build();
         app.seed_user(self.clone()).await?;
         app.seed_api_key(api_key.clone(), &self).await?;
         Ok((self, api_key))
     }
 }
 
-impl TestUserBuilder {
+impl MockUserBuilder {
     pub fn new() -> Self {
         Self::default()
     }
@@ -76,12 +76,12 @@ impl TestUserBuilder {
         Ok(self.random_username()?.random_email()?.random_password()?)
     }
 
-    pub fn build(self) -> TestUser {
+    pub fn build(self) -> MockUser {
         let username = self.username.clone().unwrap_or("jmanderley".into());
         let email = self.email.clone().unwrap_or("jmanderley@unatco.gov".into());
         let password = self.password.clone().unwrap_or("knight_killer".into());
 
-        TestUser {
+        MockUser {
             id: None,
             username,
             email,

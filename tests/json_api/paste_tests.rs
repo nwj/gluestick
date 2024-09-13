@@ -1,9 +1,9 @@
-use crate::common::app::TestApp;
-use crate::common::client::TestClient;
-use crate::common::pagination_helper::{PaginationParams, PaginationResponse};
-use crate::common::paste_helper::TestPaste;
+use crate::common::mocks::mock_pagination::{MockPaginationParams, MockPaginationResponse};
+use crate::common::mocks::mock_paste::MockPaste;
+use crate::common::mocks::mock_user::MockUser;
 use crate::common::rand_helper::{random_alphanumeric_string, random_filename, random_string};
-use crate::common::user_helper::TestUser;
+use crate::common::test_app::TestApp;
+use crate::common::test_client::TestClient;
 use crate::prelude::*;
 use jiff::Timestamp as JiffTimestamp;
 use serde::Deserialize;
@@ -12,25 +12,25 @@ use uuid::{NoContext, Timestamp, Uuid};
 
 #[derive(Debug, Deserialize)]
 struct IndexResponse {
-    pastes: Vec<TestPaste>,
-    pagination: PaginationResponse,
+    pastes: Vec<MockPaste>,
+    pagination: MockPaginationResponse,
 }
 
 #[tokio::test]
 async fn index_happy_path() -> Result<()> {
     let app = TestApp::spawn().await?;
-    let (user, api_key) = TestUser::builder()
+    let (user, api_key) = MockUser::builder()
         .random()?
         .build()
         .seed_with_api_key(&app)
         .await?;
     let client = TestClient::new(app.address, Some(&api_key))?;
-    let paste1 = TestPaste::builder()
+    let paste1 = MockPaste::builder()
         .random()?
         .build()
         .seed(&app, &user)
         .await?;
-    let paste2 = TestPaste::builder()
+    let paste2 = MockPaste::builder()
         .random()?
         .build()
         .seed(&app, &user)
@@ -40,7 +40,7 @@ async fn index_happy_path() -> Result<()> {
     let response = client.api_pastes().get(None).await?;
     assert_eq!(response.status(), 200);
     let response_data: IndexResponse = response.json().await?;
-    let response_pastes: HashSet<TestPaste> = response_data.pastes.into_iter().collect();
+    let response_pastes: HashSet<MockPaste> = response_data.pastes.into_iter().collect();
     assert_eq!(pastes, response_pastes);
     Ok(())
 }
@@ -58,18 +58,18 @@ async fn index_requires_an_api_key() -> Result<()> {
 #[tokio::test]
 async fn index_does_not_include_secret_pastes() -> Result<()> {
     let app = TestApp::spawn().await?;
-    let (user, api_key) = TestUser::builder()
+    let (user, api_key) = MockUser::builder()
         .random()?
         .build()
         .seed_with_api_key(&app)
         .await?;
     let client = TestClient::new(app.address, Some(&api_key))?;
-    let paste1 = TestPaste::builder()
+    let paste1 = MockPaste::builder()
         .random()?
         .build()
         .seed(&app, &user)
         .await?;
-    TestPaste::builder()
+    MockPaste::builder()
         .random()?
         .visibility("secret")
         .build()
@@ -85,14 +85,14 @@ async fn index_does_not_include_secret_pastes() -> Result<()> {
 #[tokio::test]
 async fn index_has_per_page_default() -> Result<()> {
     let app = TestApp::spawn().await?;
-    let (user, api_key) = TestUser::builder()
+    let (user, api_key) = MockUser::builder()
         .random()?
         .build()
         .seed_with_api_key(&app)
         .await?;
     let client = TestClient::new(app.address, Some(&api_key))?;
     for _ in 0..11 {
-        TestPaste::builder()
+        MockPaste::builder()
             .random()?
             .build()
             .seed(&app, &user)
@@ -109,7 +109,7 @@ async fn index_has_per_page_default() -> Result<()> {
 #[tokio::test]
 async fn index_uses_per_page_when_provided() -> Result<()> {
     let app = TestApp::spawn().await?;
-    let (user, api_key) = TestUser::builder()
+    let (user, api_key) = MockUser::builder()
         .random()?
         .build()
         .seed_with_api_key(&app)
@@ -117,14 +117,14 @@ async fn index_uses_per_page_when_provided() -> Result<()> {
     let client = TestClient::new(app.address, Some(&api_key))?;
     let per_page = 3;
     for _ in 0..per_page + 1 {
-        TestPaste::builder()
+        MockPaste::builder()
             .random()?
             .build()
             .seed(&app, &user)
             .await?;
     }
 
-    let params = PaginationParams::builder().per_page(per_page).build();
+    let params = MockPaginationParams::builder().per_page(per_page).build();
     let response = client.api_pastes().get(Some(params)).await?;
     assert_eq!(response.status(), 200);
     let response_data: IndexResponse = response.json().await?;
@@ -135,7 +135,7 @@ async fn index_uses_per_page_when_provided() -> Result<()> {
 #[tokio::test]
 async fn index_falls_back_to_default_if_per_page_more_than_100() -> Result<()> {
     let app = TestApp::spawn().await?;
-    let (user, api_key) = TestUser::builder()
+    let (user, api_key) = MockUser::builder()
         .random()?
         .build()
         .seed_with_api_key(&app)
@@ -143,14 +143,14 @@ async fn index_falls_back_to_default_if_per_page_more_than_100() -> Result<()> {
     let client = TestClient::new(app.address, Some(&api_key))?;
     let per_page = 101;
     for _ in 0..11 {
-        TestPaste::builder()
+        MockPaste::builder()
             .random()?
             .build()
             .seed(&app, &user)
             .await?;
     }
 
-    let params = PaginationParams::builder().per_page(per_page).build();
+    let params = MockPaginationParams::builder().per_page(per_page).build();
     let response = client.api_pastes().get(Some(params)).await?;
     assert_eq!(response.status(), 200);
     let response_data: IndexResponse = response.json().await?;
@@ -162,7 +162,7 @@ async fn index_falls_back_to_default_if_per_page_more_than_100() -> Result<()> {
 #[tokio::test]
 async fn index_paginates_correctly() -> Result<()> {
     let app = TestApp::spawn().await?;
-    let (user, api_key) = TestUser::builder()
+    let (user, api_key) = MockUser::builder()
         .random()?
         .build()
         .seed_with_api_key(&app)
@@ -172,7 +172,7 @@ async fn index_paginates_correctly() -> Result<()> {
 
     let mut pastes = Vec::new();
     for i in 0..8 {
-        let paste = TestPaste::builder()
+        let paste = MockPaste::builder()
             // This is necessary because we assert below on the order of items within and across pages.
             // That order is based on uuid v7 ordering, which has millisecond precision. Our tests are
             // so fast at creating these pastes that without this sleep, we can get multiple pastes
@@ -188,62 +188,62 @@ async fn index_paginates_correctly() -> Result<()> {
     }
 
     // First page
-    let params = PaginationParams::builder().per_page(3).build();
+    let params = MockPaginationParams::builder().per_page(3).build();
     let response = client.api_pastes().get(Some(params)).await?;
     let response_data: IndexResponse = response.json().await?;
-    let expected: Vec<TestPaste> = pastes[5..8].into_iter().cloned().rev().collect();
+    let expected: Vec<MockPaste> = pastes[5..8].into_iter().cloned().rev().collect();
     assert!(response_data.pagination.prev_page.is_none());
     assert!(response_data.pagination.next_page.is_some());
     assert_eq!(expected, response_data.pastes);
 
     // Second page (forward)
     let next_cursor = response_data.pagination.next_page.unwrap();
-    let params = PaginationParams::builder()
+    let params = MockPaginationParams::builder()
         .per_page(3)
         .next_page(&next_cursor)
         .build();
     let response = client.api_pastes().get(Some(params)).await?;
     let response_data: IndexResponse = response.json().await?;
-    let expected: Vec<TestPaste> = pastes[2..5].into_iter().cloned().rev().collect();
+    let expected: Vec<MockPaste> = pastes[2..5].into_iter().cloned().rev().collect();
     assert!(response_data.pagination.prev_page.is_some());
     assert!(response_data.pagination.next_page.is_some());
     assert_eq!(expected, response_data.pastes);
 
     // Third page (forward)
     let next_cursor = response_data.pagination.next_page.unwrap();
-    let params = PaginationParams::builder()
+    let params = MockPaginationParams::builder()
         .per_page(3)
         .next_page(&next_cursor)
         .build();
     let response = client.api_pastes().get(Some(params)).await?;
     let response_data: IndexResponse = response.json().await?;
-    let expected: Vec<TestPaste> = pastes[0..2].into_iter().cloned().rev().collect();
+    let expected: Vec<MockPaste> = pastes[0..2].into_iter().cloned().rev().collect();
     assert!(response_data.pagination.prev_page.is_some());
     assert!(response_data.pagination.next_page.is_none());
     assert_eq!(expected, response_data.pastes);
 
     // Second page (backward)
     let prev_cursor = response_data.pagination.prev_page.unwrap();
-    let params = PaginationParams::builder()
+    let params = MockPaginationParams::builder()
         .per_page(3)
         .prev_page(&prev_cursor)
         .build();
     let response = client.api_pastes().get(Some(params)).await?;
     let response_data: IndexResponse = response.json().await?;
-    let expected: Vec<TestPaste> = pastes[2..5].into_iter().cloned().rev().collect();
+    let expected: Vec<MockPaste> = pastes[2..5].into_iter().cloned().rev().collect();
     assert!(response_data.pagination.prev_page.is_some());
     assert!(response_data.pagination.next_page.is_some());
     assert_eq!(expected, response_data.pastes);
 
     // First page (backward)
     let prev_cursor = response_data.pagination.prev_page.unwrap();
-    let params = PaginationParams::builder()
+    let params = MockPaginationParams::builder()
         .per_page(3)
         .prev_page(&prev_cursor)
         .build();
     let response = client.api_pastes().get(Some(params)).await?;
     let response_data: IndexResponse = response.json().await?;
-    let expected: Vec<TestPaste> = pastes[5..8].into_iter().cloned().rev().collect();
+    let expected: Vec<MockPaste> = pastes[5..8].into_iter().cloned().rev().collect();
     assert!(response_data.pagination.prev_page.is_none());
     assert!(response_data.pagination.next_page.is_some());
     assert_eq!(expected, response_data.pastes);
@@ -253,13 +253,13 @@ async fn index_paginates_correctly() -> Result<()> {
 #[tokio::test]
 async fn create_show_update_destroy_happy_path() -> Result<()> {
     let app = TestApp::spawn().await?;
-    let (_user, api_key) = TestUser::builder()
+    let (_user, api_key) = MockUser::builder()
         .random()?
         .build()
         .seed_with_api_key(&app)
         .await?;
     let client = TestClient::new(app.address, Some(&api_key))?;
-    let mut paste = TestPaste::builder().random()?.build();
+    let mut paste = MockPaste::builder().random()?.build();
 
     // Create
     let response = client.api_pastes().post(&paste).await?;
@@ -269,7 +269,7 @@ async fn create_show_update_destroy_happy_path() -> Result<()> {
     // Show
     let response = client.api_pastes().get_by_id(&paste).await?;
     assert_eq!(response.status(), 200);
-    let persisted_paste: TestPaste = response.json().await?;
+    let persisted_paste: MockPaste = response.json().await?;
     assert_eq!(paste, persisted_paste);
 
     // Update
@@ -282,7 +282,7 @@ async fn create_show_update_destroy_happy_path() -> Result<()> {
     // Show
     let response = client.api_pastes().get_by_id(&paste).await?;
     assert_eq!(response.status(), 200);
-    let persisted_paste: TestPaste = response.json().await?;
+    let persisted_paste: MockPaste = response.json().await?;
     assert_eq!(paste, persisted_paste);
 
     // Delete
@@ -299,7 +299,7 @@ async fn create_show_update_destroy_happy_path() -> Result<()> {
 async fn create_requires_an_api_key() -> Result<()> {
     let app = TestApp::spawn().await?;
     let client = TestClient::new(app.address, None)?;
-    let paste = TestPaste::builder().random()?.build();
+    let paste = MockPaste::builder().random()?.build();
 
     let response = client.api_pastes().post(&paste).await?;
     assert_eq!(response.status(), 401);
@@ -309,15 +309,15 @@ async fn create_requires_an_api_key() -> Result<()> {
 #[tokio::test]
 async fn create_responds_with_400_when_missing_required_fields() -> Result<()> {
     let app = TestApp::spawn().await?;
-    let (_user, api_key) = TestUser::builder()
+    let (_user, api_key) = MockUser::builder()
         .random()?
         .build()
         .seed_with_api_key(&app)
         .await?;
     let client = TestClient::new(app.address, Some(&api_key))?;
     let bad_pastes = vec![
-        TestPaste::builder().filename("").build(),
-        TestPaste::builder().body("").build(),
+        MockPaste::builder().filename("").build(),
+        MockPaste::builder().body("").build(),
     ];
 
     for bad_paste in bad_pastes {
@@ -330,20 +330,20 @@ async fn create_responds_with_400_when_missing_required_fields() -> Result<()> {
 #[tokio::test]
 async fn create_responds_with_400_when_invalid_fields() -> Result<()> {
     let app = TestApp::spawn().await?;
-    let (_user, api_key) = TestUser::builder()
+    let (_user, api_key) = MockUser::builder()
         .random()?
         .build()
         .seed_with_api_key(&app)
         .await?;
     let client = TestClient::new(app.address, Some(&api_key))?;
     let bad_pastes = vec![
-        TestPaste::builder()
+        MockPaste::builder()
             .filename(random_filename(257..=257)?)
             .build(),
-        TestPaste::builder()
+        MockPaste::builder()
             .filename("illegal/characters.md")
             .build(),
-        TestPaste::builder()
+        MockPaste::builder()
             .description(random_alphanumeric_string(257..=257)?)
             .build(),
     ];
@@ -358,9 +358,9 @@ async fn create_responds_with_400_when_invalid_fields() -> Result<()> {
 #[tokio::test]
 async fn show_requires_an_api_key() -> Result<()> {
     let app = TestApp::spawn().await?;
-    let user = TestUser::builder().random()?.build().seed(&app).await?;
+    let user = MockUser::builder().random()?.build().seed(&app).await?;
     let client = TestClient::new(app.address, None)?;
-    let paste = TestPaste::builder()
+    let paste = MockPaste::builder()
         .random()?
         .build()
         .seed(&app, &user)
@@ -374,13 +374,13 @@ async fn show_requires_an_api_key() -> Result<()> {
 #[tokio::test]
 async fn show_responds_with_404_when_paste_doesnt_exist() -> Result<()> {
     let app = TestApp::spawn().await?;
-    let (_user, api_key) = TestUser::builder()
+    let (_user, api_key) = MockUser::builder()
         .random()?
         .build()
         .seed_with_api_key(&app)
         .await?;
     let client = TestClient::new(app.address, Some(&api_key))?;
-    let paste = TestPaste::builder().random()?.random_id().build();
+    let paste = MockPaste::builder().random()?.random_id().build();
 
     let response = client.api_pastes().get_by_id(&paste).await?;
     assert_eq!(response.status(), 404);
@@ -390,13 +390,13 @@ async fn show_responds_with_404_when_paste_doesnt_exist() -> Result<()> {
 #[tokio::test]
 async fn show_responds_with_404_when_invalid_id() -> Result<()> {
     let app = TestApp::spawn().await?;
-    let (_user, api_key) = TestUser::builder()
+    let (_user, api_key) = MockUser::builder()
         .random()?
         .build()
         .seed_with_api_key(&app)
         .await?;
     let client = TestClient::new(app.address, Some(&api_key))?;
-    let paste = TestPaste::builder().random()?.id("garbage").build();
+    let paste = MockPaste::builder().random()?.id("garbage").build();
 
     let response = client.api_pastes().get_by_id(&paste).await?;
     assert_eq!(response.status(), 404);
@@ -406,14 +406,14 @@ async fn show_responds_with_404_when_invalid_id() -> Result<()> {
 #[tokio::test]
 async fn update_requires_an_api_key() -> Result<()> {
     let app = TestApp::spawn().await?;
-    let (user, api_key) = TestUser::builder()
+    let (user, api_key) = MockUser::builder()
         .random()?
         .build()
         .seed_with_api_key(&app)
         .await?;
     let authed_client = TestClient::new(app.address, Some(&api_key))?;
     let client = TestClient::new(app.address, None)?;
-    let paste = TestPaste::builder()
+    let paste = MockPaste::builder()
         .random()?
         .build()
         .seed(&app, &user)
@@ -426,7 +426,7 @@ async fn update_requires_an_api_key() -> Result<()> {
 
     let response = authed_client.api_pastes().get_by_id(&paste).await?;
     assert_eq!(response.status(), 200);
-    let persisted_paste: TestPaste = response.json().await?;
+    let persisted_paste: MockPaste = response.json().await?;
     assert_eq!(paste, persisted_paste);
     Ok(())
 }
@@ -434,13 +434,13 @@ async fn update_requires_an_api_key() -> Result<()> {
 #[tokio::test]
 async fn update_responds_with_404_when_paste_doesnt_exist() -> Result<()> {
     let app = TestApp::spawn().await?;
-    let (_user, api_key) = TestUser::builder()
+    let (_user, api_key) = MockUser::builder()
         .random()?
         .build()
         .seed_with_api_key(&app)
         .await?;
     let client = TestClient::new(app.address, Some(&api_key))?;
-    let paste = TestPaste::builder().random()?.random_id().build();
+    let paste = MockPaste::builder().random()?.random_id().build();
 
     let response = client.api_pastes().patch_by_id(&paste).await?;
     assert_eq!(response.status(), 404);
@@ -450,13 +450,13 @@ async fn update_responds_with_404_when_paste_doesnt_exist() -> Result<()> {
 #[tokio::test]
 async fn update_responds_with_400_when_invalid_input() -> Result<()> {
     let app = TestApp::spawn().await?;
-    let (_user, api_key) = TestUser::builder()
+    let (_user, api_key) = MockUser::builder()
         .random()?
         .build()
         .seed_with_api_key(&app)
         .await?;
     let client = TestClient::new(app.address, Some(&api_key))?;
-    let paste = TestPaste::builder()
+    let paste = MockPaste::builder()
         .random()?
         .filename("illegal/filename.")
         .build();
@@ -469,27 +469,27 @@ async fn update_responds_with_400_when_invalid_input() -> Result<()> {
 #[tokio::test]
 async fn update_responds_with_400_when_invalid_fields() -> Result<()> {
     let app = TestApp::spawn().await?;
-    let (user, api_key) = TestUser::builder()
+    let (user, api_key) = MockUser::builder()
         .random()?
         .build()
         .seed_with_api_key(&app)
         .await?;
     let client = TestClient::new(app.address, Some(&api_key))?;
-    let paste = TestPaste::builder()
+    let paste = MockPaste::builder()
         .random()?
         .build()
         .seed(&app, &user)
         .await?;
     let bad_pastes = vec![
-        TestPaste::builder()
+        MockPaste::builder()
             .id(paste.id.clone().unwrap())
             .filename(random_filename(257..=257)?)
             .build(),
-        TestPaste::builder()
+        MockPaste::builder()
             .id(paste.id.clone().unwrap())
             .filename("illegal/characters.md")
             .build(),
-        TestPaste::builder()
+        MockPaste::builder()
             .id(paste.id.clone().unwrap())
             .description(random_alphanumeric_string(257..=257)?)
             .build(),
@@ -505,19 +505,19 @@ async fn update_responds_with_400_when_invalid_fields() -> Result<()> {
 #[tokio::test]
 async fn cannot_update_other_users_pastes() -> Result<()> {
     let app = TestApp::spawn().await?;
-    let (user1, api_key1) = TestUser::builder()
+    let (user1, api_key1) = MockUser::builder()
         .random()?
         .build()
         .seed_with_api_key(&app)
         .await?;
-    let (_user2, api_key2) = TestUser::builder()
+    let (_user2, api_key2) = MockUser::builder()
         .random()?
         .build()
         .seed_with_api_key(&app)
         .await?;
     let client1 = TestClient::new(app.address, Some(&api_key1))?;
     let client2 = TestClient::new(app.address, Some(&api_key2))?;
-    let paste = TestPaste::builder()
+    let paste = MockPaste::builder()
         .random()?
         .build()
         .seed(&app, &user1)
@@ -530,7 +530,7 @@ async fn cannot_update_other_users_pastes() -> Result<()> {
 
     let response = client1.api_pastes().get_by_id(&paste).await?;
     assert_eq!(response.status(), 200);
-    let persisted_paste: TestPaste = response.json().await?;
+    let persisted_paste: MockPaste = response.json().await?;
     assert_eq!(paste, persisted_paste);
     Ok(())
 }
@@ -538,13 +538,13 @@ async fn cannot_update_other_users_pastes() -> Result<()> {
 #[tokio::test]
 async fn cannot_update_public_paste_to_secret() -> Result<()> {
     let app = TestApp::spawn().await?;
-    let (user, api_key) = TestUser::builder()
+    let (user, api_key) = MockUser::builder()
         .random()?
         .build()
         .seed_with_api_key(&app)
         .await?;
     let client = TestClient::new(app.address, Some(&api_key))?;
-    let mut paste = TestPaste::builder()
+    let mut paste = MockPaste::builder()
         .random()?
         .visibility("public")
         .build()
@@ -560,13 +560,13 @@ async fn cannot_update_public_paste_to_secret() -> Result<()> {
 #[tokio::test]
 async fn can_update_secret_paste_to_public() -> Result<()> {
     let app = TestApp::spawn().await?;
-    let (user, api_key) = TestUser::builder()
+    let (user, api_key) = MockUser::builder()
         .random()?
         .build()
         .seed_with_api_key(&app)
         .await?;
     let client = TestClient::new(app.address, Some(&api_key))?;
-    let mut paste = TestPaste::builder()
+    let mut paste = MockPaste::builder()
         .random()?
         .visibility("secret")
         .build()
@@ -582,14 +582,14 @@ async fn can_update_secret_paste_to_public() -> Result<()> {
 #[tokio::test]
 async fn destroy_requires_an_api_key() -> Result<()> {
     let app = TestApp::spawn().await?;
-    let (user, api_key) = TestUser::builder()
+    let (user, api_key) = MockUser::builder()
         .random()?
         .build()
         .seed_with_api_key(&app)
         .await?;
     let authed_client = TestClient::new(app.address, Some(&api_key))?;
     let client = TestClient::new(app.address, None)?;
-    let paste = TestPaste::builder()
+    let paste = MockPaste::builder()
         .random()?
         .build()
         .seed(&app, &user)
@@ -606,13 +606,13 @@ async fn destroy_requires_an_api_key() -> Result<()> {
 #[tokio::test]
 async fn destroy_responds_with_404_when_paste_doesnt_exist() -> Result<()> {
     let app = TestApp::spawn().await?;
-    let (_user, api_key) = TestUser::builder()
+    let (_user, api_key) = MockUser::builder()
         .random()?
         .build()
         .seed_with_api_key(&app)
         .await?;
     let client = TestClient::new(app.address, Some(&api_key))?;
-    let paste = TestPaste::builder().random()?.random_id().build();
+    let paste = MockPaste::builder().random()?.random_id().build();
 
     let response = client.api_pastes().delete_by_id(&paste).await?;
     assert_eq!(response.status(), 404);
@@ -622,13 +622,13 @@ async fn destroy_responds_with_404_when_paste_doesnt_exist() -> Result<()> {
 #[tokio::test]
 async fn destroy_responds_with_404_when_invalid_id() -> Result<()> {
     let app = TestApp::spawn().await?;
-    let (_user, api_key) = TestUser::builder()
+    let (_user, api_key) = MockUser::builder()
         .random()?
         .build()
         .seed_with_api_key(&app)
         .await?;
     let client = TestClient::new(app.address, Some(&api_key))?;
-    let paste = TestPaste::builder().random()?.id("garbage").build();
+    let paste = MockPaste::builder().random()?.id("garbage").build();
 
     let response = client.api_pastes().delete_by_id(&paste).await?;
     assert_eq!(response.status(), 404);
@@ -638,19 +638,19 @@ async fn destroy_responds_with_404_when_invalid_id() -> Result<()> {
 #[tokio::test]
 async fn cannot_destroy_other_users_pastes() -> Result<()> {
     let app = TestApp::spawn().await?;
-    let (user1, api_key1) = TestUser::builder()
+    let (user1, api_key1) = MockUser::builder()
         .random()?
         .build()
         .seed_with_api_key(&app)
         .await?;
-    let (_user2, api_key2) = TestUser::builder()
+    let (_user2, api_key2) = MockUser::builder()
         .random()?
         .build()
         .seed_with_api_key(&app)
         .await?;
     let client1 = TestClient::new(app.address, Some(&api_key1))?;
     let client2 = TestClient::new(app.address, Some(&api_key2))?;
-    let paste = TestPaste::builder()
+    let paste = MockPaste::builder()
         .random()?
         .build()
         .seed(&app, &user1)

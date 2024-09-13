@@ -2,7 +2,7 @@ use crate::controllers::prelude::*;
 use crate::db::Database;
 use crate::models::session::{Session, SessionToken, SESSION_COOKIE_NAME};
 use crate::models::user::{EmailAddress, UnhashedPassword, User};
-use crate::views::sessions::NewSessionsTemplate;
+use crate::views::sessions::new::NewPage;
 use axum::body::Body;
 use axum::extract::{Form, State};
 use axum::http::{header::HeaderMap, HeaderValue, StatusCode};
@@ -10,29 +10,29 @@ use axum::response::{IntoResponse, Response};
 use secrecy::{ExposeSecret, Secret};
 use serde::Deserialize;
 
-pub async fn new() -> NewSessionsTemplate {
-    NewSessionsTemplate::default()
+pub async fn new() -> NewPage {
+    NewPage::default()
 }
 
 #[derive(Clone, Deserialize)]
-pub struct CreateSessionParams {
+pub struct CreateParams {
     pub email: String,
     pub password: Secret<String>,
 }
 
 pub async fn create(
     State(db): State<Database>,
-    Form(params): Form<CreateSessionParams>,
+    Form(params): Form<CreateParams>,
 ) -> Result<impl IntoResponse> {
     let email = EmailAddress::try_from(&params.email).map_err(|e| {
-        to_unauthorized_error(None, e, |_| NewSessionsTemplate {
+        to_unauthorized_error(None, e, |_| NewPage {
             error_message: Some("Incorrect email or password".into()),
             ..params.clone().into()
         })
     })?;
 
     let password = UnhashedPassword::try_from(params.password.clone()).map_err(|e| {
-        to_unauthorized_error(None, e, |_| NewSessionsTemplate {
+        to_unauthorized_error(None, e, |_| NewPage {
             error_message: Some("Incorrect email or password".into()),
             ..params.clone().into()
         })
@@ -40,7 +40,7 @@ pub async fn create(
 
     let user = match User::find_by_email(&db, email).await? {
         Some(user) if user.verify_password(&password).is_ok() => user,
-        _ => Err(Error::UnauthorizedInline(Box::new(NewSessionsTemplate {
+        _ => Err(Error::UnauthorizedInline(Box::new(NewPage {
             error_message: Some("Incorrect email or password".into()),
             ..params.into()
         })))?,

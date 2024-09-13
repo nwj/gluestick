@@ -1,6 +1,6 @@
 use crate::db::Database;
-use crate::helpers::pagination::{Direction, HasOrderedId};
-use crate::helpers::syntax_highlight;
+use crate::helpers::pagination_helper::{Direction, HasOrderedId};
+use crate::helpers::syntax_highlight_helper;
 use crate::models::prelude::*;
 use crate::models::user::Username;
 use derive_more::{AsRef, Display, IsVariant};
@@ -63,7 +63,7 @@ impl Paste {
     }
 
     pub async fn syntax_highlight(&self, db: &Database) -> Result<Option<String>> {
-        Ok(syntax_highlight::generate_with_cache_attempt(
+        Ok(syntax_highlight_helper::generate_with_cache_attempt(
             db,
             &self.id,
             self.body.as_ref(),
@@ -251,7 +251,7 @@ impl Paste {
     pub async fn insert(self, db: &Database) -> Result<()> {
         tracing::info!("inserting paste {self}");
         let optional_html =
-            syntax_highlight::generate(self.body.as_ref(), self.filename.extension());
+            syntax_highlight_helper::generate(self.body.as_ref(), self.filename.extension());
 
         db.conn
             .call(move |conn| {
@@ -274,7 +274,7 @@ impl Paste {
                     )?;
 
                     if let Some(html) = optional_html {
-                        syntax_highlight::tx_cache_set(&tx, &self.id, &html)?;
+                        syntax_highlight_helper::tx_cache_set(&tx, &self.id, &html)?;
                     }
                 }
                 tx.commit()?;
@@ -369,7 +369,8 @@ impl Paste {
         let body_changed = original_body != self.body;
         let extension_changed = original_filename.extension() != self.filename.extension();
         if body_changed || extension_changed {
-            maybe_html = syntax_highlight::generate(self.body.as_ref(), self.filename.extension());
+            maybe_html =
+                syntax_highlight_helper::generate(self.body.as_ref(), self.filename.extension());
         }
 
         db.conn.call(move |conn| {
@@ -391,9 +392,9 @@ impl Paste {
 
                 if body_changed || extension_changed {
                     if let Some(html) = maybe_html {
-                        syntax_highlight::tx_cache_set(&tx, &self.id, &html)?;
+                        syntax_highlight_helper::tx_cache_set(&tx, &self.id, &html)?;
                     } else {
-                        syntax_highlight::tx_cache_expire(&tx, &self.id)?;
+                        syntax_highlight_helper::tx_cache_expire(&tx, &self.id)?;
                     }
                 }
             }

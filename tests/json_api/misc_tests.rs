@@ -1,12 +1,12 @@
-use crate::common::app::TestApp;
-use crate::common::client::TestClient;
-use crate::common::user_helper::TestUser;
+use crate::common::mocks::mock_user::MockUser;
+use crate::common::test_app::TestApp;
+use crate::common::test_client::TestClient;
 use crate::prelude::*;
 
 #[tokio::test]
 async fn fallback_responds_with_404() -> Result<()> {
     let app = TestApp::spawn().await?;
-    let (_, api_key) = TestUser::builder()
+    let (_, api_key) = MockUser::builder()
         .random()?
         .build()
         .seed_with_api_key(&app)

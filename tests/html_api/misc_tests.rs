@@ -1,5 +1,5 @@
-use crate::common::app::TestApp;
-use crate::common::client::TestClient;
+use crate::common::test_app::TestApp;
+use crate::common::test_client::TestClient;
 use crate::prelude::*;
 
 #[tokio::test]

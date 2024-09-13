@@ -1,3 +1,3 @@
-mod misc;
-mod pastes;
-mod users;
+mod misc_tests;
+mod paste_tests;
+mod user_tests;

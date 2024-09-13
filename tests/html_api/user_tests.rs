@@ -1,10 +1,10 @@
-use crate::common::api_key_helper::TestApiKey;
-use crate::common::app::TestApp;
-use crate::common::client::TestClient;
-use crate::common::pagination_helper::PaginationParams;
-use crate::common::paste_helper::TestPaste;
+use crate::common::mocks::mock_api_key::MockApiKey;
+use crate::common::mocks::mock_pagination::MockPaginationParams;
+use crate::common::mocks::mock_paste::MockPaste;
+use crate::common::mocks::mock_user::MockUser;
 use crate::common::rand_helper::{random_alphanumeric_string, random_filename, random_string};
-use crate::common::user_helper::TestUser;
+use crate::common::test_app::TestApp;
+use crate::common::test_client::TestClient;
 use crate::prelude::*;
 use jiff::Timestamp as JiffTimestamp;
 use uuid::{NoContext, Timestamp, Uuid};
@@ -14,7 +14,7 @@ async fn signup_happy_path() -> Result<()> {
     let app = TestApp::spawn().await?;
     let client = TestClient::new(app.address, None)?;
     let invite = app.seed_random_invite_code().await?;
-    let user = TestUser::builder().random()?.build();
+    let user = MockUser::builder().random()?.build();
 
     let response = client.signup().post(invite, &user).await?;
     assert_eq!(response.status(), 200);
@@ -30,7 +30,7 @@ async fn signup_happy_path() -> Result<()> {
 async fn signup_requires_valid_invite_code() -> Result<()> {
     let app = TestApp::spawn().await?;
     let client = TestClient::new(app.address, None)?;
-    let user = TestUser::builder().random()?.build();
+    let user = MockUser::builder().random()?.build();
     let bad_invites = &["doesnt-exist", ""];
 
     for bad_invite in bad_invites {
@@ -51,7 +51,7 @@ async fn invite_codes_are_consumed_on_signup() -> Result<()> {
     let client = TestClient::new(app.address, None)?;
     let invite = app.seed_random_invite_code().await?;
 
-    let user = TestUser::builder().random()?.build();
+    let user = MockUser::builder().random()?.build();
     let response = client.signup().post(invite.clone(), &user).await?;
     assert_eq!(response.status(), 200);
 
@@ -61,7 +61,7 @@ async fn invite_codes_are_consumed_on_signup() -> Result<()> {
 
     client.logout().delete().await?;
 
-    let user2 = TestUser::builder().random()?.build();
+    let user2 = MockUser::builder().random()?.build();
     let response = client.signup().post(invite, &user2).await?;
     assert_eq!(response.status(), 422);
 
@@ -77,9 +77,9 @@ async fn signup_requires_all_fields() -> Result<()> {
     let app = TestApp::spawn().await?;
     let client = TestClient::new(app.address, None)?;
     let bad_users = &[
-        TestUser::builder().username("").build(),
-        TestUser::builder().email("").build(),
-        TestUser::builder().password("").build(),
+        MockUser::builder().username("").build(),
+        MockUser::builder().email("").build(),
+        MockUser::builder().password("").build(),
     ];
 
     for bad_user in bad_users {
@@ -100,16 +100,16 @@ async fn signup_requires_valid_username() -> Result<()> {
     let app = TestApp::spawn().await?;
     let client = TestClient::new(app.address, None)?;
     let bad_users = &[
-        TestUser::builder().username("").build(),
-        TestUser::builder()
+        MockUser::builder().username("").build(),
+        MockUser::builder()
             .username(random_alphanumeric_string(33..=33)?)
             .build(),
-        TestUser::builder().username("-starts-with-hyphen").build(),
-        TestUser::builder().username("ends-with-hyphen-").build(),
-        TestUser::builder()
+        MockUser::builder().username("-starts-with-hyphen").build(),
+        MockUser::builder().username("ends-with-hyphen-").build(),
+        MockUser::builder()
             .username("two--hyphens-in-a-row")
             .build(),
-        TestUser::builder().username(random_string(3..=32)?).build(),
+        MockUser::builder().username(random_string(3..=32)?).build(),
     ];
 
     for bad_user in bad_users {
@@ -132,11 +132,11 @@ async fn signup_requires_valid_email_address() -> Result<()> {
     let random = random_alphanumeric_string(1..=30)?;
     let bad_users = &[
         // Missing @ symbol
-        TestUser::builder().email(&random).build(),
+        MockUser::builder().email(&random).build(),
         // Missing domain part
-        TestUser::builder().email(format!("{random}@")).build(),
+        MockUser::builder().email(format!("{random}@")).build(),
         // Missing username part
-        TestUser::builder().email(format!("@{random}")).build(),
+        MockUser::builder().email(format!("@{random}")).build(),
     ];
 
     for bad_user in bad_users {
@@ -157,10 +157,10 @@ async fn signup_requires_password_between_8_and_256_chars() -> Result<()> {
     let app = TestApp::spawn().await?;
     let client = TestClient::new(app.address, None)?;
     let bad_users = &[
-        TestUser::builder()
+        MockUser::builder()
             .password(random_alphanumeric_string(7..=7)?)
             .build(),
-        TestUser::builder()
+        MockUser::builder()
             .password(random_alphanumeric_string(257..=257)?)
             .build(),
     ];
@@ -183,8 +183,8 @@ async fn cant_signup_twice_with_the_same_username() -> Result<()> {
     let app = TestApp::spawn().await?;
     let client = TestClient::new(app.address, None)?;
     let username = "POOPFEAST420";
-    let user = TestUser::builder().random()?.username(username).build();
-    let dup_user = TestUser::builder().random()?.username(username).build();
+    let user = MockUser::builder().random()?.username(username).build();
+    let dup_user = MockUser::builder().random()?.username(username).build();
 
     let invite = app.seed_random_invite_code().await?;
     let response = client.signup().post(invite, &user).await?;
@@ -212,8 +212,8 @@ async fn cant_signup_twice_with_the_same_email() -> Result<()> {
     let app = TestApp::spawn().await?;
     let client = TestClient::new(app.address, None)?;
     let email = "john.malkovich@johnmalkovich.com";
-    let user = TestUser::builder().random()?.email(email).build();
-    let dup_user = TestUser::builder().random()?.email(email).build();
+    let user = MockUser::builder().random()?.email(email).build();
+    let dup_user = MockUser::builder().random()?.email(email).build();
 
     let invite = app.seed_random_invite_code().await?;
     let response = client.signup().post(invite, &user).await?;
@@ -240,7 +240,7 @@ async fn cant_signup_twice_with_the_same_email() -> Result<()> {
 async fn login_logout_happy_path() -> Result<()> {
     let app = TestApp::spawn().await?;
     let client = TestClient::new(app.address, None)?;
-    let user = TestUser::builder().random()?.build().seed(&app).await?;
+    let user = MockUser::builder().random()?.build().seed(&app).await?;
 
     let response = client.login().post(&user).await?;
     assert_eq!(response.status(), 200);
@@ -262,11 +262,11 @@ async fn login_logout_happy_path() -> Result<()> {
 async fn login_requires_email_and_password() -> Result<()> {
     let app = TestApp::spawn().await?;
     let client = TestClient::new(app.address, None)?;
-    let mut no_email = TestUser::builder().random()?.build().seed(&app).await?;
+    let mut no_email = MockUser::builder().random()?.build().seed(&app).await?;
     no_email.email = "".into();
-    let mut no_password = TestUser::builder().random()?.build().seed(&app).await?;
+    let mut no_password = MockUser::builder().random()?.build().seed(&app).await?;
     no_password.password = "".into();
-    let mut no_nothing = TestUser::builder().random()?.build().seed(&app).await?;
+    let mut no_nothing = MockUser::builder().random()?.build().seed(&app).await?;
     no_nothing.email = "".into();
     no_nothing.password = "".into();
     let bad_users = &[no_email, no_password, no_nothing];
@@ -285,8 +285,8 @@ async fn login_requires_email_and_password() -> Result<()> {
 async fn cant_login_with_your_email_but_someone_elses_password() -> Result<()> {
     let app = TestApp::spawn().await?;
     let client = TestClient::new(app.address, None)?;
-    let user1 = TestUser::builder().random()?.build().seed(&app).await?;
-    let mut user2 = TestUser::builder().random()?.build().seed(&app).await?;
+    let user1 = MockUser::builder().random()?.build().seed(&app).await?;
+    let mut user2 = MockUser::builder().random()?.build().seed(&app).await?;
     user2.password = user1.password;
 
     let response = client.login().post(&user2).await?;
@@ -301,8 +301,8 @@ async fn cant_login_with_your_email_but_someone_elses_password() -> Result<()> {
 async fn cant_login_with_your_password_but_someone_elses_email() -> Result<()> {
     let app = TestApp::spawn().await?;
     let client = TestClient::new(app.address, None)?;
-    let user1 = TestUser::builder().random()?.build().seed(&app).await?;
-    let mut user2 = TestUser::builder().random()?.build().seed(&app).await?;
+    let user1 = MockUser::builder().random()?.build().seed(&app).await?;
+    let mut user2 = MockUser::builder().random()?.build().seed(&app).await?;
     user2.email = user1.email;
 
     let response = client.login().post(&user2).await?;
@@ -316,14 +316,14 @@ async fn cant_login_with_your_password_but_someone_elses_email() -> Result<()> {
 #[tokio::test]
 async fn show_happpy_path() -> Result<()> {
     let app = TestApp::spawn().await?;
-    let user = TestUser::builder().random()?.build().seed(&app).await?;
+    let user = MockUser::builder().random()?.build().seed(&app).await?;
     let client = TestClient::new(app.address, None)?;
-    let paste1 = TestPaste::builder()
+    let paste1 = MockPaste::builder()
         .random()?
         .build()
         .seed(&app, &user)
         .await?;
-    let paste2 = TestPaste::builder()
+    let paste2 = MockPaste::builder()
         .random()?
         .build()
         .seed(&app, &user)
@@ -340,15 +340,15 @@ async fn show_happpy_path() -> Result<()> {
 #[tokio::test]
 async fn show_does_not_include_secret_pastes() -> Result<()> {
     let app = TestApp::spawn().await?;
-    let user = TestUser::builder().random()?.build().seed(&app).await?;
+    let user = MockUser::builder().random()?.build().seed(&app).await?;
     let client = TestClient::new(app.address, None)?;
-    let paste1 = TestPaste::builder()
+    let paste1 = MockPaste::builder()
         .random()?
         .filename(random_filename(64..=64)?)
         .build()
         .seed(&app, &user)
         .await?;
-    let paste2 = TestPaste::builder()
+    let paste2 = MockPaste::builder()
         .random()?
         .filename(random_filename(64..=64)?)
         .visibility("secret")
@@ -367,16 +367,16 @@ async fn show_does_not_include_secret_pastes() -> Result<()> {
 #[tokio::test]
 async fn show_does_not_include_other_users_pastes() -> Result<()> {
     let app = TestApp::spawn().await?;
-    let user = TestUser::builder().random()?.build().seed(&app).await?;
-    let user2 = TestUser::builder().random()?.build().seed(&app).await?;
+    let user = MockUser::builder().random()?.build().seed(&app).await?;
+    let user2 = MockUser::builder().random()?.build().seed(&app).await?;
     let client = TestClient::new(app.address, None)?;
-    let paste1 = TestPaste::builder()
+    let paste1 = MockPaste::builder()
         .random()?
         .filename(random_filename(64..=64)?)
         .build()
         .seed(&app, &user)
         .await?;
-    let paste2 = TestPaste::builder()
+    let paste2 = MockPaste::builder()
         .random()?
         .filename(random_filename(64..=64)?)
         .build()
@@ -394,15 +394,15 @@ async fn show_does_not_include_other_users_pastes() -> Result<()> {
 #[tokio::test]
 async fn show_includes_your_own_secret_pastes_when_logged_in() -> Result<()> {
     let app = TestApp::spawn().await?;
-    let user = TestUser::builder().random()?.build().seed(&app).await?;
+    let user = MockUser::builder().random()?.build().seed(&app).await?;
     let client = TestClient::new(app.address, None)?;
-    let paste1 = TestPaste::builder()
+    let paste1 = MockPaste::builder()
         .random()?
         .filename(random_filename(64..=64)?)
         .build()
         .seed(&app, &user)
         .await?;
-    let paste2 = TestPaste::builder()
+    let paste2 = MockPaste::builder()
         .random()?
         .filename(random_filename(64..=64)?)
         .visibility("secret")
@@ -422,16 +422,16 @@ async fn show_includes_your_own_secret_pastes_when_logged_in() -> Result<()> {
 #[tokio::test]
 async fn show_does_not_include_other_users_secret_pastes_when_logged_in() -> Result<()> {
     let app = TestApp::spawn().await?;
-    let user = TestUser::builder().random()?.build().seed(&app).await?;
-    let user2 = TestUser::builder().random()?.build().seed(&app).await?;
+    let user = MockUser::builder().random()?.build().seed(&app).await?;
+    let user2 = MockUser::builder().random()?.build().seed(&app).await?;
     let client = TestClient::new(app.address, None)?;
-    let paste1 = TestPaste::builder()
+    let paste1 = MockPaste::builder()
         .random()?
         .filename(random_filename(64..=64)?)
         .build()
         .seed(&app, &user2)
         .await?;
-    let paste2 = TestPaste::builder()
+    let paste2 = MockPaste::builder()
         .random()?
         .filename(random_filename(64..=64)?)
         .visibility("secret")
@@ -451,10 +451,10 @@ async fn show_does_not_include_other_users_secret_pastes_when_logged_in() -> Res
 #[tokio::test]
 async fn show_has_per_page_default() -> Result<()> {
     let app = TestApp::spawn().await?;
-    let user = TestUser::builder().random()?.build().seed(&app).await?;
+    let user = MockUser::builder().random()?.build().seed(&app).await?;
     let client = TestClient::new(app.address, None)?;
     for _ in 0..11 {
-        TestPaste::builder()
+        MockPaste::builder()
             .random()?
             .build()
             .seed(&app, &user)
@@ -471,18 +471,18 @@ async fn show_has_per_page_default() -> Result<()> {
 #[tokio::test]
 async fn show_uses_per_page_when_provided() -> Result<()> {
     let app = TestApp::spawn().await?;
-    let user = TestUser::builder().random()?.build().seed(&app).await?;
+    let user = MockUser::builder().random()?.build().seed(&app).await?;
     let client = TestClient::new(app.address, None)?;
     let per_page = 3;
     for _ in 0..per_page + 1 {
-        TestPaste::builder()
+        MockPaste::builder()
             .random()?
             .build()
             .seed(&app, &user)
             .await?;
     }
 
-    let params = PaginationParams::builder().per_page(per_page).build();
+    let params = MockPaginationParams::builder().per_page(per_page).build();
     let response = client.username(&user.username).get(Some(params)).await?;
     assert_eq!(response.status(), 200);
     let html = response.text().await?;
@@ -493,18 +493,18 @@ async fn show_uses_per_page_when_provided() -> Result<()> {
 #[tokio::test]
 async fn show_falls_back_to_default_if_per_page_more_than_100() -> Result<()> {
     let app = TestApp::spawn().await?;
-    let user = TestUser::builder().random()?.build().seed(&app).await?;
+    let user = MockUser::builder().random()?.build().seed(&app).await?;
     let client = TestClient::new(app.address, None)?;
     let per_page = 101;
     for _ in 0..11 {
-        TestPaste::builder()
+        MockPaste::builder()
             .random()?
             .build()
             .seed(&app, &user)
             .await?;
     }
 
-    let params = PaginationParams::builder().per_page(per_page).build();
+    let params = MockPaginationParams::builder().per_page(per_page).build();
     let response = client.username(&user.username).get(Some(params)).await?;
     assert_eq!(response.status(), 200);
     let html = response.text().await?;
@@ -529,13 +529,13 @@ async fn show_paginates_correctly() -> Result<()> {
     }
 
     let app = TestApp::spawn().await?;
-    let user = TestUser::builder().random()?.build().seed(&app).await?;
+    let user = MockUser::builder().random()?.build().seed(&app).await?;
     let client = TestClient::new(app.address, None)?;
     let now = (JiffTimestamp::now().as_millisecond()) as u64;
 
     let mut pastes = Vec::new();
     for i in 0..8 {
-        let paste = TestPaste::builder()
+        let paste = MockPaste::builder()
             .random()?
             // This is necessary because we assert below on the order of items within and across pages.
             // That order is based on uuid v7 ordering, which has millisecond precision. Our tests are
@@ -549,7 +549,7 @@ async fn show_paginates_correctly() -> Result<()> {
     }
 
     // First page
-    let params = PaginationParams::builder().per_page(3).build();
+    let params = MockPaginationParams::builder().per_page(3).build();
     let response = client.username(&user.username).get(Some(params)).await?;
     let html = response.text().await?;
     for paste in &pastes[5..8] {
@@ -560,7 +560,7 @@ async fn show_paginates_correctly() -> Result<()> {
 
     // Second page (forward)
     let next_cursor = extract_next_cursor(&html)?;
-    let params = PaginationParams::builder()
+    let params = MockPaginationParams::builder()
         .per_page(3)
         .next_page(next_cursor)
         .build();
@@ -574,7 +574,7 @@ async fn show_paginates_correctly() -> Result<()> {
 
     // Third page (forward)
     let next_cursor = extract_next_cursor(&html)?;
-    let params = PaginationParams::builder()
+    let params = MockPaginationParams::builder()
         .per_page(3)
         .next_page(next_cursor)
         .build();
@@ -588,7 +588,7 @@ async fn show_paginates_correctly() -> Result<()> {
 
     // Second page (backward)
     let prev_cursor = extract_prev_cursor(&html)?;
-    let params = PaginationParams::builder()
+    let params = MockPaginationParams::builder()
         .per_page(3)
         .prev_page(prev_cursor)
         .build();
@@ -602,7 +602,7 @@ async fn show_paginates_correctly() -> Result<()> {
 
     // First page (backward)
     let prev_cursor = extract_prev_cursor(&html)?;
-    let params = PaginationParams::builder()
+    let params = MockPaginationParams::builder()
         .per_page(3)
         .prev_page(prev_cursor)
         .build();
@@ -630,14 +630,14 @@ async fn settings_inaccessible_when_logged_out() -> Result<()> {
 #[tokio::test]
 async fn settings_lists_users_api_keys() -> Result<()> {
     let app = TestApp::spawn().await?;
-    let user = TestUser::builder().random()?.build().seed(&app).await?;
+    let user = MockUser::builder().random()?.build().seed(&app).await?;
     let client = TestClient::new(app.address, None)?;
-    let api_key1 = TestApiKey::builder()
+    let api_key1 = MockApiKey::builder()
         .random()?
         .build()
         .seed(&app, &user)
         .await?;
-    let api_key2 = TestApiKey::builder()
+    let api_key2 = MockApiKey::builder()
         .random()?
         .build()
         .seed(&app, &user)
@@ -656,15 +656,15 @@ async fn settings_lists_users_api_keys() -> Result<()> {
 #[tokio::test]
 async fn settings_does_not_list_other_users_api_keys() -> Result<()> {
     let app = TestApp::spawn().await?;
-    let user = TestUser::builder().random()?.build().seed(&app).await?;
-    let other_user = TestUser::builder().random()?.build().seed(&app).await?;
+    let user = MockUser::builder().random()?.build().seed(&app).await?;
+    let other_user = MockUser::builder().random()?.build().seed(&app).await?;
     let client = TestClient::new(app.address, None)?;
-    let api_key1 = TestApiKey::builder()
+    let api_key1 = MockApiKey::builder()
         .random()?
         .build()
         .seed(&app, &other_user)
         .await?;
-    let api_key2 = TestApiKey::builder()
+    let api_key2 = MockApiKey::builder()
         .random()?
         .build()
         .seed(&app, &other_user)
@@ -683,7 +683,7 @@ async fn settings_does_not_list_other_users_api_keys() -> Result<()> {
 #[tokio::test]
 async fn can_generate_new_api_keys() -> Result<()> {
     let app = TestApp::spawn().await?;
-    let user = TestUser::builder().random()?.build().seed(&app).await?;
+    let user = MockUser::builder().random()?.build().seed(&app).await?;
     let client = TestClient::new(app.address, None)?;
     client.login().post(&user).await?;
 
@@ -706,9 +706,9 @@ async fn can_generate_new_api_keys() -> Result<()> {
 #[tokio::test]
 async fn can_delete_api_keys() -> Result<()> {
     let app = TestApp::spawn().await?;
-    let user = TestUser::builder().random()?.build().seed(&app).await?;
+    let user = MockUser::builder().random()?.build().seed(&app).await?;
     let client = TestClient::new(app.address, None)?;
-    let api_key = TestApiKey::builder()
+    let api_key = MockApiKey::builder()
         .random()?
         .build()
         .seed(&app, &user)
@@ -734,11 +734,11 @@ async fn can_delete_api_keys() -> Result<()> {
 #[tokio::test]
 async fn cannot_delete_other_users_api_keys() -> Result<()> {
     let app = TestApp::spawn().await?;
-    let user = TestUser::builder().random()?.build().seed(&app).await?;
+    let user = MockUser::builder().random()?.build().seed(&app).await?;
     let client = TestClient::new(app.address, None)?;
-    let other_user = TestUser::builder().random()?.build().seed(&app).await?;
+    let other_user = MockUser::builder().random()?.build().seed(&app).await?;
     let other_client = TestClient::new(app.address, None)?;
-    let api_key = TestApiKey::builder()
+    let api_key = MockApiKey::builder()
         .random()?
         .build()
         .seed(&app, &other_user)

@@ -407,7 +407,7 @@ main {
   font-size: var(--font-size-lg);
 }
 
-.about {
+.index {
   gap: var(--spacing-xl);
 
   .hero {

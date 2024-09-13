@@ -6,10 +6,10 @@
         <meta name="htmx-config" content='{"responseTargetPrefersExisting":"true"}'>
         <title>
             {% block title %}{% endblock %}
-            - Gluestick
+            Gluestick
         </title>
         <link rel="stylesheet"
-              href="/assets/css/main.css?h=8d75a17ada200487f10d45db866edf6c">
+              href="/assets/css/main.css?h=b8211da1a6b64e66ba41cb6fd00a5948">
         <script defer src="/assets/js/vendor/htmx.v2.0.0.min.js"></script>
         <script defer src="/assets/js/vendor/htmx-ext-response-targets.v2.0.1.min.js"></script>
         <link rel="icon" href="/assets/favicon/favicon.ico" sizes="32x32">
@@ -30,7 +30,7 @@
                 <a class="logo" href="/">Gluestick</a>
                 <input id="menu-state" type="checkbox" />
                 <ul class="main-nav">
-                    <a href="/pastes">All Pastes</a>
+                    <a href="/pastes">Public Pastes</a>
                     {% if let Some(session) = session %}
                         <li>
                             <a href="/{{ session.user.username }}">Your Pastes</a>

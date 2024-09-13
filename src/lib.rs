@@ -2,7 +2,9 @@
 #![deny(clippy::pedantic)]
 #![warn(clippy::allow_attributes)]
 #![allow(clippy::missing_errors_doc)]
+#![allow(clippy::module_name_repetitions)]
 #![allow(clippy::must_use_candidate)]
+#![allow(clippy::too_many_lines)]
 
 use crate::db::Database;
 use crate::models::session::SessionToken;
@@ -32,63 +34,93 @@ pub fn router(db: Database) -> Router {
         .into_router();
 
     let json_api_router = Router::new()
-        .route("/pastes", get(controllers::api::pastes::index))
-        .route("/pastes", post(controllers::api::pastes::create))
-        .route("/pastes/:id", get(controllers::api::pastes::show))
-        .route("/pastes/:id/raw", get(controllers::api::pastes::show_raw))
-        .route("/pastes/:id", patch(controllers::api::pastes::update))
-        .route("/pastes/:id", delete(controllers::api::pastes::destroy))
-        .fallback(controllers::api::not_found);
+        .route("/pastes", get(controllers::api::pastes_controller::index))
+        .route("/pastes", post(controllers::api::pastes_controller::create))
+        .route(
+            "/pastes/:id",
+            get(controllers::api::pastes_controller::show),
+        )
+        .route(
+            "/pastes/:id/raw",
+            get(controllers::api::pastes_controller::show_raw),
+        )
+        .route(
+            "/pastes/:id",
+            patch(controllers::api::pastes_controller::update),
+        )
+        .route(
+            "/pastes/:id",
+            delete(controllers::api::pastes_controller::destroy),
+        )
+        .fallback(controllers::api::application_controller::not_found);
 
     Router::new()
         .nest("/api/v1", json_api_router)
         .nest("/assets", assets_router)
-        .route("/", get(controllers::about))
-        .route("/health", get(controllers::health::check))
-        .route("/signup", get(controllers::users::new))
-        .route("/signup", post(controllers::users::create))
+        .route("/", get(controllers::application_controller::index))
+        .route(
+            "/health",
+            get(controllers::application_controller::health_check),
+        )
+        .route("/signup", get(controllers::users_controller::new))
+        .route("/signup", post(controllers::users_controller::create))
         .route(
             "/signup/validate/username",
-            post(controllers::users::validate_username),
+            post(controllers::users_controller::validate_username),
         )
         .route(
             "/signup/validate/email",
-            post(controllers::users::validate_email),
+            post(controllers::users_controller::validate_email),
         )
         .route(
             "/signup/validate/password",
-            post(controllers::users::validate_password),
+            post(controllers::users_controller::validate_password),
         )
-        .route("/login", get(controllers::sessions::new))
-        .route("/login", post(controllers::sessions::create))
-        .route("/logout", delete(controllers::sessions::delete))
-        .route("/settings", get(controllers::users::settings))
+        .route("/login", get(controllers::sessions_controller::new))
+        .route("/login", post(controllers::sessions_controller::create))
+        .route("/logout", delete(controllers::sessions_controller::delete))
+        .route("/settings", get(controllers::users_controller::settings))
         .route(
             "/settings/change_password",
-            post(controllers::users::change_password),
+            post(controllers::users_controller::change_password),
         )
-        .route("/api_sessions", post(controllers::api_sessions::create))
+        .route(
+            "/api_sessions",
+            post(controllers::api_sessions_controller::create),
+        )
         .route(
             "/api_sessions/:api_key_id",
-            delete(controllers::api_sessions::destroy),
+            delete(controllers::api_sessions_controller::destroy),
         )
-        .route("/new", get(controllers::pastes::new))
-        .route("/pastes", get(controllers::pastes::index))
-        .route("/pastes", post(controllers::pastes::create))
-        .route("/:username", get(controllers::users::show))
-        .route("/:username/:paste_id", get(controllers::pastes::show))
+        .route("/new", get(controllers::pastes_controller::new))
+        .route("/pastes", get(controllers::pastes_controller::index))
+        .route("/pastes", post(controllers::pastes_controller::create))
+        .route("/:username", get(controllers::users_controller::show))
+        .route(
+            "/:username/:paste_id",
+            get(controllers::pastes_controller::show),
+        )
         .route(
             "/:username/:paste_id/raw",
-            get(controllers::pastes::show_raw),
+            get(controllers::pastes_controller::show_raw),
         )
         .route(
             "/:username/:paste_id/download",
-            get(controllers::pastes::download),
+            get(controllers::pastes_controller::download),
         )
-        .route("/:username/:paste_id", put(controllers::pastes::update))
-        .route("/:username/:paste_id/edit", get(controllers::pastes::edit))
-        .route("/:username/:paste_id", delete(controllers::pastes::destroy))
-        .fallback(controllers::not_found)
+        .route(
+            "/:username/:paste_id",
+            put(controllers::pastes_controller::update),
+        )
+        .route(
+            "/:username/:paste_id/edit",
+            get(controllers::pastes_controller::edit),
+        )
+        .route(
+            "/:username/:paste_id",
+            delete(controllers::pastes_controller::destroy),
+        )
+        .fallback(controllers::application_controller::not_found)
         .layer(
             TraceLayer::new_for_http()
                 .make_span_with(|request: &Request<_>| {

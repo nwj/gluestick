@@ -1,9 +1,9 @@
 #![allow(dead_code)]
 
-use crate::common::api_key_helper::TestApiKey;
-use crate::common::pagination_helper::{PaginationParams, PaginationResponse};
-use crate::common::paste_helper::TestPaste;
-use crate::common::user_helper::TestUser;
+use crate::common::mocks::mock_api_key::MockApiKey;
+use crate::common::mocks::mock_pagination::{MockPaginationParams, MockPaginationResponse};
+use crate::common::mocks::mock_paste::MockPaste;
+use crate::common::mocks::mock_user::MockUser;
 use crate::prelude::*;
 use core::net::SocketAddr;
 use reqwest::header::{HeaderMap, HeaderValue};
@@ -16,7 +16,7 @@ pub struct TestClient {
 }
 
 impl TestClient {
-    pub fn new(address: SocketAddr, api_key: Option<&TestApiKey>) -> Result<Self> {
+    pub fn new(address: SocketAddr, api_key: Option<&MockApiKey>) -> Result<Self> {
         let base_url = Url::parse(&format!("http://{address}/"))?;
 
         let mut headers = HeaderMap::new();
@@ -88,8 +88,8 @@ pub struct ApiPastesEndpoint<'c>(&'c TestClient);
 
 #[derive(Debug, Deserialize)]
 pub struct ApiPastesIndexResponse {
-    pub pastes: Vec<TestPaste>,
-    pub pagination: PaginationResponse,
+    pub pastes: Vec<MockPaste>,
+    pub pagination: MockPaginationResponse,
 }
 
 impl<'c> ApiPastesEndpoint<'c> {
@@ -104,7 +104,7 @@ impl<'c> ApiPastesEndpoint<'c> {
         Ok(self.0.base_url.join(&format!("{}/", self.endpoint_str()))?)
     }
 
-    pub async fn get(&self, params: Option<PaginationParams>) -> Result<Response> {
+    pub async fn get(&self, params: Option<MockPaginationParams>) -> Result<Response> {
         if let Some(params) = params {
             Ok(self
                 .0
@@ -120,14 +120,14 @@ impl<'c> ApiPastesEndpoint<'c> {
 
     pub async fn get_and_deserialize(
         &self,
-        params: Option<PaginationParams>,
+        params: Option<MockPaginationParams>,
     ) -> Result<ApiPastesIndexResponse> {
         let response = self.get(params).await?;
         let response_data: ApiPastesIndexResponse = response.json().await?;
         Ok(response_data)
     }
 
-    pub async fn post(&self, paste: &TestPaste) -> Result<Response> {
+    pub async fn post(&self, paste: &MockPaste) -> Result<Response> {
         Ok(self
             .0
             .client
@@ -137,13 +137,13 @@ impl<'c> ApiPastesEndpoint<'c> {
             .await?)
     }
 
-    pub async fn get_by_id(&self, paste: &TestPaste) -> Result<Response> {
+    pub async fn get_by_id(&self, paste: &MockPaste) -> Result<Response> {
         let id = paste.id.clone().unwrap_or_default();
         let endpoint = self.endpoint_with_trailing_slash()?.join(&id)?;
         Ok(self.0.client.get(endpoint).send().await?)
     }
 
-    pub async fn get_raw_by_id(&self, paste: &TestPaste) -> Result<Response> {
+    pub async fn get_raw_by_id(&self, paste: &MockPaste) -> Result<Response> {
         let id = paste.id.clone().unwrap_or_default();
         let endpoint = self
             .endpoint_with_trailing_slash()?
@@ -151,13 +151,13 @@ impl<'c> ApiPastesEndpoint<'c> {
         Ok(self.0.client.get(endpoint).send().await?)
     }
 
-    pub async fn patch_by_id(&self, paste: &TestPaste) -> Result<Response> {
+    pub async fn patch_by_id(&self, paste: &MockPaste) -> Result<Response> {
         let id = paste.id.clone().unwrap_or_default();
         let endpoint = self.endpoint_with_trailing_slash()?.join(&id)?;
         Ok(self.0.client.patch(endpoint).json(&paste).send().await?)
     }
 
-    pub async fn delete_by_id(&self, paste: &TestPaste) -> Result<Response> {
+    pub async fn delete_by_id(&self, paste: &MockPaste) -> Result<Response> {
         let id = paste.id.clone().unwrap_or_default();
         let endpoint = self.endpoint_with_trailing_slash()?.join(&id)?;
         Ok(self.0.client.delete(endpoint).send().await?)
@@ -183,7 +183,7 @@ impl<'c> ApiSessionsEndpoint<'c> {
         Ok(self.0.client.post(self.endpoint()?).send().await?)
     }
 
-    pub async fn delete_by_id(&self, api_key: &TestApiKey) -> Result<Response> {
+    pub async fn delete_by_id(&self, api_key: &MockApiKey) -> Result<Response> {
         let endpoint = self.endpoint_with_trailing_slash()?.join(&api_key.id)?;
         Ok(self.0.client.delete(endpoint).send().await?)
     }
@@ -212,7 +212,7 @@ impl<'c> LoginEndpoint<'c> {
         Ok(self.0.client.get(self.endpoint()?).send().await?)
     }
 
-    pub async fn post(&self, user: &TestUser) -> Result<Response> {
+    pub async fn post(&self, user: &MockUser) -> Result<Response> {
         Ok(self
             .0
             .client
@@ -250,7 +250,7 @@ impl<'c> PastesEndpoint<'c> {
         Ok(self.0.base_url.join(&format!("{}/", self.endpoint_str()))?)
     }
 
-    pub async fn get(&self, params: Option<PaginationParams>) -> Result<Response> {
+    pub async fn get(&self, params: Option<MockPaginationParams>) -> Result<Response> {
         let mut url = self.endpoint()?;
         if let Some(params) = params {
             url = Url::parse_with_params(&url.to_string(), params.to_query_params())?;
@@ -258,7 +258,7 @@ impl<'c> PastesEndpoint<'c> {
         Ok(self.0.client.get(url).send().await?)
     }
 
-    pub async fn post(&self, paste: &TestPaste) -> Result<Response> {
+    pub async fn post(&self, paste: &MockPaste) -> Result<Response> {
         Ok(self
             .0
             .client
@@ -278,7 +278,7 @@ impl<'c> PastesEndpoint<'c> {
         Ok(self.0.client.get(endpoint).send().await?)
     }
 
-    pub async fn delete_by_id(&self, paste: &TestPaste) -> Result<Response> {
+    pub async fn delete_by_id(&self, paste: &MockPaste) -> Result<Response> {
         let id = paste.id.clone().unwrap_or_default();
         let endpoint = self.endpoint_with_trailing_slash()?.join(&id)?;
         Ok(self.0.client.delete(endpoint).send().await?)
@@ -308,7 +308,7 @@ impl<'c> SignupEndpoint<'c> {
         Ok(self.0.client.get(self.endpoint()?).send().await?)
     }
 
-    pub async fn post(&self, invite_code: String, user: &TestUser) -> Result<Response> {
+    pub async fn post(&self, invite_code: String, user: &MockUser) -> Result<Response> {
         Ok(self
             .0
             .client
@@ -338,7 +338,7 @@ impl<'c> UsernameEndpoint<'c> {
         Ok(self.client.base_url.join(&format!("{}/", &self.username))?)
     }
 
-    pub async fn get(&self, params: Option<PaginationParams>) -> Result<Response> {
+    pub async fn get(&self, params: Option<MockPaginationParams>) -> Result<Response> {
         let mut url = self.endpoint()?;
         if let Some(params) = params {
             url = Url::parse_with_params(&url.to_string(), params.to_query_params())?;
@@ -346,13 +346,13 @@ impl<'c> UsernameEndpoint<'c> {
         Ok(self.client.client.get(url).send().await?)
     }
 
-    pub async fn get_by_paste_id(&self, paste: &TestPaste) -> Result<Response> {
+    pub async fn get_by_paste_id(&self, paste: &MockPaste) -> Result<Response> {
         let id = paste.id.clone().unwrap_or_default();
         let endpoint = self.endpoint_with_trailing_slash()?.join(&id)?;
         Ok(self.client.client.get(endpoint).send().await?)
     }
 
-    pub async fn get_raw_by_paste_id(&self, paste: &TestPaste) -> Result<Response> {
+    pub async fn get_raw_by_paste_id(&self, paste: &MockPaste) -> Result<Response> {
         let id = paste.id.clone().unwrap_or_default();
         let endpoint = self
             .endpoint_with_trailing_slash()?
@@ -360,7 +360,7 @@ impl<'c> UsernameEndpoint<'c> {
         Ok(self.client.client.get(endpoint).send().await?)
     }
 
-    pub async fn get_download_by_paste_id(&self, paste: &TestPaste) -> Result<Response> {
+    pub async fn get_download_by_paste_id(&self, paste: &MockPaste) -> Result<Response> {
         let id = paste.id.clone().unwrap_or_default();
         let endpoint = self
             .endpoint_with_trailing_slash()?
@@ -368,7 +368,7 @@ impl<'c> UsernameEndpoint<'c> {
         Ok(self.client.client.get(endpoint).send().await?)
     }
 
-    pub async fn get_edit_by_paste_id(&self, paste: &TestPaste) -> Result<Response> {
+    pub async fn get_edit_by_paste_id(&self, paste: &MockPaste) -> Result<Response> {
         let id = paste.id.clone().unwrap_or_default();
         let endpoint = self
             .endpoint_with_trailing_slash()?
@@ -376,7 +376,7 @@ impl<'c> UsernameEndpoint<'c> {
         Ok(self.client.client.get(endpoint).send().await?)
     }
 
-    pub async fn put_by_paste_id(&self, paste: &TestPaste) -> Result<Response> {
+    pub async fn put_by_paste_id(&self, paste: &MockPaste) -> Result<Response> {
         let id = paste.id.clone().unwrap_or_default();
         let endpoint = self.endpoint_with_trailing_slash()?.join(&id)?;
         Ok(self
@@ -393,7 +393,7 @@ impl<'c> UsernameEndpoint<'c> {
             .await?)
     }
 
-    pub async fn delete_by_paste_id(&self, paste: &TestPaste) -> Result<Response> {
+    pub async fn delete_by_paste_id(&self, paste: &MockPaste) -> Result<Response> {
         let id = paste.id.clone().unwrap_or_default();
         let endpoint = self.endpoint_with_trailing_slash()?.join(&id)?;
         Ok(self.client.client.delete(endpoint).send().await?)

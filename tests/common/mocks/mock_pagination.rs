@@ -1,22 +1,22 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize)]
-pub struct PaginationParams {
+pub struct MockPaginationParams {
     pub per_page: Option<usize>,
     pub prev_page: Option<String>,
     pub next_page: Option<String>,
 }
 
 #[derive(Default)]
-pub struct PaginationParamsBuilder {
+pub struct MockPaginationParamsBuilder {
     per_page: Option<usize>,
     prev_page: Option<String>,
     next_page: Option<String>,
 }
 
-impl PaginationParams {
-    pub fn builder() -> PaginationParamsBuilder {
-        PaginationParamsBuilder::new()
+impl MockPaginationParams {
+    pub fn builder() -> MockPaginationParamsBuilder {
+        MockPaginationParamsBuilder::new()
     }
 
     pub fn to_query_params(&self) -> Vec<(&str, String)> {
@@ -35,7 +35,7 @@ impl PaginationParams {
     }
 }
 
-impl PaginationParamsBuilder {
+impl MockPaginationParamsBuilder {
     pub fn new() -> Self {
         Self::default()
     }
@@ -55,12 +55,12 @@ impl PaginationParamsBuilder {
         self
     }
 
-    pub fn build(self) -> PaginationParams {
+    pub fn build(self) -> MockPaginationParams {
         let per_page = self.per_page;
         let prev_page = self.prev_page;
         let next_page = self.next_page;
 
-        PaginationParams {
+        MockPaginationParams {
             per_page,
             prev_page,
             next_page,
@@ -69,7 +69,7 @@ impl PaginationParamsBuilder {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct PaginationResponse {
+pub struct MockPaginationResponse {
     pub prev_page: Option<String>,
     pub next_page: Option<String>,
 }

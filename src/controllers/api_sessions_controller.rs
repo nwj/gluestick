@@ -2,7 +2,7 @@ use crate::controllers::prelude::*;
 use crate::db::Database;
 use crate::models::api_session::ApiKey;
 use crate::models::session::Session;
-use crate::views::api_sessions::CreateApiSessionsTemplate;
+use crate::views::api_sessions::create::CreatePage;
 use axum::{
     extract::{Path, State},
     response::IntoResponse,
@@ -15,7 +15,7 @@ pub async fn create(session: Session, State(db): State<Database>) -> Result<impl
 
     api_key.insert(&db).await?;
 
-    Ok(CreateApiSessionsTemplate {
+    Ok(CreatePage {
         unhashed_key,
         api_key_id,
     })

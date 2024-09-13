@@ -1,12 +1,12 @@
-use crate::common::app::TestApp;
+use crate::common::mocks::mock_user::MockUser;
 use crate::common::rand_helper;
-use crate::common::user_helper::TestUser;
+use crate::common::test_app::TestApp;
 use crate::prelude::*;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 #[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
-pub struct TestPaste {
+pub struct MockPaste {
     pub id: Option<String>,
     pub filename: String,
     pub description: String,
@@ -15,7 +15,7 @@ pub struct TestPaste {
 }
 
 #[derive(Clone, Default)]
-pub struct TestPasteBuilder {
+pub struct MockPasteBuilder {
     id: Option<String>,
     filename: Option<String>,
     description: Option<String>,
@@ -23,18 +23,18 @@ pub struct TestPasteBuilder {
     visibility: Option<String>,
 }
 
-impl TestPaste {
-    pub fn builder() -> TestPasteBuilder {
-        TestPasteBuilder::new()
+impl MockPaste {
+    pub fn builder() -> MockPasteBuilder {
+        MockPasteBuilder::new()
     }
 
-    pub async fn seed(self, app: &TestApp, user: &TestUser) -> Result<Self> {
+    pub async fn seed(self, app: &TestApp, user: &MockUser) -> Result<Self> {
         app.seed_paste(self.clone(), user).await?;
         Ok(self)
     }
 }
 
-impl TestPasteBuilder {
+impl MockPasteBuilder {
     pub fn new() -> Self {
         Self::default()
     }
@@ -89,7 +89,7 @@ impl TestPasteBuilder {
             .random_body()?)
     }
 
-    pub fn build(self) -> TestPaste {
+    pub fn build(self) -> MockPaste {
         let id = self.id.clone();
         let filename = self.filename.clone().unwrap_or("test.md".into());
         let description = self.description.clone().unwrap_or("A test paste".into());
@@ -98,7 +98,7 @@ impl TestPasteBuilder {
         );
         let visibility = self.visibility.clone().unwrap_or("public".into());
 
-        TestPaste {
+        MockPaste {
             id,
             filename,
             description,

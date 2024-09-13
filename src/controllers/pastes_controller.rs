@@ -1,14 +1,14 @@
 use crate::controllers::prelude::*;
 use crate::db::Database;
-use crate::helpers::pagination::{CursorPaginationParams, CursorPaginationResponse};
+use crate::helpers::pagination_helper::{CursorPaginationParams, CursorPaginationResponse};
 use crate::models::paste::{Body, Description, Filename, Paste, Visibility};
 use crate::models::prelude::Error as ModelsError;
 use crate::models::session::Session;
 use crate::models::user::{User, Username};
-use crate::views::pastes::{
-    EditPastesFormPartial, EditPastesTemplate, IndexPastesTemplate, NewPastesFormPartial,
-    NewPastesTemplate, ShowPastesTemplate,
-};
+use crate::views::pastes::edit::{EditFormPartial, EditPage};
+use crate::views::pastes::index::IndexPage;
+use crate::views::pastes::new::{NewFormPartial, NewPage};
+use crate::views::pastes::show::ShowPage;
 use axum::extract::{Form, Path, Query, State};
 use axum::http::{header::HeaderMap, HeaderValue, StatusCode};
 use axum::response::IntoResponse;
@@ -36,19 +36,19 @@ pub async fn index(
             .await?;
         triples.push((paste, username, optional_html));
     }
-    Ok(IndexPastesTemplate {
+    Ok(IndexPage {
         session,
         paste_username_html_triples: triples,
         pagination: pagination_response,
     })
 }
 
-pub async fn new(session: Session) -> NewPastesTemplate {
-    NewPastesTemplate::from(session)
+pub async fn new(session: Session) -> NewPage {
+    NewPage::from(session)
 }
 
 #[derive(Clone, Deserialize)]
-pub struct CreatePasteParams {
+pub struct CreateParams {
     pub filename: String,
     pub description: String,
     pub body: String,
@@ -58,11 +58,11 @@ pub struct CreatePasteParams {
 pub async fn create(
     session: Session,
     State(db): State<Database>,
-    Form(params): Form<CreatePasteParams>,
+    Form(params): Form<CreateParams>,
 ) -> Result<impl IntoResponse> {
     let user_id = session.user.id;
     let username = session.user.username.clone();
-    let mut error_template: NewPastesFormPartial = (username.clone(), params.clone()).into();
+    let mut error_template: NewFormPartial = (username.clone(), params.clone()).into();
 
     let filename_result = Filename::try_from(&params.filename);
     if let Err(ModelsError::Parse(ref msg)) = filename_result {
@@ -137,7 +137,7 @@ pub async fn show(
     Ok((
         StatusCode::OK,
         headers,
-        ShowPastesTemplate {
+        ShowPage {
             session,
             paste,
             username: user.username,
@@ -227,15 +227,11 @@ pub async fn edit(
         headers.insert("X-Robots-Tag", HeaderValue::from_static("noindex"));
     }
 
-    Ok((
-        StatusCode::OK,
-        headers,
-        EditPastesTemplate::from((session, paste)),
-    ))
+    Ok((StatusCode::OK, headers, EditPage::from((session, paste))))
 }
 
 #[derive(Clone, Deserialize)]
-pub struct UpdatePasteParams {
+pub struct UpdateParams {
     pub filename: String,
     pub description: String,
     pub body: String,
@@ -246,7 +242,7 @@ pub async fn update(
     session: Session,
     State(db): State<Database>,
     Path((username, paste_id)): Path<(String, String)>,
-    Form(params): Form<UpdatePasteParams>,
+    Form(params): Form<UpdateParams>,
 ) -> Result<impl IntoResponse> {
     let paste_id =
         Uuid::try_parse(&paste_id).map_err(|_| Error::NotFound(Some(session.clone())))?;
@@ -276,7 +272,7 @@ pub async fn update(
         })?,
     );
 
-    let mut error_template = EditPastesFormPartial::from((username, paste_id, params.clone()));
+    let mut error_template = EditFormPartial::from((username, paste_id, params.clone()));
 
     let filename_result = Filename::try_from(&params.filename);
     if let Err(ModelsError::Parse(ref msg)) = filename_result {
