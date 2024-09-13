@@ -1,2 +1,2 @@
-mod misc;
-mod pastes;
+mod misc_tests;
+mod paste_tests;

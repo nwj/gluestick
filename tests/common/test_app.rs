@@ -1,7 +1,7 @@
-use crate::common::api_key_helper::TestApiKey;
-use crate::common::paste_helper::TestPaste;
+use crate::common::mocks::mock_api_key::MockApiKey;
+use crate::common::mocks::mock_paste::MockPaste;
+use crate::common::mocks::mock_user::MockUser;
 use crate::common::rand_helper;
-use crate::common::user_helper::TestUser;
 use crate::prelude::*;
 use core::net::SocketAddr;
 use gluestick::{db::migrations, db::Database, router};
@@ -82,7 +82,7 @@ impl TestApp {
         Ok(invite_code)
     }
 
-    pub async fn seed_user(&self, user: TestUser) -> Result<()> {
+    pub async fn seed_user(&self, user: MockUser) -> Result<()> {
         let id = Uuid::try_parse(
             &user
                 .id
@@ -110,7 +110,7 @@ impl TestApp {
         Ok(())
     }
 
-    pub async fn seed_api_key(&self, api_key: TestApiKey, user: &TestUser) -> Result<()> {
+    pub async fn seed_api_key(&self, api_key: MockApiKey, user: &MockUser) -> Result<()> {
         let user_id = Uuid::try_parse(
             &user
                 .id
@@ -140,7 +140,7 @@ impl TestApp {
         Ok(())
     }
 
-    pub async fn seed_paste(&self, paste: TestPaste, user: &TestUser) -> Result<()> {
+    pub async fn seed_paste(&self, paste: MockPaste, user: &MockUser) -> Result<()> {
         let id = Uuid::try_parse(
             &paste
                 .id
