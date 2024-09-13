@@ -7,10 +7,11 @@ use crate::models::paste::Paste;
 use crate::models::prelude::Error as ModelsError;
 use crate::models::session::{Session, SessionToken, SESSION_COOKIE_NAME};
 use crate::models::user::{EmailAddress, UnhashedPassword, User, Username};
-use crate::views::users::{
-    ChangePasswordFormPartial, EmailAddressInputPartial, NewUsersTemplate, PasswordInputPartial,
-    SettingsTemplate, ShowUsersTemplate, UsernameInputPartial,
+use crate::views::users::new::{
+    EmailInputPartial, NewPage, PasswordInputPartial, UsernameInputPartial,
 };
+use crate::views::users::settings::{ChangePasswordFormPartial, SettingsPage};
+use crate::views::users::show::ShowPage;
 use axum::body::Body;
 use axum::extract::{Form, State};
 use axum::extract::{Path, Query};
@@ -19,12 +20,12 @@ use axum::response::{IntoResponse, Response};
 use secrecy::{ExposeSecret, Secret};
 use serde::Deserialize;
 
-pub async fn new() -> NewUsersTemplate {
-    NewUsersTemplate::default()
+pub async fn new() -> NewPage {
+    NewPage::default()
 }
 
 #[derive(Clone, Deserialize)]
-pub struct CreateUserParams {
+pub struct CreateParams {
     pub username: String,
     pub email: String,
     pub password: Secret<String>,
@@ -33,9 +34,9 @@ pub struct CreateUserParams {
 
 pub async fn create(
     State(db): State<Database>,
-    Form(params): Form<CreateUserParams>,
+    Form(params): Form<CreateParams>,
 ) -> Result<impl IntoResponse> {
-    let mut error_template: NewUsersTemplate = params.clone().into();
+    let mut error_template: NewPage = params.clone().into();
 
     let username_result = Username::try_from(&params.username);
     if let Err(ModelsError::Parse(ref msg)) = username_result {
@@ -143,7 +144,7 @@ pub async fn show(
                     .await?;
                 pairs.push((paste, optional_html));
             }
-            Ok(ShowUsersTemplate {
+            Ok(ShowPage {
                 session,
                 user,
                 paste_html_pairs: pairs,
@@ -158,7 +159,7 @@ pub async fn settings(session: Session, State(db): State<Database>) -> Result<im
     let api_keys = ApiKey::all_for_user_id(&db, session.user.id).await?;
     let session = Some(session);
 
-    Ok(SettingsTemplate {
+    Ok(SettingsPage {
         session,
         api_keys,
         ..Default::default()
@@ -218,7 +219,7 @@ pub async fn change_password(
 pub async fn validate_username(
     session: Option<Session>,
     State(db): State<Database>,
-    Form(params): Form<CreateUserParams>,
+    Form(params): Form<CreateParams>,
 ) -> Result<impl IntoResponse> {
     let username = Username::try_from(&params.username).map_err(|e| {
         to_validation_error(session, e, |msg| UsernameInputPartial {
@@ -241,29 +242,29 @@ pub async fn validate_username(
 pub async fn validate_email(
     session: Option<Session>,
     State(db): State<Database>,
-    Form(params): Form<CreateUserParams>,
+    Form(params): Form<CreateParams>,
 ) -> Result<impl IntoResponse> {
     let email = EmailAddress::try_from(&params.email).map_err(|e| {
-        to_validation_error(session, e, |msg| EmailAddressInputPartial {
+        to_validation_error(session, e, |msg| EmailInputPartial {
             email_error_message: Some(msg.into()),
             ..params.clone().into()
         })
     })?;
 
     if User::find_by_email(&db, email).await?.is_some() {
-        Err(Error::Unprocessable(Box::new(EmailAddressInputPartial {
+        Err(Error::Unprocessable(Box::new(EmailInputPartial {
             email_error_message: Some("Email is already taken".into()),
             ..params.clone().into()
         })))?;
     }
 
-    let template: EmailAddressInputPartial = params.into();
+    let template: EmailInputPartial = params.into();
     Ok(template)
 }
 
 pub async fn validate_password(
     session: Option<Session>,
-    Form(params): Form<CreateUserParams>,
+    Form(params): Form<CreateParams>,
 ) -> Result<impl IntoResponse> {
     let _password = UnhashedPassword::try_from(params.password.clone()).map_err(|e| {
         to_validation_error(session, e, |msg| PasswordInputPartial {

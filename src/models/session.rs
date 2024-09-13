@@ -71,7 +71,6 @@ impl Session {
     }
 }
 
-#[expect(clippy::module_name_repetitions)]
 #[derive(Clone, Debug, Display)]
 #[display("{{ id: {id}, user_id: {user_id} }}")]
 pub struct SessionToken {

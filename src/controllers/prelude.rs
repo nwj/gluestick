@@ -1,8 +1,9 @@
 use crate::models::prelude::Error as ModelsError;
 use crate::models::session::Session;
-use crate::views::{
-    ForbiddenTemplate, InternalServerErrorTemplate, NotFoundTemplate, UnauthorizedTemplate,
-};
+use crate::views::errors::forbidden::ForbiddenPage;
+use crate::views::errors::internal_server_error::InternalServerErrorPage;
+use crate::views::errors::not_found::NotFoundPage;
+use crate::views::errors::unauthorized::UnauthorizedPage;
 use askama::Template;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
@@ -46,11 +47,9 @@ impl From<ModelsError> for Error {
 impl IntoResponse for Error {
     fn into_response(self) -> Response {
         match self {
-            Error::Unauthorized => (
-                StatusCode::UNAUTHORIZED,
-                UnauthorizedTemplate { session: None },
-            )
-                .into_response(),
+            Error::Unauthorized => {
+                (StatusCode::UNAUTHORIZED, UnauthorizedPage { session: None }).into_response()
+            }
 
             Error::UnauthorizedInline(template) => match template.render_template() {
                 Ok(html) => (StatusCode::UNAUTHORIZED, html).into_response(),
@@ -58,7 +57,7 @@ impl IntoResponse for Error {
                     tracing::error!(%err, "template rendering error");
                     (
                         StatusCode::INTERNAL_SERVER_ERROR,
-                        InternalServerErrorTemplate { session: None },
+                        InternalServerErrorPage { session: None },
                     )
                         .into_response()
                 }
@@ -66,7 +65,7 @@ impl IntoResponse for Error {
 
             Error::Forbidden(maybe_session) => (
                 StatusCode::FORBIDDEN,
-                ForbiddenTemplate {
+                ForbiddenPage {
                     session: maybe_session,
                 },
             )
@@ -74,7 +73,7 @@ impl IntoResponse for Error {
 
             Error::NotFound(maybe_session) => (
                 StatusCode::NOT_FOUND,
-                NotFoundTemplate {
+                NotFoundPage {
                     session: maybe_session,
                 },
             )
@@ -86,7 +85,7 @@ impl IntoResponse for Error {
                     tracing::error!(%err, "template rendering error");
                     (
                         StatusCode::INTERNAL_SERVER_ERROR,
-                        InternalServerErrorTemplate { session: None },
+                        InternalServerErrorPage { session: None },
                     )
                         .into_response()
                 }
@@ -99,7 +98,7 @@ impl IntoResponse for Error {
                 tracing::error!(%source, "internal server error");
                 (
                     StatusCode::INTERNAL_SERVER_ERROR,
-                    InternalServerErrorTemplate {
+                    InternalServerErrorPage {
                         session: maybe_session,
                     },
                 )
