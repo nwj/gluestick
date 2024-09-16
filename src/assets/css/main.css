@@ -75,6 +75,8 @@ svg.icon {
   --color-banana-pepper-yellow: #ffcb3d;
   --color-fusion-red: #ff565b;
 
+  --font-system: system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif,
+    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
   --font-monospace: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo,
     Consolas, "DejaVu Sans Mono", monospace;
 
@@ -118,6 +120,7 @@ html {
 }
 
 body {
+  font-family: var(--font-system);
   background-color: var(--color-midnight-blue);
   color: var(--color-white);
   display: flex;
