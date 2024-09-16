@@ -133,14 +133,14 @@ header {
     max-width: 100%;
     margin: 0 auto;
     width: var(--max-viewport);
-    padding: var(--spacing-xs);
+    padding: var(--spacing-2xs);
     display: grid;
     grid-template-areas:
       "left center right"
       "menu menu menu";
     justify-content: space-between;
     align-items: center;
-    gap: var(--spacing-xs);
+    gap: var(--spacing-3xs);
     border-bottom: 2px solid var(--color-white);
 
     a {
@@ -177,7 +177,7 @@ header {
       font-family:
         Madimi One,
         sans-serif;
-      font-size: var(--font-size-2xl);
+      font-size: var(--font-size-xl);
     }
 
     .main-nav {
@@ -189,9 +189,9 @@ header {
       grid-area: right;
 
       .with-border {
-        border: 2px solid var(--color-black);
+        border: 2px solid var(--color-white);
         border-radius: 5%;
-        padding: var(--spacing-2xs);
+        padding: var(--spacing-3xs);
       }
     }
 
@@ -202,11 +202,11 @@ header {
     #menu-state:checked + .main-nav {
       display: flex;
       flex-direction: column;
-      gap: var(--spacing-xs);
+      gap: var(--spacing-3xs);
     }
   }
 
-  @media (min-width: 768px) {
+  @media (min-width: 800px) {
     nav {
       gap: unset;
 
@@ -249,15 +249,15 @@ main {
   h2 {
     line-height: var(--line-height-heading);
     font-weight: normal;
-    margin-bottom: var(--spacing-s);
+    margin-bottom: var(--spacing-xs);
   }
 
   h1 {
-    font-size: var(--font-size-3xl);
+    font-size: var(--font-size-2xl);
   }
 
   h2 {
-    font-size: var(--font-size-2xl);
+    font-size: var(--font-size-xl);
   }
 
   a {
@@ -271,6 +271,7 @@ main {
 
   pre {
     margin: unset;
+    font-size: var(--font-size-s);
     background-color: var(--color-input-background);
     border: 1px solid var(--color-grey-500);
     padding: var(--spacing-s);
@@ -285,7 +286,7 @@ main {
     background-color: var(--color-input-background);
     border: 1px solid var(--color-grey-500);
     line-height: var(--line-height-heading);
-    padding: var(--spacing-2xs) var(--spacing-xs);
+    padding: var(--spacing-2xs);
     box-shadow: 10px 10px 0 0 var(--color-black);
   }
 
@@ -293,7 +294,7 @@ main {
     color: var(--color-white);
     background-color: var(--color-input-background);
     border: 1px solid var(--color-grey-500);
-    padding: var(--spacing-s);
+    padding: var(--spacing-2xs);
     box-shadow: 10px 10px 0 0 var(--color-black);
     resize: none;
     white-space: pre;
@@ -318,7 +319,7 @@ main {
     input[type="password"],
     textarea {
       display: block;
-      margin-bottom: var(--spacing-xs);
+      margin-bottom: var(--spacing-3xs);
     }
 
     .error-msg {
@@ -346,7 +347,7 @@ main {
     border: unset;
     box-shadow: 10px 10px 0 0 var(--color-black);
     line-height: var(--line-height-text);
-    padding: var(--spacing-2xs) var(--spacing-s);
+    padding: var(--spacing-3xs) var(--spacing-2xs);
     cursor: pointer;
 
     &.primary {
@@ -399,16 +400,24 @@ main {
 
 .login,
 .signup {
-  width: 322px;
+  width: 400px;
   align-items: center;
-  font-size: var(--font-size-l);
+  font-size: var(--font-size-m);
+
+  form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-3xs);
+  }
 
   .validated-input {
-    margin-bottom: var(--spacing-m);
-
     input {
-      font-size: var(--font-size-xl);
+      font-size: var(--font-size-m);
     }
+  }
+
+  .buttons {
+    margin-top: var(--spacing-s);
   }
 }
 
@@ -420,7 +429,7 @@ main {
 }
 
 .index {
-  gap: var(--spacing-xl);
+  gap: var(--spacing-l);
 
   .hero {
     img {
@@ -440,15 +449,12 @@ main {
     }
 
     .button {
-      font-size: var(--font-size-2xl);
+      font-size: var(--font-size-xl);
+      padding: var(--spacing-2xs) var(--spacing-xs);
     }
   }
 
-  .content-pair {
-    font-size: var(--font-size-l);
-  }
-
-  @media (min-width: 640px) {
+  @media (min-width: 940px) {
     .hero {
       grid-template-areas: "item1 item1 item2";
 
@@ -456,6 +462,11 @@ main {
         font-size: var(--font-size-4xl);
       }
     }
+
+    .content-pair {
+      margin: 0 var(--spacing-3xl);
+    }
+
     .content-pair:nth-of-type(even) {
       grid-template-areas: "item2 item1";
     }
@@ -472,16 +483,15 @@ main {
 .pastes-index,
 .users-show {
   .paste {
-    margin-bottom: var(--spacing-l);
+    margin-bottom: var(--spacing-m);
 
     .filename-bar {
       font-size: var(--font-size-l);
       line-height: var(--line-height-text);
-      margin-bottom: var(--spacing-2xs);
 
       .secret-tag {
         background-color: var(--color-space-cadet-blue);
-        padding: var(--spacing-2xs) var(--spacing-xs);
+        padding: var(--spacing-3xs) var(--spacing-3xs);
         border: 1px solid var(--color-grey-500);
         font-size: var(--font-size-xs);
         margin-left: var(--spacing-xs);
@@ -495,12 +505,12 @@ main {
     }
 
     .description-bar {
-      font-size: var(--font-size-s);
+      font-size: var(--font-size-m);
     }
 
     .metadata-bar {
       flex-wrap: wrap;
-      margin-bottom: var(--spacing-xs);
+      margin-bottom: var(--spacing-3xs);
       font-size: var(--font-size-xs);
     }
 
@@ -539,7 +549,7 @@ main {
 .pastes-show {
   h1 .secret-tag {
     background-color: var(--color-space-cadet-blue);
-    padding: var(--spacing-2xs) var(--spacing-xs);
+    padding: var(--spacing-3xs) var(--spacing-3xs);
     border: 1px solid var(--color-grey-500);
     font-size: var(--font-size-s);
     margin-left: var(--spacing-xs);
@@ -552,7 +562,7 @@ main {
   }
 
   .description-bar {
-    font-size: var(--font-size-xl);
+    font-size: var(--font-size-l);
   }
 
   .metadata-bar {
@@ -561,7 +571,7 @@ main {
     flex-wrap: wrap;
     justify-content: space-between;
     font-size: var(--metadata-bar-font-size);
-    margin-bottom: var(--spacing-s);
+    margin-bottom: var(--spacing-xs);
 
     .actions {
       display: flex;
@@ -576,14 +586,14 @@ main {
         padding: unset;
         text-decoration: unset;
         box-shadow: unset;
-        margin: 0 var(--spacing-s) 0 0;
+        margin: 0 var(--spacing-xs) 0 0;
         color: var(--color-grey-200);
         cursor: pointer;
 
         svg {
           height: var(--metadata-bar-font-size);
           width: var(--metadata-bar-font-size);
-          margin-right: var(--spacing-2xs);
+          margin-right: var(--spacing-3xs);
         }
 
         &:hover {
@@ -617,7 +627,6 @@ main {
 
       input {
         width: 100%;
-        font-size: var(--font-size-l);
       }
     }
 
@@ -626,6 +635,7 @@ main {
       display: flex;
       flex-direction: column;
       flex: 1;
+      font-size: var(--font-size-s);
 
       textarea {
         flex: 1;
@@ -666,10 +676,6 @@ main {
       margin-bottom: var(--spacing-xs);
     }
 
-    input {
-      font-size: var(--font-size-l);
-    }
-
     .new-password-inputs {
       margin-bottom: var(--spacing-m);
     }
@@ -677,11 +683,11 @@ main {
 
   .api-keys {
     p {
-      margin-bottom: var(--spacing-m);
+      margin-bottom: var(--spacing-s);
     }
 
     button.primary {
-      margin-bottom: var(--spacing-l);
+      margin-bottom: var(--spacing-m);
     }
 
     .key {
