@@ -78,28 +78,37 @@ svg.icon {
   --font-monospace: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo,
     Consolas, "DejaVu Sans Mono", monospace;
 
-  --font-size-xs: 0.75rem;
-  --font-size-sm: 0.875rem;
-  --font-size-md: 1rem;
-  --font-size-lg: 1.125rem;
-  --font-size-xl: 1.25rem;
-  --font-size-2xl: 1.5rem;
-  --font-size-3xl: 2rem;
-  --font-size-4xl: 3rem;
-  --font-size-5xl: 4.5rem;
-  --font-size-6xl: 7rem;
+  --font-size-xs: clamp(0.6944rem, 0.6852rem + 0.0449vw, 0.72rem);
+  --font-size-s: clamp(0.8333rem, 0.8092rem + 0.1172vw, 0.9rem);
+  --font-size-m: clamp(1rem, 0.9547rem + 0.2198vw, 1.125rem);
+  --font-size-l: clamp(1.2rem, 1.1252rem + 0.3626vw, 1.4063rem);
+  --font-size-xl: clamp(1.44rem, 1.3247rem + 0.5588vw, 1.7578rem);
+  --font-size-2xl: clamp(1.728rem, 1.5578rem + 0.8251vw, 2.1973rem);
+  --font-size-3xl: clamp(2.0736rem, 1.8296rem + 1.1833vw, 2.7466rem);
+  --font-size-4xl: clamp(2.4883rem, 2.1457rem + 1.6614vw, 3.4332rem);
+
+  --spacing-3xs: clamp(0.25rem, 0.2273rem + 0.1099vw, 0.3125rem);
+  --spacing-2xs: clamp(0.5rem, 0.4773rem + 0.1099vw, 0.5625rem);
+  --spacing-xs: clamp(0.75rem, 0.7047rem + 0.2198vw, 0.875rem);
+  --spacing-s: clamp(1rem, 0.9547rem + 0.2198vw, 1.125rem);
+  --spacing-m: clamp(1.5rem, 1.432rem + 0.3297vw, 1.6875rem);
+  --spacing-l: clamp(2rem, 1.9093rem + 0.4396vw, 2.25rem);
+  --spacing-xl: clamp(3rem, 2.864rem + 0.6593vw, 3.375rem);
+  --spacing-2xl: clamp(4rem, 3.8187rem + 0.8791vw, 4.5rem);
+  --spacing-3xl: clamp(6rem, 5.728rem + 1.3187vw, 6.75rem);
+
+  /* One-up pairs */
+  --spacing-3xs-2xs: clamp(0.25rem, 0.1367rem + 0.5495vw, 0.5625rem);
+  --spacing-2xs-xs: clamp(0.5rem, 0.364rem + 0.6593vw, 0.875rem);
+  --spacing-xs-s: clamp(0.75rem, 0.614rem + 0.6593vw, 1.125rem);
+  --spacing-s-m: clamp(1rem, 0.7507rem + 1.2088vw, 1.6875rem);
+  --spacing-m-l: clamp(1.5rem, 1.228rem + 1.3187vw, 2.25rem);
+  --spacing-l-xl: clamp(2rem, 1.5014rem + 2.4176vw, 3.375rem);
+  --spacing-xl-2xl: clamp(3rem, 2.456rem + 2.6374vw, 4.5rem);
+  --spacing-2xl-3xl: clamp(4rem, 3.0027rem + 4.8352vw, 6.75rem);
 
   --line-height-text: 1.5;
   --line-height-heading: 1.1;
-
-  --spacing-2xs: 0.25rem;
-  --spacing-xs: 0.5rem;
-  --spacing-sm: 0.75rem;
-  --spacing-md: 1.25rem;
-  --spacing-lg: 2rem;
-  --spacing-xl: 3.25rem;
-  --spacing-2xl: 5.25rem;
-  --spacing-3xl: 7rem;
 
   --content-width: 960px;
 }
@@ -133,7 +142,7 @@ header {
 
     a {
       color: var(--color-white);
-      font-size: var(--font-size-md);
+      font-size: var(--font-size-m);
       line-height: var(--line-height-heading);
       text-decoration: none;
 
@@ -208,7 +217,7 @@ header {
         display: flex;
         align-items: center;
         flex-direction: row;
-        gap: var(--spacing-md);
+        gap: var(--spacing-m);
       }
 
       .menu-button {
@@ -228,7 +237,7 @@ main {
   max-width: 100%;
   margin: 0 auto;
   width: var(--content-width);
-  padding: var(--spacing-md);
+  padding: var(--spacing-m);
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -237,7 +246,7 @@ main {
   h2 {
     line-height: var(--line-height-heading);
     font-weight: normal;
-    margin-bottom: var(--spacing-sm);
+    margin-bottom: var(--spacing-s);
   }
 
   h1 {
@@ -261,7 +270,7 @@ main {
     margin: unset;
     background-color: var(--color-input-background);
     border: 1px solid var(--color-grey-500);
-    padding: var(--spacing-sm);
+    padding: var(--spacing-s);
     box-shadow: 10px 10px 0 0 var(--color-black);
     overflow-y: auto;
   }
@@ -281,7 +290,7 @@ main {
     color: var(--color-white);
     background-color: var(--color-input-background);
     border: 1px solid var(--color-grey-500);
-    padding: var(--spacing-sm);
+    padding: var(--spacing-s);
     box-shadow: 10px 10px 0 0 var(--color-black);
     resize: none;
     white-space: pre;
@@ -297,7 +306,7 @@ main {
 
   .validated-input {
     label {
-      font-size: var(--font-size-sm);
+      font-size: var(--font-size-s);
       color: var(--color-grey-200);
     }
 
@@ -311,7 +320,7 @@ main {
 
     .error-msg {
       color: var(--color-fusion-red);
-      font-size: var(--font-size-sm);
+      font-size: var(--font-size-s);
     }
 
     &.invalid {
@@ -334,7 +343,7 @@ main {
     border: unset;
     box-shadow: 10px 10px 0 0 var(--color-black);
     line-height: var(--line-height-text);
-    padding: var(--spacing-2xs) var(--spacing-sm);
+    padding: var(--spacing-2xs) var(--spacing-s);
     cursor: pointer;
 
     &.primary {
@@ -350,7 +359,7 @@ main {
       "item2";
     justify-content: center;
     align-items: center;
-    gap: var(--spacing-md);
+    gap: var(--spacing-m);
 
     .item-1,
     .item-2 {
@@ -374,7 +383,7 @@ main {
   @media (min-width: 640px) {
     .content-pair {
       grid-template-areas: "item1 item2";
-      gap: var(--spacing-lg);
+      gap: var(--spacing-l);
 
       .item-1,
       .item-2 {
@@ -389,10 +398,10 @@ main {
 .signup {
   width: 322px;
   align-items: center;
-  font-size: var(--font-size-lg);
+  font-size: var(--font-size-l);
 
   .validated-input {
-    margin-bottom: var(--spacing-md);
+    margin-bottom: var(--spacing-m);
 
     input {
       font-size: var(--font-size-xl);
@@ -404,7 +413,7 @@ main {
 .forbidden,
 .not-found,
 .internal-server-error {
-  font-size: var(--font-size-lg);
+  font-size: var(--font-size-l);
 }
 
 .index {
@@ -433,7 +442,7 @@ main {
   }
 
   .content-pair {
-    font-size: var(--font-size-lg);
+    font-size: var(--font-size-l);
   }
 
   @media (min-width: 640px) {
@@ -460,10 +469,10 @@ main {
 .pastes-index,
 .users-show {
   .paste {
-    margin-bottom: var(--spacing-lg);
+    margin-bottom: var(--spacing-l);
 
     .filename-bar {
-      font-size: var(--font-size-lg);
+      font-size: var(--font-size-l);
       line-height: var(--line-height-text);
       margin-bottom: var(--spacing-2xs);
 
@@ -483,7 +492,7 @@ main {
     }
 
     .description-bar {
-      font-size: var(--font-size-sm);
+      font-size: var(--font-size-s);
     }
 
     .metadata-bar {
@@ -493,7 +502,7 @@ main {
     }
 
     pre {
-      font-size: var(--font-size-sm);
+      font-size: var(--font-size-s);
     }
   }
 
@@ -503,9 +512,9 @@ main {
     justify-content: center;
     align-items: center;
     text-align: center;
-    gap: var(--spacing-md);
+    gap: var(--spacing-m);
     margin: var(--spacing-xl) 0 var(--spacing-2xl);
-    font-size: var(--font-size-lg);
+    font-size: var(--font-size-l);
   }
 
   .pagination {
@@ -514,7 +523,7 @@ main {
 
     span,
     a {
-      margin-right: var(--spacing-sm);
+      margin-right: var(--spacing-s);
     }
 
     span {
@@ -529,7 +538,7 @@ main {
     background-color: var(--color-space-cadet-blue);
     padding: var(--spacing-2xs) var(--spacing-xs);
     border: 1px solid var(--color-grey-500);
-    font-size: var(--font-size-sm);
+    font-size: var(--font-size-s);
     margin-left: var(--spacing-xs);
   }
 
@@ -544,12 +553,12 @@ main {
   }
 
   .metadata-bar {
-    --metadata-bar-font-size: var(--font-size-sm);
+    --metadata-bar-font-size: var(--font-size-s);
     display: flex;
     flex-wrap: wrap;
     justify-content: space-between;
     font-size: var(--metadata-bar-font-size);
-    margin-bottom: var(--spacing-sm);
+    margin-bottom: var(--spacing-s);
 
     .actions {
       display: flex;
@@ -564,7 +573,7 @@ main {
         padding: unset;
         text-decoration: unset;
         box-shadow: unset;
-        margin: 0 var(--spacing-sm) 0 0;
+        margin: 0 var(--spacing-s) 0 0;
         color: var(--color-grey-200);
         cursor: pointer;
 
@@ -605,7 +614,7 @@ main {
 
       input {
         width: 100%;
-        font-size: var(--font-size-lg);
+        font-size: var(--font-size-l);
       }
     }
 
@@ -621,7 +630,7 @@ main {
     }
 
     .visibility {
-      margin-bottom: var(--spacing-md);
+      margin-bottom: var(--spacing-m);
 
       label {
         display: block;
@@ -632,7 +641,7 @@ main {
       display: flex;
       align-items: center;
       gap: var(--spacing-2xs);
-      font-size: var(--font-size-sm);
+      font-size: var(--font-size-s);
       color: var(--color-banana-pepper-yellow);
       margin-bottom: var(--spacing-xs);
     }
@@ -655,21 +664,21 @@ main {
     }
 
     input {
-      font-size: var(--font-size-lg);
+      font-size: var(--font-size-l);
     }
 
     .new-password-inputs {
-      margin-bottom: var(--spacing-md);
+      margin-bottom: var(--spacing-m);
     }
   }
 
   .api-keys {
     p {
-      margin-bottom: var(--spacing-md);
+      margin-bottom: var(--spacing-m);
     }
 
     button.primary {
-      margin-bottom: var(--spacing-lg);
+      margin-bottom: var(--spacing-l);
     }
 
     .key {
@@ -678,14 +687,14 @@ main {
       flex-wrap: wrap;
       background-color: var(--color-input-background);
       border: 1px solid var(--color-grey-500);
-      padding: var(--spacing-sm);
+      padding: var(--spacing-s);
       box-shadow: 10px 10px 0 0 var(--color-black);
-      margin-bottom: var(--spacing-lg);
+      margin-bottom: var(--spacing-l);
 
       .instructions,
       .created-at,
       .last-used-at {
-        font-size: var(--font-size-sm);
+        font-size: var(--font-size-s);
         color: var(--color-grey-200);
       }
 
@@ -696,8 +705,8 @@ main {
         padding: unset;
 
         svg.icon {
-          height: var(--font-size-md);
-          width: var(--font-size-md);
+          height: var(--font-size-m);
+          width: var(--font-size-m);
         }
 
         &:hover {
@@ -708,7 +717,7 @@ main {
       .delete-controls {
         display: flex;
         align-items: center;
-        gap: var(--spacing-sm);
+        gap: var(--spacing-s);
       }
 
       .delete-button {
@@ -717,7 +726,7 @@ main {
         border: 1px solid var(--color-grey-800);
         border-radius: 5px;
         box-shadow: unset;
-        font-size: var(--font-size-sm);
+        font-size: var(--font-size-s);
       }
     }
   }
