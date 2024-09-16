@@ -112,7 +112,7 @@ svg.icon {
   --line-height-text: 1.5;
   --line-height-heading: 1.1;
 
-  --content-width: 960px;
+  --max-viewport: 1240px;
 }
 
 html {
@@ -132,7 +132,7 @@ header {
   nav {
     max-width: 100%;
     margin: 0 auto;
-    width: var(--content-width);
+    width: var(--max-viewport);
     padding: var(--spacing-xs);
     display: grid;
     grid-template-areas:
@@ -239,7 +239,7 @@ main {
 
   max-width: 100%;
   margin: 0 auto;
-  width: var(--content-width);
+  width: var(--max-viewport);
   padding: var(--spacing-m);
   display: flex;
   flex-direction: column;
