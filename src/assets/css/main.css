@@ -1,4 +1,4 @@
-@import url("/assets/css/vendor/modern-normalize.v2.0.0.min.css")
+@import url("/assets/css/vendor/modern-normalize.v3.0.1.min.css")
 layer(normalize);
 
 @layer reset {
