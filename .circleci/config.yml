@@ -3,16 +3,13 @@ version: 2.1
 parameters:
   rust-version:
     type: string
-    default: "1.81"
+    default: "1.81" # Change target-cache-key when you change this!
   target-cache-key:
     type: string
-    default: "v0-target-{{ arch }}-{{ checksum \"Cargo.lock\" }}"
+    default: "v0-target-{{ arch }}-1.81-{{ checksum \"Cargo.lock\" }}"
   cargo-deny-version:
-    # CircleCI doesn't seem to have a way to build parameters from other
-    # parameters so when cargo-deny-version changes, make sure to also update
-    # cargo-deny-cache-key so that it matches the new version.
     type: string
-    default: "0.16.1"
+    default: "0.16.1" # Change cargo-deny-cache-key when you change this!
   cargo-deny-cache-key:
     type: string
     default: "v0-cargo-deny-{{ arch }}-0.16.1"
