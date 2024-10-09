@@ -17,15 +17,21 @@ parameters:
 jobs:
   lint-and-test:
     docker:
-      - image: cimg/rust:<< pipeline.parameters.rust-version >>
+      - image: cimg/rust:<< pipeline.parameters.rust-version >>-node
     steps:
       - checkout
       - run:
           name: Version information
           command: rustc --version; cargo --version; rustup --version
       - run:
-          name: Formatting
+          name: Rust Formatting
           command: cargo fmt --check
+      - run:
+          name: Install devDependencies (for prettier)
+          command: npm ci --include=dev
+      - run:
+          name: HTML and CSS Formatting
+          command: npx prettier --check "**/*.{html,css}"
       - restore_cache:
           keys:
             - << pipeline.parameters.target-cache-key >>
