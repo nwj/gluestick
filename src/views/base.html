@@ -1,75 +1,84 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-    <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <meta name="htmx-config" content='{"responseTargetPrefersExisting":"true"}'>
-        <title>
-            {% block title %}{% endblock %}
-            Gluestick
-        </title>
-        <link rel="stylesheet"
-              href="/assets/css/main.css?h=6003591a305b0b226d54d077dcea7bdc">
-        <script defer src="/assets/js/vendor/htmx.v2.0.0.min.js"></script>
-        <script defer src="/assets/js/vendor/htmx-ext-response-targets.v2.0.1.min.js"></script>
-        <link rel="icon" href="/assets/favicon/favicon.ico" sizes="32x32">
-        <link rel="icon" href="/assets/favicon/favicon.svg" type="image/svg+xml">
-        <link rel="apple-touch-icon" href="/assets/favicon/apple-touch-icon.png">
-        <link rel="manifest" href="/assets/favicon/site.webmanifest">
-    </head>
-    <body hx-boost="true" hx-ext="response-targets" hx-target-error="body">
-        <header>
-            <nav>
-                <label class="menu-button" for="menu-state">
-                    <button aria-label="menu">
-                        <svg class="icon">
-                            <use href="/assets/images/vendor/feather-sprite-subset.v4.29.0.svg#menu" />
-                        </svg>
-                    </button>
-                </label>
-                <a class="logo" href="/">Gluestick</a>
-                <input id="menu-state" type="checkbox" />
-                <ul class="main-nav">
-                    <a href="/pastes">Public Pastes</a>
-                    {% if let Some(session) = session %}
-                        <li>
-                            <a href="/{{ session.user.username }}">Your Pastes</a>
-                        </li>
-                        <li>
-                            <a href="/new">New Paste</a>
-                        </li>
-                        <li>
-                            <a href="/settings">Settings</a>
-                        </li>
-                        <li>
-                            <a href="/logout" hx-delete="/logout">Sign Out</a>
-                        </li>
-                    {% else %}
-                        <li>
-                            <a href="/login">Sign In</a>
-                        </li>
-                        <li>
-                            <a href="/signup">Sign Up</a>
-                        </li>
-                    {% endif %}
-                </ul>
-                <ul class="highlight-nav">
-                    {% if let Some(session) = session %}
-                        <li>
-                            <a href="/new">
-                                <svg class="icon">
-                                    <use href="/assets/images/vendor/feather-sprite-subset.v4.29.0.svg#plus-square" />
-                                </svg>
-                            </a>
-                        </li>
-                    {% else %}
-                        <li>
-                            <a class="with-border" href="/signup">Sign Up</a>
-                        </li>
-                    {% endif %}
-                </ul>
-            </nav>
-        </header>
-        {% block main %}{% endblock %}
-    </body>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="htmx-config"
+      content='{"responseTargetPrefersExisting":"true"}'
+    />
+    <title>{% block title %}{% endblock %} Gluestick</title>
+    <link
+      rel="stylesheet"
+      href="/assets/css/main.css?h=6003591a305b0b226d54d077dcea7bdc"
+    />
+    <script defer src="/assets/js/vendor/htmx.v2.0.0.min.js"></script>
+    <script
+      defer
+      src="/assets/js/vendor/htmx-ext-response-targets.v2.0.1.min.js"
+    ></script>
+    <link rel="icon" href="/assets/favicon/favicon.ico" sizes="32x32" />
+    <link rel="icon" href="/assets/favicon/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/assets/favicon/apple-touch-icon.png" />
+    <link rel="manifest" href="/assets/favicon/site.webmanifest" />
+  </head>
+  <body hx-boost="true" hx-ext="response-targets" hx-target-error="body">
+    <header>
+      <nav>
+        <label class="menu-button" for="menu-state">
+          <button aria-label="menu">
+            <svg class="icon">
+              <use
+                href="/assets/images/vendor/feather-sprite-subset.v4.29.0.svg#menu"
+              />
+            </svg>
+          </button>
+        </label>
+        <a class="logo" href="/">Gluestick</a>
+        <input id="menu-state" type="checkbox" />
+        <ul class="main-nav">
+          <a href="/pastes">Public Pastes</a>
+          {% if let Some(session) = session %}
+            <li>
+              <a href="/{{ session.user.username }}">Your Pastes</a>
+            </li>
+            <li>
+              <a href="/new">New Paste</a>
+            </li>
+            <li>
+              <a href="/settings">Settings</a>
+            </li>
+            <li>
+              <a href="/logout" hx-delete="/logout">Sign Out</a>
+            </li>
+          {% else %}
+            <li>
+              <a href="/login">Sign In</a>
+            </li>
+            <li>
+              <a href="/signup">Sign Up</a>
+            </li>
+          {% endif %}
+        </ul>
+        <ul class="highlight-nav">
+          {% if let Some(session) = session %}
+            <li>
+              <a href="/new">
+                <svg class="icon">
+                  <use
+                    href="/assets/images/vendor/feather-sprite-subset.v4.29.0.svg#plus-square"
+                  />
+                </svg>
+              </a>
+            </li>
+          {% else %}
+            <li>
+              <a class="with-border" href="/signup">Sign Up</a>
+            </li>
+          {% endif %}
+        </ul>
+      </nav>
+    </header>
+    {% block main %}{% endblock %}
+  </body>
 </html>

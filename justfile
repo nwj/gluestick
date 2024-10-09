@@ -13,7 +13,7 @@ check:
 
 # Formats the codebase (via cargo fmt)
 format:
-	cargo fmt
+	cargo fmt && npx prettier --write "**/*.{html,css}" --log-level silent
 
 # Builds and starts the app
 run:

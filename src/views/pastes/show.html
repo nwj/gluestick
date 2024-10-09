@@ -1,65 +1,92 @@
 {% extends "base.html" %}
 {% block title %}{{ username }} / {{ paste.filename }} -{% endblock %}
 {% block main %}
-    <main class="pastes-show">
-        <h1>
-            <a href="/{{ username }}">{{ username }}</a> / <a href="/{{ username }}/{{ paste.id.as_simple() }}">{{ paste.filename }}</a>
-            {% if paste.visibility.is_secret() %}
-                <span class="secret-tag"
-                      title="Only people with the link can see this paste">Secret</span>
-            {% endif %}
-        </h1>
-        {% if !paste.description.is_empty() %}<div class="description-bar">{{ paste.description }}</div>{% endif %}
-        <div class="metadata-bar">
-            <div class="metadata">
-                <span title="{{ paste.updated_at|format_timestamp }}">Updated {{ paste.updated_at|format_timestamp_relative }}</span>,
-                {{ paste.body|format_byte_size }}
-            </div>
-            <div class="actions">
-                <a hx-boost="false"
-                   href="/{{ username }}/{{ paste.id.as_simple() }}/raw">
-                    <svg class="icon">
-                        <use href="/assets/images/vendor/feather-sprite-subset.v4.29.0.svg#code" />
-                    </svg>
-                    Raw
-                </a>
-                <button hx-on:click="navigator.clipboard.writeText(document.getElementById('body').innerHTML)">
-                    <svg class="icon">
-                        <use href="/assets/images/vendor/feather-sprite-subset.v4.29.0.svg#copy" />
-                    </svg>
-                    Copy
-                </button>
-                <a hx-boost="false"
-                   href="/{{ username }}/{{ paste.id.as_simple() }}/download">
-                    <svg class="icon">
-                        <use href="/assets/images/vendor/feather-sprite-subset.v4.29.0.svg#download" />
-                    </svg>
-                    Download
-                </a>
-                {% if let Some(session) = session %}
-                    {% if session.user.id == paste.user_id %}
-                        <a href="/{{ username }}/{{ paste.id.as_simple() }}/edit">
-                            <svg class="icon">
-                                <use href="/assets/images/vendor/feather-sprite-subset.v4.29.0.svg#edit" />
-                            </svg>
-                            Edit
-                        </a>
-                        <button hx-confirm="Are you sure you want to delete this paste?"
-                                hx-delete="/{{ username }}/{{ paste.id.as_simple() }}">
-                            <svg class="icon">
-                                <use href="/assets/images/vendor/feather-sprite-subset.v4.29.0.svg#trash-2" />
-                            </svg>
-                            Delete
-                        </button>
-                    {% endif %}
-                {% endif %}
-            </div>
-        </div>
-        {% if let Some(syntax_highlighted_html) = syntax_highlighted_html %}
-            {{ syntax_highlighted_html|safe }}
-            <pre id="body" class="hidden">{{ paste.body }}</pre>
-        {% else %}
-            <pre id="body">{{ paste.body }}</pre>
+  <main class="pastes-show">
+    <h1>
+      <a href="/{{ username }}">{{ username }}</a> /
+      <a href="/{{ username }}/{{ paste.id.as_simple() }}"
+        >{{ paste.filename }}</a
+      >
+      {% if paste.visibility.is_secret() %}
+        <span
+          class="secret-tag"
+          title="Only people with the link can see this paste"
+          >Secret</span
+        >
+      {% endif %}
+    </h1>
+    {% if !paste.description.is_empty() %}
+      <div class="description-bar">{{ paste.description }}</div>
+    {% endif %}
+    <div class="metadata-bar">
+      <div class="metadata">
+        <span title="{{ paste.updated_at|format_timestamp }}"
+          >Updated {{ paste.updated_at|format_timestamp_relative }}</span
+        >, {{ paste.body|format_byte_size }}
+      </div>
+      <div class="actions">
+        <a
+          hx-boost="false"
+          href="/{{ username }}/{{ paste.id.as_simple() }}/raw"
+        >
+          <svg class="icon">
+            <use
+              href="/assets/images/vendor/feather-sprite-subset.v4.29.0.svg#code"
+            />
+          </svg>
+          Raw
+        </a>
+        <button
+          hx-on:click="navigator.clipboard.writeText(document.getElementById('body').innerHTML)"
+        >
+          <svg class="icon">
+            <use
+              href="/assets/images/vendor/feather-sprite-subset.v4.29.0.svg#copy"
+            />
+          </svg>
+          Copy
+        </button>
+        <a
+          hx-boost="false"
+          href="/{{ username }}/{{ paste.id.as_simple() }}/download"
+        >
+          <svg class="icon">
+            <use
+              href="/assets/images/vendor/feather-sprite-subset.v4.29.0.svg#download"
+            />
+          </svg>
+          Download
+        </a>
+        {% if let Some(session) = session %}
+          {% if session.user.id == paste.user_id %}
+            <a href="/{{ username }}/{{ paste.id.as_simple() }}/edit">
+              <svg class="icon">
+                <use
+                  href="/assets/images/vendor/feather-sprite-subset.v4.29.0.svg#edit"
+                />
+              </svg>
+              Edit
+            </a>
+            <button
+              hx-confirm="Are you sure you want to delete this paste?"
+              hx-delete="/{{ username }}/{{ paste.id.as_simple() }}"
+            >
+              <svg class="icon">
+                <use
+                  href="/assets/images/vendor/feather-sprite-subset.v4.29.0.svg#trash-2"
+                />
+              </svg>
+              Delete
+            </button>
+          {% endif %}
         {% endif %}
-    </main>
+      </div>
+    </div>
+    {% if let Some(syntax_highlighted_html) = syntax_highlighted_html %}
+      {{ syntax_highlighted_html|safe }}
+      <pre id="body" class="hidden">{{ paste.body }}</pre>
+    {% else %}
+      <pre id="body">{{ paste.body }}</pre>
+    {% endif %}
+  </main>
 {% endblock %}

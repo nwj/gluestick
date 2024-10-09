@@ -1,60 +1,76 @@
 <form hx-post="/pastes">
-    <div class="filename">
-        <div class="validated-input filename {% if filename_error_message.is_some() %}invalid{% endif %}">
-            <label>
-                Filename
-                <input type="text"
-                       name="filename"
-                       placeholder="Filename with extension..."
-                       value="{{ filename }}" />
-            </label>
-            <div class="error-msg">
-                {% if let Some(msg) = filename_error_message %}{{ msg }}{% endif %}
-            </div>
-        </div>
+  <div class="filename">
+    <div
+      class="validated-input filename {% if filename_error_message.is_some() %}invalid{% endif %}"
+    >
+      <label>
+        Filename
+        <input
+          type="text"
+          name="filename"
+          placeholder="Filename with extension..."
+          value="{{ filename }}"
+        />
+      </label>
+      <div class="error-msg">
+        {% if let Some(msg) = filename_error_message %}{{ msg }}{% endif %}
+      </div>
     </div>
-    <div class="validated-input description {% if description_error_message.is_some() %}invalid{% endif %}">
-        <label>
-            Description
-            <input type="text"
-                   name="description"
-                   placeholder="(Optional) Description..."
-                   value="{{ description }}" />
-        </label>
-        <div class="error-msg">
-            {% if let Some(msg) = description_error_message %}{{ msg }}{% endif %}
-        </div>
+  </div>
+  <div
+    class="validated-input description {% if description_error_message.is_some() %}invalid{% endif %}"
+  >
+    <label>
+      Description
+      <input
+        type="text"
+        name="description"
+        placeholder="(Optional) Description..."
+        value="{{ description }}"
+      />
+    </label>
+    <div class="error-msg">
+      {% if let Some(msg) = description_error_message %}{{ msg }}{% endif %}
     </div>
-    <div class="validated-input body {% if body_error_message.is_some() %}invalid{% endif %}">
-        <label for="body">Body</label>
-        <textarea id="body" name="body" placeholder="Body...">{{body}}</textarea>
-        <div class="error-msg">
-            {% if let Some(msg) = body_error_message %}{{ msg }}{% endif %}
-        </div>
+  </div>
+  <div
+    class="validated-input body {% if body_error_message.is_some() %}invalid{% endif %}"
+  >
+    <label for="body">Body</label>
+    <textarea id="body" name="body" placeholder="Body...">{{ body }}</textarea>
+    <div class="error-msg">
+      {% if let Some(msg) = body_error_message %}{{ msg }}{% endif %}
     </div>
-    <div class="validated-input visibility {% if visibility_error_message.is_some() %}invalid{% endif %}">
-        <fieldset>
-            <legend>Visibility:</legend>
-            <label for="visibility-secret">
-                <input type="radio"
-                       id="visibility-secret"
-                       name="visibility"
-                       value="secret"
-                       {% if visibility == "secret" %}checked{% endif %} />
-                Secret - visible to anyone you give the URL to
-            </label>
-            <label for="visiblitity-public">
-                <input type="radio"
-                       id="visiblitity-public"
-                       name="visibility"
-                       value="public"
-                       {% if visibility == "public" %}checked{% endif %} />
-                Public - visible to everyone
-            </label>
-        </fieldset>
-        <div class="error-msg">
-            {% if let Some(msg) = visibility_error_message %}{{ msg }}{% endif %}
-        </div>
+  </div>
+  <div
+    class="validated-input visibility {% if visibility_error_message.is_some() %}invalid{% endif %}"
+  >
+    <fieldset>
+      <legend>Visibility:</legend>
+      <label for="visibility-secret">
+        <input
+          type="radio"
+          id="visibility-secret"
+          name="visibility"
+          value="secret"
+          {% if visibility == "secret" %}checked{% endif %}
+        />
+        Secret - visible to anyone you give the URL to
+      </label>
+      <label for="visiblitity-public">
+        <input
+          type="radio"
+          id="visiblitity-public"
+          name="visibility"
+          value="public"
+          {% if visibility == "public" %}checked{% endif %}
+        />
+        Public - visible to everyone
+      </label>
+    </fieldset>
+    <div class="error-msg">
+      {% if let Some(msg) = visibility_error_message %}{{ msg }}{% endif %}
     </div>
-    <button class="primary" type="submit">Create Paste</button>
+  </div>
+  <button class="primary" type="submit">Create Paste</button>
 </form>

@@ -1,20 +1,22 @@
 {% extends "base.html" %}
 {% block title %}Not Found -{% endblock %}
 {% block main %}
-    <main class="not-found">
-        <div class="content-pair">
-            <picture class="item-1">
-                <source type="image/avif" srcset="/assets/images/lost-james.avif" />
-                <img src="/assets/images/lost-james.png"
-                     alt="die-cut sticker of James, a glue monster, looking lost"
-                     width="275"
-                     height="321" />
-            </picture>
-            <div class="item-2">
-                <h1>404 Not Found</h1>
-                <p>Oops...This page doesn't exist.</p>
-                <a href="/" class="button primary">Back to homepage</a>
-            </div>
-        </div>
-    </main>
+  <main class="not-found">
+    <div class="content-pair">
+      <picture class="item-1">
+        <source type="image/avif" srcset="/assets/images/lost-james.avif" />
+        <img
+          src="/assets/images/lost-james.png"
+          alt="die-cut sticker of James, a glue monster, looking lost"
+          width="275"
+          height="321"
+        />
+      </picture>
+      <div class="item-2">
+        <h1>404 Not Found</h1>
+        <p>Oops...This page doesn't exist.</p>
+        <a href="/" class="button primary">Back to homepage</a>
+      </div>
+    </div>
+  </main>
 {% endblock %}

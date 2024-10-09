@@ -1,23 +1,34 @@
 <html>
-    <li class="key">
-        <div>
-            <div>
-                <code id="{{ api_key_id }}">{{ unhashed_key.expose_secret() }}</code>
-                <button class="copy-button"
-                        hx-on:click="navigator.clipboard.writeText(document.getElementById('{{ api_key_id }}').innerHTML)">
-                    <svg class="icon">
-                        <use href="/assets/images/vendor/feather-sprite-subset.v4.29.0.svg#copy" />
-                    </svg>
-                </button>
-            </div>
-            <div class="instructions">Copy this key now. You won't be able to view it again after leaving this page!</div>
-        </div>
-        <div class="delete-controls">
-            <button class="delete-button"
-                    hx-confirm="Are you sure you want to delete this API key?"
-                    hx-delete="/api_sessions/{{ api_key_id }}"
-                    hx-target="closest .key"
-                    hx-swap="outerHTML">Delete</button>
-        </div>
+  <li class="key">
+    <div>
+      <div>
+        <code id="{{ api_key_id }}">{{ unhashed_key.expose_secret() }}</code>
+        <button
+          class="copy-button"
+          hx-on:click="navigator.clipboard.writeText(document.getElementById('{{ api_key_id }}').innerHTML)"
+        >
+          <svg class="icon">
+            <use
+              href="/assets/images/vendor/feather-sprite-subset.v4.29.0.svg#copy"
+            />
+          </svg>
+        </button>
+      </div>
+      <div class="instructions">
+        Copy this key now. You won't be able to view it again after leaving this
+        page!
+      </div>
     </div>
+    <div class="delete-controls">
+      <button
+        class="delete-button"
+        hx-confirm="Are you sure you want to delete this API key?"
+        hx-delete="/api_sessions/{{ api_key_id }}"
+        hx-target="closest .key"
+        hx-swap="outerHTML"
+      >
+        Delete
+      </button>
+    </div>
+  </li>
 </html>

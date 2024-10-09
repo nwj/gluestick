@@ -1,28 +1,32 @@
 {% extends "base.html" %}
 {% block title %}Sign Up -{% endblock %}
 {% block main %}
-    <main class="signup">
-        <h1>Sign up for Gluestick</h1>
-        <form action="/signup" method="post">
-            {% include "partials/username_input.html" %}
-            {% include "partials/email_input.html" %}
-            {% include "partials/password_input.html" %}
-            <div class="validated-input {% if invite_code_error_message.is_some() %}invalid{% endif %}">
-                <label>
-                    Invite Code
-                    <input type="text"
-                           name="invite_code"
-                           placeholder="Your invite code..."
-                           value="{{ invite_code }}" />
-                </label>
-                <div class="error-msg">
-                    {% if let Some(msg) = invite_code_error_message %}{{ msg }}{% endif %}
-                </div>
-            </div>
-            <div class="buttons">
-                <button class="primary" type="submit">Sign Up</button>
-                or <a href="login">Sign In</a>
-            </div>
-        </form>
-    </main>
+  <main class="signup">
+    <h1>Sign up for Gluestick</h1>
+    <form action="/signup" method="post">
+      {% include "partials/username_input.html" %}
+      {% include "partials/email_input.html" %}
+      {% include "partials/password_input.html" %}
+      <div
+        class="validated-input {% if invite_code_error_message.is_some() %}invalid{% endif %}"
+      >
+        <label>
+          Invite Code
+          <input
+            type="text"
+            name="invite_code"
+            placeholder="Your invite code..."
+            value="{{ invite_code }}"
+          />
+        </label>
+        <div class="error-msg">
+          {% if let Some(msg) = invite_code_error_message %}{{ msg }}{% endif %}
+        </div>
+      </div>
+      <div class="buttons">
+        <button class="primary" type="submit">Sign Up</button>
+        or <a href="login">Sign In</a>
+      </div>
+    </form>
+  </main>
 {% endblock %}
