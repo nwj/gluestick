@@ -1,34 +1,42 @@
 {% extends "base.html" %}
 {% block title %}Sign In -{% endblock %}
 {% block main %}
-    <main class="login">
-        <h1>Sign in to Gluestick</h1>
-        <form action="/login" method="post">
-            <div class="validated-input {% if error_message.is_some() %}invalid{% endif %}">
-                <label>
-                    Email
-                    <input type="text"
-                           name="email"
-                           placeholder="Your email address..."
-                           value="{{ email }}" />
-                </label>
-            </div>
-            <div class="validated-input {% if error_message.is_some() %}invalid{% endif %}">
-                <label>
-                    Password
-                    <input type="password"
-                           name="password"
-                           placeholder="Your password..."
-                           value="{{ password.expose_secret() }}" />
-                </label>
-                <div class="error-msg">
-                    {% if let Some(msg) = error_message %}{{ msg }}{% endif %}
-                </div>
-            </div>
-            <div class="buttons">
-                <button class="primary" type="submit">Sign In</button>
-                or <a href="/signup">Sign Up</a>
-            </div>
-        </form>
-    </main>
+  <main class="login">
+    <h1>Sign in to Gluestick</h1>
+    <form action="/login" method="post">
+      <div
+        class="validated-input {% if error_message.is_some() %}invalid{% endif %}"
+      >
+        <label>
+          Email
+          <input
+            type="text"
+            name="email"
+            placeholder="Your email address..."
+            value="{{ email }}"
+          />
+        </label>
+      </div>
+      <div
+        class="validated-input {% if error_message.is_some() %}invalid{% endif %}"
+      >
+        <label>
+          Password
+          <input
+            type="password"
+            name="password"
+            placeholder="Your password..."
+            value="{{ password.expose_secret() }}"
+          />
+        </label>
+        <div class="error-msg">
+          {% if let Some(msg) = error_message %}{{ msg }}{% endif %}
+        </div>
+      </div>
+      <div class="buttons">
+        <button class="primary" type="submit">Sign In</button>
+        or <a href="/signup">Sign Up</a>
+      </div>
+    </form>
+  </main>
 {% endblock %}

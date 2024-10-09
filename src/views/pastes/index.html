@@ -1,56 +1,64 @@
 {% extends "base.html" %}
 {% block title %}Public Pastes -{% endblock %}
 {% block main %}
-    <main class="pastes-index">
-        {% if paste_username_html_triples.len() > 0 %}
-            <h1>Public Pastes</h1>
-            <ul>
-                {% for (paste, username, syntax_highlighted_html) in paste_username_html_triples %}
-                    <li class="paste">
-                        <div class="filename-bar">
-                            <a href="/{{ username }}">{{ username }}</a> / <a href="{{ username }}/{{ paste.id.as_simple() }}">{{ paste.filename }}</a>
-                        </div>
-                        {% if !paste.description.is_empty() %}<div class="description-bar">{{ paste.description }}</div>{% endif %}
-                        <div class="metadata-bar">
-                            <span title="{{ paste.updated_at|format_timestamp }}">Updated {{ paste.updated_at|format_timestamp_relative }}</span>,
-                            {{ paste.body|format_byte_size }}
-                        </div>
-                        {% if let Some(syntax_highlighted_html) = syntax_highlighted_html %}
-                            {{ syntax_highlighted_html|linewise_truncate_html_10|safe }}
-                        {% else %}
-                            <pre>{{ paste.body|linewise_truncate(10) }}</pre>
-                        {% endif %}
-                    </li>
-                {% endfor %}
-            </ul>
-            <div class="pagination">
-                {% if let Some(prev_page) = pagination.prev_page %}
-                    <a href="/pastes?prev_page={{ prev_page }}">Newer</a>
-                {% else %}
-                    <span>Newer</span>
-                {% endif %}
-                {% if let Some(next_page) = pagination.next_page %}
-                    <a href="/pastes?next_page={{ next_page }}">Older</a>
-                {% else %}
-                    <span>Older</span>
-                {% endif %}
+  <main class="pastes-index">
+    {% if paste_username_html_triples.len() > 0 %}
+      <h1>Public Pastes</h1>
+      <ul>
+        {% for (paste, username, syntax_highlighted_html) in paste_username_html_triples %}
+          <li class="paste">
+            <div class="filename-bar">
+              <a href="/{{ username }}">{{ username }}</a> /
+              <a href="{{ username }}/{{ paste.id.as_simple() }}"
+                >{{ paste.filename }}</a
+              >
             </div>
+            {% if !paste.description.is_empty() %}
+              <div class="description-bar">{{ paste.description }}</div>
+            {% endif %}
+            <div class="metadata-bar">
+              <span title="{{ paste.updated_at|format_timestamp }}"
+                >Updated {{ paste.updated_at|format_timestamp_relative }}</span
+              >, {{ paste.body|format_byte_size }}
+            </div>
+            {% if let Some(syntax_highlighted_html) = syntax_highlighted_html %}
+              {{ syntax_highlighted_html|linewise_truncate_html_10|safe }}
+            {% else %}
+              <pre>{{ paste.body|linewise_truncate(10) }}</pre>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+      <div class="pagination">
+        {% if let Some(prev_page) = pagination.prev_page %}
+          <a href="/pastes?prev_page={{ prev_page }}">Newer</a>
         {% else %}
-            <section class="empty-state">
-                <picture>
-                    <source type="image/avif" srcset="/assets/images/desert-skull.avif" />
-                    <img src="/assets/images/desert-skull.png"
-                         alt="die-cut sticker of an animal skull lying in the desert"
-                         width="350"
-                         height="268" />
-                </picture>
-                <p>There doesn't appear to be anything out here yet.</p>
-                {% if let Some(session) = session %}
-                    <a href="/new" class="button primary">Create a new paste</a>
-                {% else %}
-                    <a href="/" class="button primary">Back to homepage</a>
-                {% endif %}
-            </section>
+          <span>Newer</span>
         {% endif %}
-    </main>
+        {% if let Some(next_page) = pagination.next_page %}
+          <a href="/pastes?next_page={{ next_page }}">Older</a>
+        {% else %}
+          <span>Older</span>
+        {% endif %}
+      </div>
+    {% else %}
+      <section class="empty-state">
+        <picture>
+          <source type="image/avif" srcset="/assets/images/desert-skull.avif" />
+          <img
+            src="/assets/images/desert-skull.png"
+            alt="die-cut sticker of an animal skull lying in the desert"
+            width="350"
+            height="268"
+          />
+        </picture>
+        <p>There doesn't appear to be anything out here yet.</p>
+        {% if let Some(session) = session %}
+          <a href="/new" class="button primary">Create a new paste</a>
+        {% else %}
+          <a href="/" class="button primary">Back to homepage</a>
+        {% endif %}
+      </section>
+    {% endif %}
+  </main>
 {% endblock %}

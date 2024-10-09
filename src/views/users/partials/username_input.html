@@ -1,15 +1,19 @@
-<div class="validated-input {% if username_error_message.is_some() %}invalid{% endif %}"
-     hx-target="this"
-     hx-swap="outerHTML">
-    <label>
-        Username
-        <input type="text"
-               name="username"
-               placeholder="Your username..."
-               value="{{ username }}"
-               hx-post="/signup/validate/username" />
-    </label>
-    <div class="error-msg">
-        {% if let Some(msg) = username_error_message %}{{ msg }}{% endif %}
-    </div>
+<div
+  class="validated-input {% if username_error_message.is_some() %}invalid{% endif %}"
+  hx-target="this"
+  hx-swap="outerHTML"
+>
+  <label>
+    Username
+    <input
+      type="text"
+      name="username"
+      placeholder="Your username..."
+      value="{{ username }}"
+      hx-post="/signup/validate/username"
+    />
+  </label>
+  <div class="error-msg">
+    {% if let Some(msg) = username_error_message %}{{ msg }}{% endif %}
+  </div>
 </div>

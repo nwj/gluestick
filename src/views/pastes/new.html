@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 {% block title %}New Paste -{% endblock %}
 {% block main %}
-    {% if let Some(session) = session %}
-        <main class="pastes-new">
-            <h1>Create a new paste</h1>
-            {{ new_pastes_form|safe }}
-        </main>
-    {% endif %}
+  {% if let Some(session) = session %}
+    <main class="pastes-new">
+      <h1>Create a new paste</h1>
+      {{ new_pastes_form|safe }}
+    </main>
+  {% endif %}
 {% endblock %}
