@@ -13,6 +13,9 @@ parameters:
   cargo-deny-cache-key:
     type: string
     default: "v0-cargo-deny-{{ arch }}-0.16.1"
+  node-modules-cache-key:
+    type: string
+    default: "v0-node-modules-{{ checksum \"package-lock.json\" }}"
 
 jobs:
   lint-and-test:
@@ -24,11 +27,18 @@ jobs:
           name: Version information
           command: rustc --version; cargo --version; rustup --version
       - run:
-          name: Formatting
+          name: Rust Formatting
           command: cargo fmt --check
       - restore_cache:
           keys:
             - << pipeline.parameters.target-cache-key >>
+            - << pipeline.parameters.node-modules-cache-key >>
+      - run:
+          name: Install devDependencies (for prettier)
+          command: npm install --include=dev
+      - run:
+          name: HTML and CSS Formatting
+          command: npx prettier --check "**/*.{html,css}"
       - run:
           name: Linting
           command: cargo clippy --locked
@@ -39,6 +49,10 @@ jobs:
           paths:
             - ./target
           key: << pipeline.parameters.target-cache-key >>
+      - save_cache:
+          paths:
+            -  ./node_modules
+          key: << pipeline.parmeters.node-modules-cache-key >>
 
   audit:
     docker:
