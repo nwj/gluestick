@@ -20,7 +20,7 @@ parameters:
 jobs:
   lint-and-test:
     docker:
-      - image: cimg/rust:<< pipeline.parameters.rust-version >>
+      - image: cimg/rust:<< pipeline.parameters.rust-version >>-node
     steps:
       - checkout
       - run:
@@ -52,7 +52,7 @@ jobs:
       - save_cache:
           paths:
             -  ./node_modules
-          key: << pipeline.parmeters.node-modules-cache-key >>
+          key: << pipeline.parameters.node-modules-cache-key >>
 
   audit:
     docker:
