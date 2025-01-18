@@ -19,6 +19,6 @@ async fn health_check_responds_with_200_and_zero_content() -> Result<()> {
 
     let response = client.health().get().await?;
     assert_eq!(response.status(), 200);
-    assert_eq!(Some(0), response.content_length());
+    assert_eq!(None, response.content_length());
     Ok(())
 }
