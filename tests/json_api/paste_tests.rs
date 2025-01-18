@@ -5,10 +5,9 @@ use crate::common::rand_helper::{random_alphanumeric_string, random_filename, ra
 use crate::common::test_app::TestApp;
 use crate::common::test_client::TestClient;
 use crate::prelude::*;
-use jiff::Timestamp as JiffTimestamp;
 use serde::Deserialize;
 use std::collections::HashSet;
-use uuid::{NoContext, Timestamp, Uuid};
+use uuid::Uuid;
 
 #[derive(Debug, Deserialize)]
 struct IndexResponse {
@@ -168,16 +167,11 @@ async fn index_paginates_correctly() -> Result<()> {
         .seed_with_api_key(&app)
         .await?;
     let client = TestClient::new(app.address, Some(&api_key))?;
-    let now = (JiffTimestamp::now().as_millisecond()) as u64;
 
     let mut pastes = Vec::new();
     for i in 0..8 {
         let paste = MockPaste::builder()
-            // This is necessary because we assert below on the order of items within and across pages.
-            // That order is based on uuid v7 ordering, which has millisecond precision. Our tests are
-            // so fast at creating these pastes that without this sleep, we can get multiple pastes
-            // with the same millisecond of creation, which then fails the ordering assertions.
-            .id(Uuid::new_v7(Timestamp::from_unix(NoContext, now + i, 0)))
+            .id(Uuid::now_v7())
             .filename(i.to_string())
             .description(i.to_string())
             .body(i.to_string())
