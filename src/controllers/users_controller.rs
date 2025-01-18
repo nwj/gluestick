@@ -17,7 +17,7 @@ use axum::extract::{Form, State};
 use axum::extract::{Path, Query};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use secrecy::{ExposeSecret, Secret};
+use secrecy::{ExposeSecret, SecretString};
 use serde::Deserialize;
 
 pub async fn new() -> NewPage {
@@ -28,7 +28,7 @@ pub async fn new() -> NewPage {
 pub struct CreateParams {
     pub username: String,
     pub email: String,
-    pub password: Secret<String>,
+    pub password: SecretString,
     pub invite_code: String,
 }
 
@@ -168,9 +168,9 @@ pub async fn settings(session: Session, State(db): State<Database>) -> Result<im
 
 #[derive(Clone, Deserialize)]
 pub struct ChangePasswordParams {
-    pub old_password: Secret<String>,
-    pub new_password: Secret<String>,
-    pub new_password_confirm: Secret<String>,
+    pub old_password: SecretString,
+    pub new_password: SecretString,
+    pub new_password_confirm: SecretString,
 }
 
 pub async fn change_password(

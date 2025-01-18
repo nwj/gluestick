@@ -1,9 +1,9 @@
 use crate::controllers::users_controller::CreateParams;
 use crate::models::session::Session;
 use askama_axum::Template;
-use secrecy::{ExposeSecret, Secret};
+use secrecy::{ExposeSecret, SecretString};
 
-#[derive(Clone, Debug, Template)]
+#[derive(Clone, Debug, Default, Template)]
 #[template(path = "users/new.html")]
 pub struct NewPage {
     pub session: Option<Session>,
@@ -11,26 +11,10 @@ pub struct NewPage {
     pub username_error_message: Option<String>,
     pub email: String,
     pub email_error_message: Option<String>,
-    pub password: Secret<String>,
+    pub password: SecretString,
     pub password_error_message: Option<String>,
     pub invite_code: String,
     pub invite_code_error_message: Option<String>,
-}
-
-impl Default for NewPage {
-    fn default() -> Self {
-        Self {
-            session: None,
-            username: String::default(),
-            username_error_message: Option::default(),
-            email: String::default(),
-            email_error_message: Option::default(),
-            password: Secret::new(String::default()),
-            password_error_message: Option::default(),
-            invite_code: String::default(),
-            invite_code_error_message: Option::default(),
-        }
-    }
 }
 
 impl From<CreateParams> for NewPage {
@@ -80,20 +64,11 @@ impl From<CreateParams> for EmailInputPartial {
 }
 
 // TODO: replace this partial with a block fragment once askama 0.13.0 releases
-#[derive(Clone, Debug, Template)]
+#[derive(Clone, Debug, Default, Template)]
 #[template(path = "users/partials/password_input.html")]
 pub struct PasswordInputPartial {
-    pub password: Secret<String>,
+    pub password: SecretString,
     pub password_error_message: Option<String>,
-}
-
-impl Default for PasswordInputPartial {
-    fn default() -> Self {
-        Self {
-            password: Secret::new(String::default()),
-            password_error_message: Option::default(),
-        }
-    }
 }
 
 impl From<CreateParams> for PasswordInputPartial {
