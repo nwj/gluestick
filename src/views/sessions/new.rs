@@ -1,26 +1,15 @@
 use crate::controllers::sessions_controller::CreateParams;
 use crate::models::session::Session;
 use askama_axum::Template;
-use secrecy::{ExposeSecret, Secret};
+use secrecy::{ExposeSecret, SecretString};
 
-#[derive(Clone, Debug, Template)]
+#[derive(Clone, Debug, Default, Template)]
 #[template(path = "sessions/new.html")]
 pub struct NewPage {
     pub session: Option<Session>,
     pub email: String,
-    pub password: Secret<String>,
+    pub password: SecretString,
     pub error_message: Option<String>,
-}
-
-impl Default for NewPage {
-    fn default() -> Self {
-        Self {
-            session: None,
-            email: String::default(),
-            password: Secret::new(String::default()),
-            error_message: Option::default(),
-        }
-    }
 }
 
 impl From<CreateParams> for NewPage {

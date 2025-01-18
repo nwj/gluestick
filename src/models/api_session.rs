@@ -7,7 +7,7 @@ use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use rusqlite::types::{FromSql, FromSqlResult, ToSql, ToSqlOutput, Type, ValueRef};
 use rusqlite::{Row, Transaction, TransactionBehavior};
-use secrecy::{ExposeSecret, Secret};
+use secrecy::{ExposeSecret, SecretBox, SecretString};
 use sha2::{Digest, Sha256};
 use tokio_rusqlite::named_params;
 use uuid::Uuid;
@@ -197,12 +197,14 @@ impl ApiKey {
 }
 
 #[derive(Clone)]
-pub struct UnhashedKey(Secret<String>);
+pub struct UnhashedKey(SecretString);
 
 impl UnhashedKey {
     pub fn generate() -> Self {
         let mut rng = ChaCha20Rng::from_entropy();
-        Self(Secret::new(format!("{:032x}", rng.gen::<u128>())))
+        Self(SecretString::new(
+            format!("{:032x}", rng.gen::<u128>()).into(),
+        ))
     }
 }
 
@@ -211,23 +213,23 @@ impl TryFrom<&str> for UnhashedKey {
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         u128::from_str_radix(value, 16)?;
-        Ok(Self(Secret::new(value.to_string())))
+        Ok(Self(SecretString::new(value.into())))
     }
 }
 
-impl ExposeSecret<String> for UnhashedKey {
-    fn expose_secret(&self) -> &String {
+impl ExposeSecret<str> for UnhashedKey {
+    fn expose_secret(&self) -> &str {
         self.0.expose_secret()
     }
 }
 
 #[derive(From)]
-pub struct HashedKey(Secret<Vec<u8>>);
+pub struct HashedKey(SecretBox<Vec<u8>>);
 
 impl From<&UnhashedKey> for HashedKey {
     fn from(key: &UnhashedKey) -> Self {
         let hash = Sha256::digest(key.expose_secret().as_bytes()).to_vec();
-        Self(Secret::new(hash))
+        Self(SecretBox::new(Box::new(hash)))
     }
 }
 
@@ -251,6 +253,6 @@ impl ToSql for HashedKey {
 
 impl FromSql for HashedKey {
     fn column_result(value: ValueRef) -> FromSqlResult<Self> {
-        Vec::<u8>::column_result(value).map(|vec| Ok(Secret::new(vec).into()))?
+        Vec::<u8>::column_result(value).map(|vec| Ok(SecretBox::new(Box::new(vec)).into()))?
     }
 }

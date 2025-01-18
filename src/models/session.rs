@@ -7,7 +7,7 @@ use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use rusqlite::types::{FromSql, FromSqlResult, ToSql, ToSqlOutput, Type, ValueRef};
 use rusqlite::{Row, Transaction, TransactionBehavior};
-use secrecy::{ExposeSecret, Secret};
+use secrecy::{ExposeSecret, SecretBox, SecretString};
 use sha2::{Digest, Sha256};
 use tokio_rusqlite::named_params;
 use uuid::Uuid;
@@ -189,7 +189,7 @@ impl SessionToken {
 }
 
 #[derive(Clone)]
-pub struct UnhashedToken(Secret<String>);
+pub struct UnhashedToken(SecretString);
 
 impl UnhashedToken {
     pub fn generate() -> Self {
@@ -200,7 +200,9 @@ impl UnhashedToken {
         //
         // See: https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html
         let mut rng = ChaCha20Rng::from_entropy();
-        Self(Secret::new(format!("{:032x}", rng.gen::<u128>())))
+        Self(SecretString::new(
+            format!("{:032x}", rng.gen::<u128>()).into(),
+        ))
     }
 }
 
@@ -209,29 +211,29 @@ impl TryFrom<&str> for UnhashedToken {
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         u128::from_str_radix(value, 16)?;
-        Ok(Self(Secret::new(value.to_string())))
+        Ok(Self(SecretString::new(value.into())))
     }
 }
 
-impl ExposeSecret<String> for UnhashedToken {
-    fn expose_secret(&self) -> &String {
+impl ExposeSecret<str> for UnhashedToken {
+    fn expose_secret(&self) -> &str {
         self.0.expose_secret()
     }
 }
 
 #[derive(From)]
-pub struct HashedToken(Secret<Vec<u8>>);
+pub struct HashedToken(SecretBox<Vec<u8>>);
 
 impl Clone for HashedToken {
     fn clone(&self) -> Self {
-        HashedToken(Secret::new(self.0.expose_secret().clone()))
+        HashedToken(SecretBox::new(Box::new(self.0.expose_secret().clone())))
     }
 }
 
 impl From<&UnhashedToken> for HashedToken {
     fn from(token: &UnhashedToken) -> Self {
         let hash = Sha256::digest(token.expose_secret().as_bytes()).to_vec();
-        Self(Secret::new(hash))
+        Self(SecretBox::new(Box::new(hash)))
     }
 }
 
@@ -255,6 +257,6 @@ impl ToSql for HashedToken {
 
 impl FromSql for HashedToken {
     fn column_result(value: ValueRef) -> FromSqlResult<Self> {
-        Vec::<u8>::column_result(value).map(|vec| Ok(Secret::new(vec).into()))?
+        Vec::<u8>::column_result(value).map(|vec| Ok(SecretBox::new(Box::new(vec)).into()))?
     }
 }

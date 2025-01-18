@@ -7,7 +7,7 @@ use axum::body::Body;
 use axum::extract::{Form, State};
 use axum::http::{header::HeaderMap, HeaderValue, StatusCode};
 use axum::response::{IntoResponse, Response};
-use secrecy::{ExposeSecret, Secret};
+use secrecy::{ExposeSecret, SecretString};
 use serde::Deserialize;
 
 pub async fn new() -> NewPage {
@@ -17,7 +17,7 @@ pub async fn new() -> NewPage {
 #[derive(Clone, Deserialize)]
 pub struct CreateParams {
     pub email: String,
-    pub password: Secret<String>,
+    pub password: SecretString,
 }
 
 pub async fn create(

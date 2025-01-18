@@ -7,7 +7,7 @@ use jiff::Timestamp;
 use rand::rngs::OsRng;
 use rusqlite::types::{FromSql, FromSqlResult, ToSql, ToSqlOutput, Type, ValueRef};
 use rusqlite::{named_params, Row};
-use secrecy::{ExposeSecret, Secret};
+use secrecy::{ExposeSecret, SecretString};
 use std::convert::TryFrom;
 use std::str::FromStr;
 use uuid::Uuid;
@@ -273,12 +273,12 @@ impl FromSql for EmailAddress {
 }
 
 #[derive(Clone, Debug)]
-pub struct UnhashedPassword(Secret<String>);
+pub struct UnhashedPassword(SecretString);
 
-impl TryFrom<Secret<String>> for UnhashedPassword {
+impl TryFrom<SecretString> for UnhashedPassword {
     type Error = Error;
 
-    fn try_from(value: Secret<String>) -> Result<Self, Self::Error> {
+    fn try_from(value: SecretString) -> Result<Self, Self::Error> {
         if value.expose_secret().is_empty() {
             Err(Error::Parse("Password may not be blank".into()))
         } else if value.expose_secret().chars().count() < 8 {
@@ -295,8 +295,8 @@ impl TryFrom<Secret<String>> for UnhashedPassword {
     }
 }
 
-impl ExposeSecret<String> for UnhashedPassword {
-    fn expose_secret(&self) -> &String {
+impl ExposeSecret<str> for UnhashedPassword {
+    fn expose_secret(&self) -> &str {
         self.0.expose_secret()
     }
 }
@@ -308,25 +308,26 @@ impl PartialEq for UnhashedPassword {
 }
 
 #[derive(Clone, Debug)]
-pub struct HashedPassword(Secret<String>);
+pub struct HashedPassword(SecretString);
 
 impl TryFrom<UnhashedPassword> for HashedPassword {
     type Error = Error;
 
     fn try_from(value: UnhashedPassword) -> Result<Self, Self::Error> {
-        Ok(HashedPassword(Secret::new(
+        Ok(HashedPassword(SecretString::new(
             Argon2::default()
                 .hash_password(
                     value.expose_secret().as_bytes(),
                     &SaltString::generate(&mut OsRng),
                 )?
-                .to_string(),
+                .to_string()
+                .into(),
         )))
     }
 }
 
-impl ExposeSecret<String> for HashedPassword {
-    fn expose_secret(&self) -> &String {
+impl ExposeSecret<str> for HashedPassword {
+    fn expose_secret(&self) -> &str {
         self.0.expose_secret()
     }
 }
@@ -339,7 +340,7 @@ impl ToSql for HashedPassword {
 
 impl FromSql for HashedPassword {
     fn column_result(value: ValueRef) -> FromSqlResult<Self> {
-        String::column_result(value).map(|s| Self(Secret::new(s)))
+        String::column_result(value).map(|s| Self(SecretString::new(s.into())))
     }
 }
 
